@@ -24,7 +24,7 @@ export default function PlayersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const playerRepo = new PlayerRepository();
-  const groupId = 'g1'; // Provisório enquanto não temos auth complete
+  const groupId = '00000000-0000-0000-0000-000000000001'; // ID de teste fixo para bater com o Seed
 
   const fetchPlayers = async () => {
     setLoading(true);

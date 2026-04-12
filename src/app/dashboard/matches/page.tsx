@@ -34,7 +34,7 @@ export default function MatchPage() {
 
   const playerRepo = new PlayerRepository();
   const draftService = new DraftService();
-  const groupId = 'g1';
+  const groupId = '00000000-0000-0000-0000-000000000001';
 
   const fetchPlayers = async () => {
     setLoading(true);
