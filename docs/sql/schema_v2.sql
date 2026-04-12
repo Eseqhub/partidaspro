@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS groups (
   name TEXT NOT NULL,
   owner_id UUID REFERENCES auth.users(id),
   is_paid_model BOOLEAN DEFAULT FALSE,
+  invite_password TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -30,6 +31,12 @@ CREATE TABLE IF NOT EXISTS players (
   positions player_position_v2[] DEFAULT '{MO}',
   status TEXT DEFAULT 'Ativo',
   is_mensalista BOOLEAN DEFAULT FALSE,
+  full_name TEXT,
+  nationality TEXT,
+  birth_date DATE,
+  preferred_foot TEXT,
+  height NUMERIC(3,2),
+  weight NUMERIC(5,2),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -53,6 +60,12 @@ CREATE TABLE IF NOT EXISTS matches (
   winner_team TEXT, -- 'home', 'away', 'draw'
   timer_seconds INTEGER DEFAULT 0,
   match_fee DECIMAL(10,2) DEFAULT 0.00,
+  duration_minutes INTEGER DEFAULT 10,
+  stoppage_minutes INTEGER DEFAULT 0,
+  goal_limit INTEGER DEFAULT 0,
+  pix_key TEXT,
+  home_color TEXT DEFAULT 'Branco',
+  away_color TEXT DEFAULT 'Preto',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

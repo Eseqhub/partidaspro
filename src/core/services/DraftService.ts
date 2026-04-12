@@ -9,33 +9,67 @@ export interface DraftResult {
 
 export class DraftService {
   /**
-   * Realiza o sorteio de dois times balanceados por rating e posições críticas (Goleiros).
+   * Calcula o "Nível de Poder" do jogador baseado em múltiplos fatores.
+   */
+  private calculatePowerLevel(player: Player): number {
+    let score = player.rating * 10; // Base: 0 a 50
+
+    // Fator Idade (Presumindo que o auge físico é entre 20 e 35 anos)
+    if (player.birth_date) {
+      const age = this.calculateAge(player.birth_date);
+      if (age >= 20 && age <= 35) score += 5;
+      else if (age > 35 && age < 45) score += 2;
+      else if (age >= 45) score -= 2;
+    }
+
+    // Fator Físico (Simple IMC-like ratio)
+    if (player.height && player.weight) {
+        const heightInMeters = player.height;
+        const imc = player.weight / (heightInMeters * heightInMeters);
+        // IMC Ideal para atletas amadores (20-25)
+        if (imc >= 20 && imc <= 26) score += 5;
+        else if (imc > 26 && imc < 30) score += 2;
+        else score -= 1;
+    }
+
+    return score;
+  }
+
+  private calculateAge(birthDate: string): number {
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+        age--;
+    }
+    return age;
+  }
+
+  /**
+   * Realiza o sorteio de dois times balanceados por múltiplos fatores.
    */
   balanceTeams(players: Player[]): DraftResult {
     // 1. Separar goleiros dos demais
     const goalkeepers = players.filter(p => p.positions.includes('G'));
     const fieldPlayers = players.filter(p => !p.positions.includes('G'));
 
-    // 2. Ordenar jogadores de linha por rating (descendente)
-    const sortedField = [...fieldPlayers].sort((a, b) => b.rating - a.rating);
+    // 2. Ordenar jogadores de linha por Power Level (descendente)
+    const sortedField = [...fieldPlayers].sort((a, b) => 
+        this.calculatePowerLevel(b) - this.calculatePowerLevel(a)
+    );
 
     const homeTeam: Player[] = [];
     const awayTeam: Player[] = [];
 
-    // 3. Distribuir goleiros (um para cada time se houver pelo menos 2)
+    // 3. Distribuir goleiros
     goalkeepers.forEach((gk, index) => {
-      if (index % 2 === 0) {
-        homeTeam.push(gk);
-      } else {
-        awayTeam.push(gk);
-      }
+      if (index % 2 === 0) homeTeam.push(gk);
+      else awayTeam.push(gk);
     });
 
-    // 4. Snake Draft para jogadores de linha para balancear rating
-    // Padrão: A, B, B, A, A, B, B...
+    // 4. Snake Draft Pro
     sortedField.forEach((player, index) => {
-      // O padrão snake alterna a cada 2 jogadores após o primeiro par
-      // Índices: 0(A), 1(B), 2(B), 3(A), 4(A), 5(B), 6(B), 7(A)...
       const isSecondOfPair = Math.floor(index / 2) % 2 === 1;
       const isEven = index % 2 === 0;
 
@@ -48,8 +82,8 @@ export class DraftService {
       }
     });
 
-    const homeRating = homeTeam.reduce((acc, p) => acc + p.rating, 0) / (homeTeam.length || 1);
-    const awayRating = awayTeam.reduce((acc, p) => acc + p.rating, 0) / (awayTeam.length || 1);
+    const homeRating = homeTeam.reduce((acc, p) => acc + this.calculatePowerLevel(p), 0) / (homeTeam.length || 1);
+    const awayRating = awayTeam.reduce((acc, p) => acc + this.calculatePowerLevel(p), 0) / (awayTeam.length || 1);
 
     return {
       homeTeam,

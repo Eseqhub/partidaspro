@@ -3,6 +3,7 @@ export interface Group {
   name: string;
   owner_id: string;
   is_paid_model: boolean;
+  invite_password?: string;
   created_at?: string;
 }
 

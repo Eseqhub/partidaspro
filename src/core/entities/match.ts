@@ -12,6 +12,12 @@ export interface Match {
   away_team_name?: string;
   timer_seconds: number;
   match_fee: number;
+  duration_minutes: number;
+  stoppage_minutes: number;
+  goal_limit: number;
+  pix_key?: string;
+  home_color?: string;
+  away_color?: string;
   created_at?: string;
 }
 

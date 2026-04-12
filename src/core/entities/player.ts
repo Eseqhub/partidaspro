@@ -5,6 +5,12 @@ export interface Player {
   id: string;
   group_id: string;
   name: string;
+  full_name?: string;
+  nationality?: string;
+  birth_date?: string;
+  preferred_foot?: 'L' | 'R' | 'Ambidestro';
+  height?: number;
+  weight?: number;
   photo_url?: string;
   rating: number; // 1.0 a 5.0
   positions: PlayerPositionV2[]; // Array de posições conforme fotos

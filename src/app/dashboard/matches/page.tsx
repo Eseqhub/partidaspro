@@ -20,9 +20,10 @@ import {
   faRotateRight,
   faUserSlash
 } from '@fortawesome/free-solid-svg-icons';
+import { AudioService } from '@/infra/services/AudioService';
 
 export default function MatchPage() {
-  const [activeTab, setActiveTab] = useState<'attendance' | 'match' | 'next'>('attendance');
+  const [activeTab, setActiveTab] = useState<'attendance' | 'match' | 'next' | 'settings'>('attendance');
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [draftResult, setDraftResult] = useState<DraftResult | null>(null);
@@ -30,10 +31,20 @@ export default function MatchPage() {
   
   const [score, setScore] = useState({ home: 0, away: 0 });
   const [timer, setTimer] = useState(0);
-  const [status, setStatus] = useState<'Em curso' | 'Pausada'>('Pausada');
+  const [status, setStatus] = useState<'Em curso' | 'Pausada' | 'Finalizada'>('Pausada');
+  
+  // Configurações da Partida
+  const [config, setConfig] = useState({
+    duration: 10, // minutos
+    stoppage: 0,
+    goalLimit: 0,
+    homeColor: 'Branco',
+    awayColor: 'Preto'
+  });
 
   const playerRepo = new PlayerRepository();
   const draftService = new DraftService();
+  const audioService = new AudioService();
   const groupId = '00000000-0000-0000-0000-000000000001';
 
   const fetchPlayers = async () => {
@@ -56,11 +67,34 @@ export default function MatchPage() {
     let interval: any;
     if (status === 'Em curso') {
       interval = setInterval(() => {
-        setTimer(t => t + 1);
+        setTimer(prev => {
+          const nextValue = prev + 1;
+          const limitSeconds = (config.duration + config.stoppage) * 60;
+          const remaining = limitSeconds - nextValue;
+
+          // Lógica de Alarmes Sonoros
+          if (remaining === 0) {
+            audioService.playEndAlarm();
+            setStatus('Finalizada');
+            return limitSeconds;
+          }
+
+          // Bip a cada 10s no último minuto
+          if (remaining < 60 && remaining > 10 && remaining % 10 === 0) {
+            audioService.playBip(440, 0.1);
+          }
+
+          // Bip a cada 1s nos últimos 10s
+          if (remaining <= 10 && remaining > 0) {
+            audioService.playBip(880, 0.1);
+          }
+
+          return nextValue;
+        });
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [status]);
+  }, [status, config]);
 
   const togglePlayerAttendance = (id: string) => {
     setSelectedPlayerIds(prev => 
@@ -83,6 +117,7 @@ export default function MatchPage() {
     { id: 'attendance', label: 'Chamada', icon: faListCheck },
     { id: 'match', label: 'Partida', icon: faStopwatch },
     { id: 'next', label: 'Espera', icon: faUserGroup },
+    { id: 'settings', label: 'Config', icon: faRotateRight }, // Ícone para configurações
   ];
 
   return (
@@ -92,10 +127,13 @@ export default function MatchPage() {
         awayScore={score.away}
         homeTeamName="Time A"
         awayTeamName="Time B"
+        homeColor={config.homeColor}
+        awayColor={config.awayColor}
         timer={timer}
-        status={status === 'Em curso' ? 'Em curso' : 'Pausada'}
+        status={status}
         onToggleTimer={() => setStatus(s => s === 'Em curso' ? 'Pausada' : 'Em curso')}
         onStopMatch={() => setStatus('Pausada')}
+        onUpdateConfig={(updates) => setConfig(prev => ({ ...prev, ...updates }))}
       />
 
       {/* HUD Tabs */}
@@ -122,6 +160,84 @@ export default function MatchPage() {
       </div>
 
       <div className="space-y-6">
+        {activeTab === 'settings' && (
+        <div className="space-y-6">
+          <GlassCard className="p-6">
+            <h3 className="text-white font-black uppercase tracking-widest text-sm mb-6 flex items-center gap-2">
+              <FontAwesomeIcon icon={faRotateRight} className="text-primary" /> Configurações da Partida
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block">Duração (Minutos)</label>
+                <input 
+                  type="number" 
+                  value={config.duration}
+                  onChange={(e) => setConfig({...config, duration: parseInt(e.target.value)})}
+                  className="w-full bg-black/20 border border-white/10 p-3 text-white focus:border-primary/40 outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block">Acréscimos (Minutos)</label>
+                <input 
+                  type="number" 
+                  value={config.stoppage}
+                  onChange={(e) => setConfig({...config, stoppage: parseInt(e.target.value)})}
+                  className="w-full bg-black/20 border border-white/10 p-3 text-white focus:border-primary/40 outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block">Limite de Gols (0 = sem limite)</label>
+                <input 
+                  type="number" 
+                  value={config.goalLimit}
+                  onChange={(e) => setConfig({...config, goalLimit: parseInt(e.target.value)})}
+                  className="w-full bg-black/20 border border-white/10 p-3 text-white focus:border-primary/40 outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-primary mb-2 block">Senha de Acesso ao Grupo</label>
+                <input 
+                  type="text" 
+                  placeholder="GERAR SENHA..."
+                  className="w-full bg-black/20 border border-primary/20 p-3 text-primary font-bold focus:border-primary/40 outline-none uppercase"
+                />
+              </div>
+            </div>
+          </GlassCard>
+
+          <GlassCard className="p-6">
+            <h3 className="text-white font-black uppercase tracking-widest text-sm mb-6 flex items-center gap-2">
+               Financeiro
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block">Valor por Pelada (R$)</label>
+                <input 
+                  type="number" 
+                  placeholder="20.00"
+                  className="w-full bg-black/20 border border-white/10 p-3 text-white focus:border-primary/40 outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block">Chave PIX para Recebimento</label>
+                <input 
+                  type="text" 
+                  placeholder="E-MAIL, CPF OU ALEATÓRIA"
+                  className="w-full bg-black/20 border border-white/10 p-3 text-white focus:border-primary/40 outline-none"
+                />
+              </div>
+            </div>
+          </GlassCard>
+          
+          <div className="flex justify-end">
+            <Button variant="primary" className="px-8 py-3 uppercase font-black tracking-widest text-xs">
+                Salvar Configurações
+            </Button>
+          </div>
+        </div>
+      )}
+
         {activeTab === 'attendance' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between px-2">
