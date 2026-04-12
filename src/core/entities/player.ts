@@ -1,0 +1,14 @@
+export type PlayerPositionV2 = 'G' | 'LE' | 'ZG' | 'LD' | 'SA' | 'MO' | 'MD' | 'VOL' | 'CA' | 'PD' | 'PE';
+export type PlayerStatus = 'Ativo' | 'Inativo';
+
+export interface Player {
+  id: string;
+  group_id: string;
+  name: string;
+  photo_url?: string;
+  rating: number; // 1.0 a 5.0
+  positions: PlayerPositionV2[]; // Array de posições conforme fotos
+  status: PlayerStatus;
+  is_mensalista: boolean;
+  created_at?: string;
+}

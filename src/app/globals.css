@@ -1,0 +1,140 @@
+@import "tailwindcss";
+
+:root {
+  --background: #080808;
+  --foreground: #f0f0f0;
+  
+  --primary: #ccff00; /* Electric Lime */
+  --primary-foreground: #000000;
+  
+  --secondary: #00f0ff; /* Cyber Blue */
+  --secondary-foreground: #000000;
+  
+  --accent: #ff3131; /* Neon Red */
+  --accent-foreground: #ffffff;
+  
+  --card: rgba(15, 15, 15, 0.9);
+  --card-foreground: #f0f0f0;
+  
+  --border: #222222;
+  --border-active: #ccff00;
+  --ring: #ccff00;
+  
+  --radius: 0px; 
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+}
+
+* {
+  border-color: var(--border);
+  cursor: crosshair;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Technical HUD Background */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(204, 255, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(204, 255, 0, 0.05) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.2;
+}
+
+/* Scanline Effect */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.1) 50%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.1;
+}
+
+.command-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.command-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 0 20px rgba(204, 255, 0, 0.1);
+  transform: scale(1.005);
+}
+
+.text-hud {
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-weight: 900;
+}
+
+.tab-active {
+  background: var(--primary);
+  color: #000;
+  box-shadow: 0 0 15px rgba(204, 255, 0, 0.3);
+}
+
+/* Custom Scrollbar for HUD */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+@keyframes pulse-border {
+  0% { border-color: var(--border); }
+  50% { border-color: var(--primary); }
+  100% { border-color: var(--border); }
+}
+
+.animate-hud-pulse {
+  animation: pulse-border 2s infinite;
+}
