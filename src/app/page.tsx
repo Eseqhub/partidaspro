@@ -21,7 +21,7 @@ export default function Home() {
             A plataforma definitiva para quem leva o futebol de fim de semana a sério.
           </p>
           <div className="flex items-center gap-4">
-            <Button size="lg">Criar meu Grupo</Button>
+            <Button href="/dashboard" size="lg">Criar meu Grupo</Button>
             <Button variant="glass" size="lg">Ver Planos</Button>
           </div>
         </div>
@@ -37,7 +37,7 @@ export default function Home() {
             <div>
               <h3 className="text-xl font-bold text-white mb-2">Próximas Partidas</h3>
               <p className="text-sm text-white/50 mb-6">Confirme sua presença e veja quem vai pro jogo.</p>
-              <Button variant="outline" size="sm" className="w-full">Agendar Pelada</Button>
+              <Button href="/dashboard/matches" variant="outline" size="sm" className="w-full">Agendar Pelada</Button>
             </div>
           </GlassCard>
 
@@ -48,7 +48,7 @@ export default function Home() {
             <div>
               <h3 className="text-xl font-bold text-white mb-2 underline decoration-secondary/30 decoration-4">Ranking de Craques</h3>
               <p className="text-sm text-white/50 mb-6">Acompanhe gols, assistências e vitórias da galera.</p>
-              <Button variant="outline" size="sm" className="w-full border-secondary/50 text-secondary hover:bg-secondary/5 hover:border-secondary">Ver Tabela</Button>
+              <Button href="/dashboard/stats" variant="outline" size="sm" className="w-full border-secondary/50 text-secondary hover:bg-secondary/5 hover:border-secondary">Ver Tabela</Button>
             </div>
           </GlassCard>
 
@@ -59,7 +59,7 @@ export default function Home() {
             <div>
               <h3 className="text-xl font-bold text-white mb-2">Seus Grupos</h3>
               <p className="text-sm text-white/50 mb-6">Gerencie múltiplos grupos de peladeiros sem esforço.</p>
-              <Button variant="outline" size="sm" className="w-full border-accent/50 text-accent hover:bg-accent/5 hover:border-accent">Explorar Grupos</Button>
+              <Button href="/dashboard/players" variant="outline" size="sm" className="w-full border-accent/50 text-accent hover:bg-accent/5 hover:border-accent">Explorar Grupos</Button>
             </div>
           </GlassCard>
         </div>

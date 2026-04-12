@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,13 +36,13 @@ export default function RootLayout({
               <span className="text-xl font-bold tracking-tight text-white">Peladeiros<span className="text-primary">.Pro</span></span>
             </div>
             <nav className="hidden md:flex items-center gap-8">
-              <a href="#" className="text-sm font-medium text-white/60 hover:text-primary transition-colors animated-underline">Partidas</a>
-              <a href="#" className="text-sm font-medium text-white/60 hover:text-primary transition-colors animated-underline">Grupos</a>
-              <a href="#" className="text-sm font-medium text-white/60 hover:text-primary transition-colors animated-underline">Ranking</a>
+              <Link href="/dashboard/matches" className="text-sm font-medium text-white/60 hover:text-primary transition-colors animated-underline">Partidas</Link>
+              <Link href="/dashboard/players" className="text-sm font-medium text-white/60 hover:text-primary transition-colors animated-underline">Grupos</Link>
+              <Link href="/dashboard/stats" className="text-sm font-medium text-white/60 hover:text-primary transition-colors animated-underline">Ranking</Link>
             </nav>
             <div className="flex items-center gap-4">
-              <button className="text-sm font-medium text-white/60 hover:text-white transition-colors">Entrar</button>
-              <button className="bg-primary text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:brightness-110 transition-all">Começar Agora</button>
+              <Link href="/dashboard" className="text-sm font-medium text-white/60 hover:text-white transition-colors">Entrar</Link>
+              <Button href="/dashboard" className="bg-primary text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:brightness-110 transition-all">Começar Agora</Button>
             </div>
           </div>
         </header>
