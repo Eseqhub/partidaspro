@@ -66,8 +66,8 @@ export default function MatchPage() {
     homeColor: 'Branco',
     awayColor: 'Preto',
     playersPerTeam: 7, // Padrão society
-    coachA: '',
-    coachB: ''
+    homeTeamName: '',
+    awayTeamName: ''
   });
 
   const playerRepo = new PlayerRepository();
@@ -217,8 +217,8 @@ export default function MatchPage() {
       <Scoreboard 
         homeScore={score.home}
         awayScore={score.away}
-        homeTeamName={config.coachA ? `Time de ${config.coachA}` : "Time A"}
-        awayTeamName={config.coachB ? `Time de ${config.coachB}` : "Time B"}
+        homeTeamName={config.homeTeamName || "Time A"}
+        awayTeamName={config.awayTeamName || "Time B"}
         homeColor={config.homeColor}
         awayColor={config.awayColor}
         timer={timer}
@@ -365,22 +365,22 @@ export default function MatchPage() {
                 </select>
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block">Técnico Casa / Time A</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block">Nome do Time Casa (A)</label>
                 <input 
                   type="text" 
-                  value={config.coachA}
-                  onChange={(e) => setConfig({...config, coachA: e.target.value})}
-                  placeholder="Nome do Técnico..."
+                  value={config.homeTeamName}
+                  onChange={(e) => setConfig({...config, homeTeamName: e.target.value})}
+                  placeholder="EX: AMIGOS DO ZEQUi..."
                   className="w-full bg-black/20 border border-white/10 p-3 text-white focus:border-primary/40 outline-none"
                 />
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block">Técnico Visitante / Time B</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block">Nome do Time Visitante (B)</label>
                 <input 
                   type="text" 
-                  value={config.coachB}
-                  onChange={(e) => setConfig({...config, coachB: e.target.value})}
-                  placeholder="Nome do Técnico..."
+                  value={config.awayTeamName}
+                  onChange={(e) => setConfig({...config, awayTeamName: e.target.value})}
+                  placeholder="EX: SEM COLETE..."
                   className="w-full bg-black/20 border border-white/10 p-3 text-white focus:border-primary/40 outline-none"
                 />
               </div>
@@ -516,7 +516,7 @@ export default function MatchPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b border-white/5 pb-2">
                     <h3 className="text-sm font-black text-primary uppercase tracking-[0.4em]">
-                        {config.coachA ? `TIME DE ${config.coachA}` : "TIME MANDANTE (A)"}
+                        {config.homeTeamName ? config.homeTeamName : "TIME MANDANTE (A)"}
                     </h3>
                     <span className="text-[10px] font-mono text-white/40">AVG RATING: {draftResult.homeRating.toFixed(1)}</span>
                   </div>
@@ -531,7 +531,7 @@ export default function MatchPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b border-white/5 pb-2">
                     <h3 className="text-sm font-black text-white/60 uppercase tracking-[0.4em]">
-                        {config.coachB ? `TIME DE ${config.coachB}` : "TIME VISITANTE (B)"}
+                        {config.awayTeamName ? config.awayTeamName : "TIME VISITANTE (B)"}
                     </h3>
                     <span className="text-[10px] font-mono text-white/40">AVG RATING: {draftResult.awayRating.toFixed(1)}</span>
                   </div>

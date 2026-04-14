@@ -8,7 +8,8 @@ import {
   faTrophy,
   faFutbol,
   faExpand,
-  faChevronDown
+  faChevronDown,
+  faShirt
 } from '@fortawesome/free-solid-svg-icons';
 import { MatchOverlay } from './MatchOverlay';
 
@@ -57,6 +58,19 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
     { name: 'Laranja', class: 'bg-orange-500 text-white' }
   ];
 
+  const getVestColorClass = (colorName: string) => {
+    const map: Record<string, string> = {
+      'Branco': 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]',
+      'Preto': 'text-zinc-800 drop-shadow-[0_0_8px_rgba(0,0,0,0.8)]',
+      'Azul': 'text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]',
+      'Amarelo': 'text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]',
+      'Verde': 'text-green-500 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]',
+      'Vermelho': 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]',
+      'Laranja': 'text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]'
+    };
+    return map[colorName] || 'text-white/10';
+  };
+
   return (
     <>
     <GlassCard className="p-4 md:p-8 mb-8 relative border-primary/20 bg-black/40 overflow-hidden shadow-[0_0_50px_rgba(163,230,53,0.05)]">
@@ -80,13 +94,17 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
       <div className="flex items-center justify-between gap-2 md:gap-4 lg:px-6">
         {/* Home Team */}
         <div className="flex flex-col items-center flex-1">
-          <div className="w-16 h-16 md:w-24 md:h-24 bg-slate-900 border-2 border-primary/20 flex items-center justify-center relative group">
-             <FontAwesomeIcon icon={faTrophy} className="text-white/10 group-hover:text-primary transition-colors text-2xl md:text-4xl" />
-             <div className="absolute top-0 left-0 w-1 h-4 bg-primary" />
+          <div className="w-16 h-16 md:w-24 md:h-24 bg-black/40 border-2 border-primary/20 rounded-xl flex items-center justify-center relative group overflow-hidden">
+             <FontAwesomeIcon 
+               icon={faShirt} 
+               className={`text-4xl md:text-5xl transition-colors ${getVestColorClass(homeColor)}`} 
+             />
              
-             {/* Color Indicator */}
-             <div className="absolute -bottom-2 -left-2 px-3 py-1 bg-primary text-[9px] font-black text-black uppercase shadow-lg z-10">
-                {homeColor}
+             {/* Text indicator overlaid on shirt or below */}
+             <div className="absolute bottom-1 w-full text-center px-1">
+                <span className="bg-black/80 px-2 py-0.5 rounded text-[8px] font-black text-white uppercase tracking-widest border border-white/10 shadow-lg">
+                    {homeColor}
+                </span>
              </div>
           </div>
           <h3 className="text-white font-black text-center text-[10px] md:text-sm uppercase tracking-widest mt-6 italic">{homeTeamName}</h3>
@@ -97,7 +115,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
                 onChange={(e) => onUpdateConfig?.({ homeColor: e.target.value })}
                 className="w-full text-[9px] font-black uppercase tracking-widest bg-white/5 border border-white/10 text-white/40 py-2 px-3 rounded hover:border-primary/40 focus:border-primary transition-all appearance-none outline-none text-center"
             >
-                {colors.map(c => <option key={c.name} value={c.name} className="bg-slate-900 font-bold">{c.name}</option>)}
+                {colors.filter(c => c.name !== awayColor).map(c => <option key={c.name} value={c.name} className="bg-slate-900 font-bold">{c.name}</option>)}
             </select>
             <FontAwesomeIcon icon={faChevronDown} className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-white/20 pointer-events-none" />
           </div>
@@ -148,13 +166,17 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
 
         {/* Away Team */}
         <div className="flex flex-col items-center flex-1">
-          <div className="w-16 h-16 md:w-24 md:h-24 bg-slate-900 border-2 border-white/5 flex items-center justify-center relative group">
-            <FontAwesomeIcon icon={faTrophy} className="text-white/10 group-hover:text-primary transition-colors text-2xl md:text-4xl" />
-            <div className="absolute top-0 right-0 w-1 h-4 bg-white/20" />
-            
-             {/* Color Indicator */}
-             <div className="absolute -bottom-2 -right-2 px-3 py-1 bg-white/20 text-[9px] font-black text-white uppercase shadow-lg z-10">
-                {awayColor}
+          <div className="w-16 h-16 md:w-24 md:h-24 bg-black/40 border-2 border-white/10 rounded-xl flex items-center justify-center relative group overflow-hidden">
+             <FontAwesomeIcon 
+               icon={faShirt} 
+               className={`text-4xl md:text-5xl transition-colors ${getVestColorClass(awayColor)}`} 
+             />
+             
+             {/* Text indicator overlaid on shirt or below */}
+             <div className="absolute bottom-1 w-full text-center px-1">
+                <span className="bg-black/80 px-2 py-0.5 rounded text-[8px] font-black text-white uppercase tracking-widest border border-white/10 shadow-lg">
+                    {awayColor}
+                </span>
              </div>
           </div>
           <h3 className="text-white font-black text-center text-[10px] md:text-sm uppercase tracking-widest mt-6 italic">{awayTeamName}</h3>
@@ -165,7 +187,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
                 onChange={(e) => onUpdateConfig?.({ awayColor: e.target.value })}
                 className="w-full text-[9px] font-black uppercase tracking-widest bg-white/5 border border-white/10 text-white/40 py-2 px-3 rounded hover:border-primary/40 focus:border-primary transition-all appearance-none outline-none text-center"
             >
-                {colors.map(c => <option key={c.name} value={c.name} className="bg-slate-900 font-bold">{c.name}</option>)}
+                {colors.filter(c => c.name !== homeColor).map(c => <option key={c.name} value={c.name} className="bg-slate-900 font-bold">{c.name}</option>)}
             </select>
             <FontAwesomeIcon icon={faChevronDown} className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-white/20 pointer-events-none" />
           </div>
