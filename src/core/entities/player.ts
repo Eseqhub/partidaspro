@@ -1,4 +1,4 @@
-export type PlayerPositionV2 = 'G' | 'LE' | 'ZG' | 'LD' | 'SA' | 'MO' | 'MD' | 'VOL' | 'CA' | 'PD' | 'PE';
+export type PlayerPositionV2 = 'G' | 'LD' | 'LE' | 'ZGD' | 'ZGE' | 'ZAG' | 'VOL' | 'MC' | 'MD' | 'ME' | 'MO' | 'PE' | 'PD' | 'SA' | 'CA';
 export type PlayerStatus = 'Ativo' | 'Inativo';
 
 export interface Player {

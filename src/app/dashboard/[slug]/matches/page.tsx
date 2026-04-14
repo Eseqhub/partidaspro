@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import React, { useState, useEffect } from 'react';
 import { Scoreboard } from '@/presentation/components/dashboard/Scoreboard';
 import { PlayerCard } from '@/presentation/components/dashboard/PlayerCard';
+import { TacticalBoard } from '@/presentation/components/dashboard/TacticalBoard';
 import { Player } from '@/core/entities/player';
 import { GlassCard } from '@/presentation/components/ui/GlassCard';
 import { Button } from '@/presentation/components/ui/Button';
@@ -512,6 +513,17 @@ export default function MatchPage() {
               </GlassCard>
             ) : (
               <div className="space-y-12">
+                <div className="mb-12 flex justify-center">
+                   <TacticalBoard 
+                      homeTeam={draftResult.homeTeam} 
+                      awayTeam={draftResult.awayTeam} 
+                      homeColor={config.homeColor}
+                      awayColor={config.awayColor}
+                      homeTeamName={config.homeTeamName || "TIME MANDANTE (A)"}
+                      awayTeamName={config.awayTeamName || "TIME VISITANTE (B)"}
+                   />
+                </div>
+
                 {/* Time A */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b border-white/5 pb-2">

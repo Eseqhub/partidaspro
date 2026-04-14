@@ -10,16 +10,20 @@ interface PlayerCardProps {
 
 const positionColors: Record<PlayerPositionV2, string> = {
   G: 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30',
-  LE: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  ZG: 'bg-green-700/20 text-green-400 border-green-700/30',
   LD: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  SA: 'bg-lime-500/20 text-lime-400 border-lime-500/30',
-  MO: 'bg-green-500/20 text-green-400 border-green-500/30',
-  MD: 'bg-green-500/20 text-green-400 border-green-500/30',
+  LE: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  ZGD: 'bg-green-700/20 text-green-400 border-green-700/30',
+  ZGE: 'bg-green-700/20 text-green-400 border-green-700/30',
+  ZAG: 'bg-green-700/20 text-green-400 border-green-700/30',
   VOL: 'bg-emerald-700/20 text-emerald-400 border-emerald-700/30',
-  CA: 'bg-red-500/20 text-red-500 border-red-500/30',
-  PD: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  MC: 'bg-green-600/20 text-green-400 border-green-600/30',
+  MD: 'bg-green-500/20 text-green-400 border-green-500/30',
+  ME: 'bg-green-500/20 text-green-400 border-green-500/30',
+  MO: 'bg-green-400/20 text-green-400 border-green-400/30',
   PE: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  PD: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  SA: 'bg-lime-500/20 text-lime-400 border-lime-500/30',
+  CA: 'bg-red-500/20 text-red-500 border-red-500/30',
 };
 
 export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onClick }) => {
