@@ -1,7 +1,10 @@
 'use client';
 
-import React from 'react';
-import { Player, PlayerPositionV2 } from '@/core/entities/player';
+import React, { useState, useMemo } from 'react';
+import { Player } from '@/core/entities/player';
+import { MatchEvent } from '@/core/entities/match';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFutbol, faSquare, faStar, faUsers, faShieldHalved } from '@fortawesome/free-solid-svg-icons';
 
 interface TacticalBoardProps {
   homeTeam: Player[];
@@ -10,59 +13,111 @@ interface TacticalBoardProps {
   awayColor?: string;
   homeTeamName?: string;
   awayTeamName?: string;
+  sportType?: 'Futsal' | 'Society' | 'Campo';
+  events?: MatchEvent[];
 }
 
-const getPositionCoords = (pos: PlayerPositionV2) => {
-  const map: Record<string, { x: number; y: number }> = {
-    'G': { x: 50, y: 5 },
-    'ZAG': { x: 50, y: 20 },
-    'ZGE': { x: 35, y: 20 },
-    'ZGD': { x: 65, y: 20 },
-    'LE': { x: 12, y: 25 },
-    'LD': { x: 88, y: 25 },
-    'VOL': { x: 50, y: 40 },
-    'MC': { x: 50, y: 55 },
-    'ME': { x: 25, y: 60 },
-    'MD': { x: 75, y: 60 },
-    'MO': { x: 50, y: 70 },
-    'PE': { x: 15, y: 85 },
-    'PD': { x: 85, y: 85 },
-    'SA': { x: 40, y: 85 },
-    'CA': { x: 50, y: 92 },
-  };
-  return map[pos] || { x: 50, y: 50 };
+const getLineLimit = (sportType: string) => {
+    if (sportType === 'Futsal') return 5;
+    if (sportType === 'Society') return 7;
+    if (sportType === 'Campo') return 11;
+    return 7;
 };
 
-const getVestColorClass = (colorName: string) => {
-    const map: Record<string, string> = {
-      'Branco': 'bg-white text-black border-white',
-      'Preto': 'bg-zinc-800 text-white border-zinc-900',
-      'Azul': 'bg-blue-600 text-white border-blue-800',
-      'Amarelo': 'bg-yellow-400 text-black border-yellow-600',
-      'Verde': 'bg-green-600 text-white border-green-800',
-      'Vermelho': 'bg-red-600 text-white border-red-800',
-      'Laranja': 'bg-orange-500 text-white border-orange-700'
+const getFormationCoords = (index: number, total: number, isHome: boolean, sportType: string) => {
+    // Para visual de HUD profissional, centralizamos o time no campo
+    // Goleiro sempre no fundo
+    if (index === 0) return { x: 50, y: 85 };
+
+    const layout: Record<string, number[]> = {
+        'Futsal': [1, 2, 1],
+        'Society': [2, 3, 1],
+        'Campo': [4, 3, 3]
     };
-    return map[colorName] || 'bg-white/10 text-white border-white/20';
+
+    const currentLayout = layout[sportType] || [2, 3, 1];
+    let playerIdx = index - 1;
+    let rowIdx = 0;
+    let posInRow = 0;
+    let accumulated = 0;
+
+    for (let i = 0; i < currentLayout.length; i++) {
+        if (playerIdx < accumulated + currentLayout[i]) {
+            rowIdx = i;
+            posInRow = playerIdx - accumulated;
+            break;
+        }
+        accumulated += currentLayout[i];
+    }
+
+    const rowYStep = 55 / currentLayout.length;
+    const baseY = 70 - (rowIdx * rowYStep); // Invertido para perspectiva (fundo -> frente)
+
+    const pCountInRow = currentLayout[rowIdx];
+    const xStep = 80 / (pCountInRow + 1);
+    const finalX = xStep * (posInRow + 1) + 10;
+
+    return { x: finalX, y: baseY };
 };
 
-const PlayerNode = ({ player, x, y, colorData }: { player: Player, x: number, y: number, colorData: string }) => {
-    const colorClasses = getVestColorClass(colorData);
+const PlayerNode = ({ player, x, y, isReserve = false }: { player: Player, x?: number, y?: number, isReserve?: boolean }) => {
     const shortName = player.name.split(' ')[0].substring(0, 10);
-    
+    const rating = player.rating || 3.0;
+    const mainPos = player.positions?.[0] || 'SA';
+
+    if (isReserve) {
+        return (
+            <div className="flex flex-col items-center gap-1 opacity-60 hover:opacity-100 transition-all min-w-[40px] group">
+                <div className="w-8 h-8 rounded-full border border-white/20 overflow-hidden bg-zinc-900 group-hover:border-primary/50 transition-colors">
+                    {player.photo_url ? (
+                        <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[8px] font-black text-white/20">
+                            {mainPos}
+                        </div>
+                    )}
+                </div>
+                <span className="text-[7px] font-bold text-white/40 uppercase tracking-tighter truncate w-full text-center">{shortName}</span>
+            </div>
+        );
+    }
+
     return (
         <div 
-            className="absolute flex flex-col items-center justify-center -translate-x-1/2 -translate-y-1/2 transition-all duration-500 group"
+            className="absolute flex flex-col items-center justify-center -translate-x-1/2 -translate-y-1/2 transition-all duration-1000 group z-30"
             style={{ left: `${x}%`, top: `${y}%` }}
         >
-            <div className={`w-6 h-6 md:w-8 md:h-8 rounded-full border-2 flex items-center justify-center shadow-[0_4px_10px_rgba(0,0,0,0.5)] z-20 ${colorClasses}`}>
-                <span className="text-[8px] md:text-[10px] font-black">{player.positions[0] || 'CA'}</span>
+            {/* Glow Effect */}
+            <div className="absolute -inset-4 bg-primary/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+            
+            <div className="relative">
+                {/* Photo with Neon Ring */}
+                <div className="w-10 h-10 md:w-14 md:h-14 rounded-full border-2 border-primary/50 shadow-[0_0_15px_rgba(204,255,0,0.3)] overflow-hidden bg-zinc-950 group-hover:scale-110 group-hover:border-primary transition-all duration-300">
+                    {player.photo_url ? (
+                        <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs font-black text-white/10">
+                            {mainPos}
+                        </div>
+                    )}
+                </div>
+
+                {/* Rating Badge */}
+                <div className="absolute -top-1 -right-1 bg-primary text-black text-[7px] md:text-[9px] font-black px-1 rounded-sm shadow-lg border border-black/40">
+                    {rating.toFixed(1)}
+                </div>
             </div>
             
-            <div className="bg-black/80 px-1.5 py-0.5 rounded mt-1 border border-white/10 shadow-lg z-30 group-hover:scale-110 transition-transform">
-                <span className="text-[7px] md:text-[9px] font-black uppercase text-white truncate max-w-[50px] inline-block text-center tracking-tighter">
-                    {shortName}
-                </span>
+            {/* Info Block */}
+            <div className="mt-2 text-center">
+                <div className="bg-black/90 backdrop-blur-md px-2 py-0.5 rounded-sm border border-white/20 shadow-xl group-hover:border-primary/40 transition-colors">
+                    <p className="text-[7px] md:text-[9px] font-black uppercase text-white tracking-widest leading-none drop-shadow-md">
+                        {shortName}
+                    </p>
+                </div>
+                <p className="text-[6px] md:text-[8px] font-black text-primary/70 uppercase tracking-widest mt-0.5 italic">
+                    {mainPos}
+                </p>
             </div>
         </div>
     )
@@ -71,93 +126,177 @@ const PlayerNode = ({ player, x, y, colorData }: { player: Player, x: number, y:
 export const TacticalBoard: React.FC<TacticalBoardProps> = ({ 
   homeTeam, 
   awayTeam, 
-  homeColor = 'Branco', 
-  awayColor = 'Preto' 
+  homeTeamName = 'MANDANTE',
+  awayTeamName = 'VISITANTE',
+  sportType = 'Society',
 }) => {
+  const [viewingTeam, setViewingTeam] = useState<'home' | 'away'>('home');
+  const limit = getLineLimit(sportType);
 
-  const renderTeam = (team: Player[], isHome: boolean, colorData: string) => {
-    const counts: Record<string, number> = {};
+  const activeTeam = viewingTeam === 'home' ? homeTeam : awayTeam;
+  const activeTeamName = viewingTeam === 'home' ? homeTeamName : awayTeamName;
 
-    return team.map((p) => {
-      const pos = p.positions[0] || 'CA';
-      if (!counts[pos]) counts[pos] = 0;
-      counts[pos]++;
-      
-      const coords = getPositionCoords(pos);
-      
-      const duplicatesBefore = counts[pos] - 1;
-      const offsetX = duplicatesBefore * 5; // spread % horizontal
-      const offsetY = duplicatesBefore * 1; // spread % vertical
-      
-      const finalX = Math.min(95, Math.max(5, coords.x + offsetX));
-      const finalY = isHome 
-        ? (coords.y * 0.45) + offsetY // map 0-100 to 0-45
-        : 100 - (coords.y * 0.45) - offsetY; // map 0-100 to 100-55
+  const starters = activeTeam.slice(0, limit);
+  const reserves = activeTeam.slice(limit);
 
-      return <PlayerNode key={p.id} player={p} x={finalX} y={finalY} colorData={colorData} />;
-    });
-  };
+  const stats = useMemo(() => {
+    if (activeTeam.length === 0) return { avg: 0, best: null };
+    const avg = activeTeam.reduce((acc, p) => acc + (p.rating || 3), 0) / activeTeam.length;
+    const best = [...activeTeam].sort((a, b) => (b.rating || 0) - (a.rating || 0))[0];
+    return { avg, best };
+  }, [activeTeam]);
 
   return (
-    <div className="w-full bg-black/40 border border-white/10 rounded-xl p-4 md:p-8 flex items-center justify-center overflow-hidden">
+    <div className="w-full flex flex-col items-center select-none animate-in fade-in duration-700">
         
-        {/* Aspect Ratio Container for the Field */}
-        <div className="relative w-full max-w-sm aspect-[1/1.5] bg-green-800/20 border-2 border-white/60 overflow-hidden shadow-2xl">
+        {/* HUD Header */}
+        <div className="w-full max-w-[500px] mb-8 relative">
+            <div className="flex flex-col items-center">
+                <div className="flex items-center gap-4 mb-2">
+                    <div className="h-[1px] w-12 bg-gradient-to-l from-primary/50 to-transparent" />
+                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tighter">
+                        MINHA PELADA <span className="text-primary drop-shadow-[0_0_10px_rgba(204,255,0,0.5)]">PRO</span>
+                    </h2>
+                    <div className="h-[1px] w-12 bg-gradient-to-r from-primary/50 to-transparent" />
+                </div>
+                <div className="bg-black/40 backdrop-blur-md border border-white/10 px-4 py-1 rounded-full flex items-center gap-3">
+                    <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.3em]">HUD DE ESCALAÇÃO PROFISSIONAL</span>
+                    <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
+                    <span className="text-[8px] font-black text-primary uppercase tracking-[0.3em]">{sportType} {limit}x{limit}</span>
+                </div>
+            </div>
+        </div>
+
+        {/* Team Selector Tabs */}
+        <div className="flex gap-2 mb-8 p-1 bg-black/40 border border-white/5 rounded-full overflow-hidden">
+            <button 
+                onClick={() => setViewingTeam('home')}
+                className={`px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-full ${
+                    viewingTeam === 'home' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-white/40 hover:text-white/60'
+                }`}
+            >
+                {homeTeamName}
+            </button>
+            <button 
+                onClick={() => setViewingTeam('away')}
+                className={`px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-full ${
+                    viewingTeam === 'away' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-white/40 hover:text-white/60'
+                }`}
+            >
+                {awayTeamName}
+            </button>
+        </div>
+        
+        {/* HUD Team Name Header */}
+        <div className="w-full max-w-[500px] mb-4">
+            <div className="relative h-12 flex items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent skew-x-[45deg]" />
+                <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+                <h3 className="text-lg md:text-xl font-black text-white uppercase italic tracking-[0.2em] relative z-10">
+                    {activeTeamName}
+                </h3>
+            </div>
+        </div>
+
+        {/* Perspective Container */}
+        <div className="relative w-full max-w-[500px] py-12" style={{ perspective: '1200px' }}>
             
-            {/* Field Stripes (Grass Pattern) */}
-            <div className="absolute inset-0 flex flex-col pointer-events-none opacity-20">
-                {Array.from({ length: 12 }).map((_, i) => (
-                    <div key={i} className={`flex-1 w-full ${i % 2 === 0 ? 'bg-green-600' : 'bg-green-700'}`} />
-                ))}
+            {/* Campo 3D */}
+            <div 
+                className="relative w-full aspect-[1.2/1] bg-slate-950 border-2 border-primary/20 shadow-[0_0_50px_rgba(204,255,0,0.1)] overflow-hidden transition-all duration-1000 ease-in-out"
+                style={{ 
+                    transform: 'rotateX(25deg)',
+                    transformStyle: 'preserve-3d'
+                }}
+            >
+                {/* Gramado com Grid Cibernético */}
+                <div className="absolute inset-0 bg-[#020617]">
+                    <div className="absolute inset-0 opacity-20" 
+                         style={{ backgroundImage: 'linear-gradient(rgba(204,255,0,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(204,255,0,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }} 
+                    />
+                    
+                    {/* Linhas do Campo Estilizadas */}
+                    <div className="absolute inset-4 border-2 border-primary/30">
+                        {/* Meio de Campo */}
+                        <div className="absolute top-0 left-1/2 w-[1px] h-full bg-primary/20 -translate-x-1/2" />
+                        <div className="absolute top-1/2 left-1/2 w-40 h-40 border-2 border-primary/30 rounded-full -translate-x-1/2 -translate-y-1/2 shadow-[0_0_20px_rgba(204,255,0,0.1)]" />
+                        
+                        {/* Áreas (apenas uma pois estamos vendo o time do fundo) */}
+                        <div className="absolute top-0 left-1/2 w-[60%] h-[30%] border-2 border-t-0 border-primary/30 -translate-x-1/2" />
+                        
+                        {/* Glowing Borders */}
+                        <div className="absolute inset-0 shadow-[inset_0_0_40px_rgba(204,255,0,0.1)]" />
+                    </div>
+                </div>
+
+                {/* Atletas Starters (Dentro da transformação para perspectiva) */}
+                <div className="absolute inset-4" style={{ transform: 'translateZ(20px)' }}>
+                    {starters.map((p, i) => {
+                        const { x, y } = getFormationCoords(i, starters.length, true, sportType);
+                        return <PlayerNode key={p.id} player={p} x={x} y={y} />;
+                    })}
+                </div>
             </div>
 
-            {/* Field Lines - Pure CSS Geometry */}
-            <div className="absolute inset-0 pointer-events-none border-[3px] border-white/60 m-2">
-                {/* Center Line */}
-                <div className="absolute top-1/2 left-0 w-full h-px bg-white/60 -translate-y-1/2" />
-                
-                {/* Center Circle */}
-                <div className="absolute top-1/2 left-1/2 w-20 h-20 md:w-28 md:h-28 border-[3px] border-white/60 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                <div className="absolute top-1/2 left-1/2 w-1.5 h-1.5 bg-white/60 rounded-full -translate-x-1/2 -translate-y-1/2" />
+            {/* Shadow beneath the rotated field */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] h-8 bg-black/60 blur-2xl -z-10" />
+        </div>
 
-                {/* Top Penalty Box */}
-                <div className="absolute top-0 left-1/2 w-1/2 h-[15%] border-[3px] border-t-0 border-white/60 -translate-x-1/2" />
-                {/* Top Goal Box */}
-                <div className="absolute top-0 left-1/2 w-1/4 h-[5%] border-[3px] border-t-0 border-white/60 -translate-x-1/2" />
-                {/* Top Penalty Arc */}
-                <div className="absolute top-[15%] left-1/2 w-16 h-16 border-[3px] border-white/60 rounded-full -translate-x-1/2 -translate-y-1/2 clip-bottom-half opacity-60" style={{ clipPath: 'polygon(0 50%, 100% 50%, 100% 100%, 0 100%)' }} />
-                {/* Top Penalty Dot */}
-                <div className="absolute top-[10%] left-1/2 w-1 h-1 bg-white/60 rounded-full -translate-x-1/2" />
-
-                {/* Bottom Penalty Box */}
-                <div className="absolute bottom-0 left-1/2 w-1/2 h-[15%] border-[3px] border-b-0 border-white/60 -translate-x-1/2" />
-                {/* Bottom Goal Box */}
-                <div className="absolute bottom-0 left-1/2 w-1/4 h-[5%] border-[3px] border-b-0 border-white/60 -translate-x-1/2" />
-                {/* Bottom Penalty Arc */}
-                <div className="absolute bottom-[15%] left-1/2 w-16 h-16 border-[3px] border-white/60 rounded-full -translate-x-1/2 translate-y-1/2 opacity-60" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 50%, 0 50%)' }} />
-                {/* Bottom Penalty Dot */}
-                <div className="absolute bottom-[10%] left-1/2 w-1 h-1 bg-white/60 rounded-full -translate-x-1/2" />
+        {/* HUD FOOTER - Stats */}
+        <div className="w-full max-w-[500px] mt-8 grid grid-cols-2 gap-4">
+            <div className="bg-black/60 backdrop-blur-md border border-white/10 p-4 rounded-sm relative overflow-hidden group hover:border-primary/30 transition-colors">
+                <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+                <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">Média do Time</p>
+                <div className="flex items-end gap-2">
+                    <span className="text-2xl font-black text-white italic">{stats.avg.toFixed(1)}</span>
+                    <div className="flex gap-0.5 mb-1.5">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <FontAwesomeIcon 
+                                key={i} 
+                                icon={faStar} 
+                                className={`text-[8px] ${i < Math.round(stats.avg) ? 'text-primary' : 'text-white/10'}`} 
+                            />
+                        ))}
+                    </div>
+                </div>
             </div>
 
-            {/* Teams Rendering */}
-            <div className="absolute inset-0 m-2">
-                {renderTeam(homeTeam, true, homeColor)}
-                {renderTeam(awayTeam, false, awayColor)}
+            <div className="bg-black/60 backdrop-blur-md border border-white/10 p-4 rounded-sm relative overflow-hidden group hover:border-primary/30 transition-all">
+                <div className="absolute top-0 left-0 w-1 h-full bg-orange-500" />
+                <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">Jogador Destaque</p>
+                <div className="flex items-center gap-3">
+                    <span className="text-sm font-black text-white uppercase italic truncate">
+                        {stats.best?.name || '---'}
+                    </span>
+                    <div className="bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded text-[8px] font-black text-orange-500 uppercase">
+                        MVP
+                    </div>
+                </div>
             </div>
+        </div>
 
-            {/* Attack Direction Indicator Home -> Away */}
-            <div className="absolute top-1/2 left-2 -translate-y-1/2 flex flex-col items-center gap-1 opacity-20">
-               <div className="h-16 w-px bg-white" />
-               <div className="w-0 h-0 border-l-[4px] border-r-[4px] border-t-[8px] border-transparent border-t-white" />
+        {/* Área de Reservas - Mais compacta */}
+        {reserves.length > 0 && (
+            <div className="w-full max-w-[500px] mt-12 bg-black/40 border-y border-white/5 py-4">
+                <div className="flex items-center gap-4 px-4 mb-4">
+                    <FontAwesomeIcon icon={faUsers} className="text-white/20 text-xs" />
+                    <h4 className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">Banco de Reservas ({reserves.length})</h4>
+                    <div className="flex-1 h-[1px] bg-white/5" />
+                </div>
+                <div className="flex flex-wrap gap-4 px-6 justify-center">
+                    {reserves.map(p => <PlayerNode key={p.id} player={p} isReserve />)}
+                </div>
             </div>
-            
-            {/* Attack Direction Indicator Away -> Home */}
-            <div className="absolute top-1/2 right-2 -translate-y-1/2 flex flex-col items-center gap-1 opacity-20">
-               <div className="w-0 h-0 border-l-[4px] border-r-[4px] border-b-[8px] border-transparent border-b-white" />
-               <div className="h-16 w-px bg-white" />
-            </div>
+        )}
 
+        <div className="mt-12 flex items-center gap-6 opacity-20 hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-2">
+                <FontAwesomeIcon icon={faShieldHalved} className="text-[10px]" />
+                <span className="text-[8px] font-black uppercase tracking-[0.4em]">Broadcast PRO HUD v3.0</span>
+            </div>
         </div>
     </div>
   );
 };
+
+

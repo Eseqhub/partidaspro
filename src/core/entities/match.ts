@@ -1,5 +1,8 @@
 export type MatchStatus = 'Agendada' | 'Em curso' | 'Pausada' | 'Finalizada';
 
+export type GameMode = 'Rachão' | 'Revezamento' | 'Dois ou Dez' | 'Vira-Acaba';
+export type SportType = 'Futsal' | 'Society' | 'Campo';
+
 export interface Match {
   id: string;
   group_id: string;
@@ -18,6 +21,10 @@ export interface Match {
   pix_key?: string;
   home_color?: string;
   away_color?: string;
+  sport_type?: SportType;
+  game_mode?: GameMode;
+  max_players?: number;
+  max_goalkeepers?: number;
   created_at?: string;
 }
 

@@ -3,7 +3,8 @@ import { Player } from '../entities/player';
 export interface DraftResult {
   homeTeam: Player[];
   awayTeam: Player[];
-  waitingList: Player[];
+  waitingList: Player[]; // Sobras individuais
+  allTeams?: Player[][]; // Para Revezamento (Lista de times prontos)
   homeRating: number;
   awayRating: number;
 }
@@ -99,8 +100,40 @@ export class DraftService {
       homeTeam,
       awayTeam,
       waitingList,
+      allTeams: [homeTeam, awayTeam],
       homeRating,
       awayRating
     };
+  }
+
+  /**
+   * Divide todos os jogadores em N times de tamanho fixo.
+   */
+  balanceMultipleTeams(players: Player[], playersPerTeam: number): Player[][] {
+    const teamsCount = Math.floor(players.length / playersPerTeam);
+    if (teamsCount < 2) {
+        const result = this.balanceTeams(players, playersPerTeam);
+        return [result.homeTeam, result.awayTeam];
+    }
+
+    // Ordenar por nível
+    const sorted = [...players].sort((a, b) => this.calculatePowerLevel(b) - this.calculatePowerLevel(a));
+    const teams: Player[][] = Array.from({ length: teamsCount }, () => []);
+
+    // Distribuição Snake Draft para N times
+    let reverse = false;
+    for (let i = 0; i < sorted.length; i += teamsCount) {
+        const chunk = sorted.slice(i, i + teamsCount);
+        if (reverse) chunk.reverse();
+        
+        chunk.forEach((p, idx) => {
+            if (teams[idx].length < playersPerTeam) {
+                teams[idx].push(p);
+            }
+        });
+        reverse = !reverse;
+    }
+
+    return teams;
   }
 }

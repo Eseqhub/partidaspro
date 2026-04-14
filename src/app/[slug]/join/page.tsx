@@ -11,6 +11,7 @@ import { Group } from '@/core/entities/group';
 
 export default function JoinGroupPage() {
   const [password, setPassword] = useState('');
+  const [acceptedRules, setAcceptedRules] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [group, setGroup] = useState<Group | null>(null);
@@ -27,8 +28,8 @@ export default function JoinGroupPage() {
             return;
         }
         
-        // Se o grupo não tiver senha, pula direto para o registro
-        if (!groupData.invite_password) {
+        // Se o grupo não tiver senha nem regras, pula direto para o registro
+        if (!groupData.invite_password && !groupData.rules_text) {
             sessionStorage.setItem(`access_${groupData.id}`, 'true');
             router.push(`/${slug}/register`);
             return;
@@ -41,17 +42,27 @@ export default function JoinGroupPage() {
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (group?.rules_text && !acceptedRules) {
+        setError('Você precisa aceitar as regras do clube para continuar.');
+        return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      const isValid = await groupRepo.verifyPassword(slug, password);
-      if (isValid && group) {
-        // Garantir acesso temporário na sessão baseado no slug
-        sessionStorage.setItem(`access_${group.id}`, 'true');
-        router.push(`/${slug}/register`);
-      } else {
-        setError('Senha de convite incorreta.');
+      if (group?.invite_password) {
+          const isValid = await groupRepo.verifyPassword(slug, password);
+          if (isValid && group) {
+            sessionStorage.setItem(`access_${group.id}`, 'true');
+            router.push(`/${slug}/register`);
+          } else {
+            setError('Senha de convite incorreta.');
+          }
+      } else if (group) {
+          // Só tinha estatuto para aceitar
+          sessionStorage.setItem(`access_${group.id}`, 'true');
+          router.push(`/${slug}/register`);
       }
     } catch (err) {
       setError('Erro ao verificar acesso.');
@@ -91,6 +102,25 @@ export default function JoinGroupPage() {
 
         <GlassCard className="p-8 border-primary/10">
           <form onSubmit={handleVerify} className="space-y-6">
+            {group.rules_text && (
+              <div className="bg-black/40 border border-white/10 p-4 rounded text-left">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-2 flex items-center gap-2"><FontAwesomeIcon icon={faShieldHalved}/> Estatuto e Regras</h3>
+                  <div className="text-white/60 text-xs h-32 overflow-y-auto pr-2 mb-4 whitespace-pre-wrap font-mono">
+                      {group.rules_text}
+                  </div>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                      <input 
+                          type="checkbox" 
+                          checked={acceptedRules} 
+                          onChange={(e) => setAcceptedRules(e.target.checked)}
+                          className="w-4 h-4 bg-black/40 border border-white/20 checked:bg-primary outline-none"
+                      />
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-white/50 hover:text-white transition-colors">Li e aceito incondicionalmente as regras</span>
+                  </label>
+              </div>
+            )}
+
+            {group.invite_password && (
             <div>
               <label className="block text-[10px] font-black uppercase tracking-widest text-primary mb-2">
                 Senha de Convite do Clube
@@ -103,11 +133,14 @@ export default function JoinGroupPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="DIGITE A SENHA..."
                   className="w-full bg-black/40 border border-white/10 py-4 pl-12 pr-4 text-white placeholder:text-white/10 focus:border-primary/50 transition-colors outline-none font-bold"
-                  required
+                  required={!!group.invite_password}
                 />
               </div>
               {error && <p className="text-accent text-[10px] mt-3 font-bold uppercase">{error}</p>}
             </div>
+            )}
+
+            {!group.invite_password && error && <p className="text-accent text-[10px] mt-3 font-bold uppercase text-center">{error}</p>}
 
             <Button
               type="submit"

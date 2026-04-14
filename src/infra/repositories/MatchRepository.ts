@@ -64,4 +64,27 @@ export class MatchRepository {
       })
       .subscribe();
   }
+
+  // Events
+  async getEvents(matchId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*, player:players(name)')
+      .eq('match_id', matchId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  }
+
+  async addEvent(event: any): Promise<any> {
+    const { data, error } = await supabase
+      .from('events')
+      .insert([event])
+      .select('*, player:players(name)')
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
 }

@@ -6,6 +6,8 @@ export interface Group {
   owner_id: string;
   invite_password?: string;
   is_paid_model?: boolean;
+  rules_text?: string;
+  sport_type_default?: 'Futsal' | 'Society' | 'Campo';
   created_at: string;
 }
 

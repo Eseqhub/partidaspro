@@ -47,6 +47,7 @@ export default function PlayerRegistrationPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [acceptedRules, setAcceptedRules] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -96,6 +97,10 @@ export default function PlayerRegistrationPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!group) return;
+    if (group.rules_text && !acceptedRules) {
+        alert('Você precisa aceitar as regras do clube para continuar.');
+        return;
+    }
     setLoading(true);
 
     try {
@@ -272,13 +277,50 @@ export default function PlayerRegistrationPage() {
                     <label className="text-[10px] font-black uppercase tracking-widest text-white/40 flex items-center gap-2">
                         <FontAwesomeIcon icon={faCakeCandles} className="text-[8px]" /> Nascimento
                     </label>
-                    <input 
-                        type="date" 
-                        required
-                        value={form.birth_date}
-                        onChange={(e) => setForm({...form, birth_date: e.target.value})}
-                        className="w-full bg-black/40 border border-white/10 p-4 text-white focus:border-primary/50 outline-none transition-colors"
-                    />
+                    <div className="flex gap-2">
+                        <select 
+                            className="flex-1 bg-black/40 border border-white/10 p-4 text-white focus:border-primary/50 outline-none appearance-none font-bold"
+                            value={form.birth_date ? form.birth_date.split('-')[2] : ''}
+                            onChange={(e) => {
+                                const parts = form.birth_date.split('-');
+                                setForm({...form, birth_date: `${parts[0] || '1990'}-${parts[1] || '01'}-${e.target.value.padStart(2, '0')}`});
+                            }}
+                            required
+                        >
+                            <option value="">DIA</option>
+                            {Array.from({ length: 31 }, (_, i) => (
+                                <option key={i+1} value={i+1}>{i+1}</option>
+                            ))}
+                        </select>
+                        <select 
+                            className="flex-1 bg-black/40 border border-white/10 p-4 text-white focus:border-primary/50 outline-none appearance-none font-bold"
+                            value={form.birth_date ? form.birth_date.split('-')[1] : ''}
+                            onChange={(e) => {
+                                const parts = form.birth_date.split('-');
+                                setForm({...form, birth_date: `${parts[0] || '1990'}-${e.target.value.padStart(2, '0')}-${parts[2] || '01'}`});
+                            }}
+                            required
+                        >
+                            <option value="">MÊS</option>
+                            {Array.from({ length: 12 }, (_, i) => (
+                                <option key={i+1} value={i+1}>{i+1}</option>
+                            ))}
+                        </select>
+                        <select 
+                            className="flex-[1.5] bg-black/40 border border-white/10 p-4 text-white focus:border-primary/50 outline-none appearance-none font-bold"
+                            value={form.birth_date ? form.birth_date.split('-')[0] : ''}
+                            onChange={(e) => {
+                                const parts = form.birth_date.split('-');
+                                setForm({...form, birth_date: `${e.target.value}-${parts[1] || '01'}-${parts[2] || '01'}`});
+                            }}
+                            required
+                        >
+                            <option value="">ANO</option>
+                            {Array.from({ length: 60 }, (_, i) => (
+                                <option key={i} value={2015 - i}>{2015 - i}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 <div className="space-y-2">
@@ -345,6 +387,28 @@ export default function PlayerRegistrationPage() {
                     </div>
                 </div>
             </div>
+
+            {group?.rules_text && (
+              <div className="pt-6 border-t border-white/5 space-y-4">
+                  <div className="bg-black/40 border border-white/10 p-4 rounded text-left">
+                      <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-2 flex items-center gap-2">
+                        <FontAwesomeIcon icon={faShieldHalved}/> Estatuto e Regras do Clube
+                      </h3>
+                      <div className="text-white/60 text-xs h-24 overflow-y-auto pr-2 mb-4 whitespace-pre-wrap font-mono leading-relaxed">
+                          {group.rules_text}
+                      </div>
+                      <label className="flex items-center gap-3 cursor-pointer group/rules">
+                          <input 
+                              type="checkbox" 
+                              checked={acceptedRules} 
+                              onChange={(e) => setAcceptedRules(e.target.checked)}
+                              className="w-4 h-4 bg-black/40 border border-white/20 checked:bg-primary outline-none"
+                          />
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-white/50 group-hover/rules:text-white transition-colors">Li e aceito as regras e multas do grupo</span>
+                      </label>
+                  </div>
+              </div>
+            )}
 
             <div className="pt-10 border-t border-white/5">
                 <Button 
