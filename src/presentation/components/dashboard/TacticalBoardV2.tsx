@@ -3,8 +3,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Player } from '@/core/entities/player';
 
-// ─── Tipos ──────────────────────────────────────────────────────────────────
-interface TacticalBoardV2Props {
+// ─────────────────────────────────────────────────────────────────────────────
+// TIPOS
+// ─────────────────────────────────────────────────────────────────────────────
+type SportKey = 'Futsal' | 'Society' | 'Campo';
+
+export interface TacticalBoardV2Props {
   homeTeam: Player[];
   awayTeam: Player[];
   homeTeamName?: string;
@@ -13,629 +17,572 @@ interface TacticalBoardV2Props {
   awayScore?: number;
   timer?: number;
   matchStatus?: 'Agendada' | 'Em curso' | 'Pausada' | 'Finalizada';
-  sportType?: 'Futsal' | 'Society' | 'Campo';
+  sportType?: SportKey;
+  playersPerTeam?: number;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-const getLineLimit = (sport: string) => {
-  if (sport === 'Futsal') return 5;
-  if (sport === 'Campo') return 11;
-  return 7; // Society
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIGURAÇÃO POR MODALIDADE
+// fieldW / fieldH: dimensões reais em metros (usadas como viewBox do SVG)
+// maxW: largura máx em pixels na tela (altura = maxW * fieldH / fieldW)
+// limit: nº de titulares
+// ─────────────────────────────────────────────────────────────────────────────
+interface FieldCfg {
+  fieldW: number; fieldH: number;
+  maxW: number;
+  limit: number;
+  // medidas das áreas em metros
+  bigBoxW: number; bigBoxH: number;
+  smallBoxW: number; smallBoxH: number;
+  goalW: number;
+  circleR: number;
+  penaltyY: number; // distância do gol até o ponto de pênalti
+}
+
+const getFieldCfg = (sport: SportKey, ppt: number): FieldCfg => {
+  const limit = sport === 'Futsal' ? Math.min(ppt, 5)
+              : sport === 'Campo'  ? Math.min(ppt, 11)
+              : Math.min(ppt, 7);
+  if (sport === 'Futsal') return {
+    fieldW: 20, fieldH: 40, maxW: 190, limit,
+    bigBoxW: 10, bigBoxH: 6, smallBoxW: 6, smallBoxH: 3,
+    goalW: 3, circleR: 3, penaltyY: 6,
+  };
+  if (sport === 'Campo') return {
+    fieldW: 68, fieldH: 105, maxW: 260, limit,
+    bigBoxW: 40.32, bigBoxH: 16.5, smallBoxW: 18.32, smallBoxH: 5.5,
+    goalW: 7.32, circleR: 9.15, penaltyY: 11,
+  };
+  // Society — varia conforme nº de jogadores
+  const isSmall = limit <= 5;
+  const isMid   = limit === 6;
+  return {
+    fieldW: isSmall ? 25 : isMid ? 28 : 30,
+    fieldH: isSmall ? 42 : isMid ? 46 : 50,
+    maxW: isSmall ? 195 : isMid ? 215 : 235,
+    limit,
+    bigBoxW: isSmall ? 13 : isMid ? 15 : 16,
+    bigBoxH: isSmall ? 7  : isMid ? 8  : 9,
+    smallBoxW: isSmall ? 7 : 9, smallBoxH: 4,
+    goalW: 5, circleR: 4, penaltyY: 7,
+  };
 };
 
-const FORMATIONS: Record<string, number[][]> = {
-  Futsal: [[1], [2], [1]],       // 1-2-1
-  Society: [[1], [2], [3], [1]], // 1-2-3-1 (GK, DEF, MID, ATK)
-  Campo:   [[1], [4], [3], [3]], // 1-4-3-3
+// ─────────────────────────────────────────────────────────────────────────────
+// MAPA DE POSIÇÕES → coordenadas táticas (% do campo, Y: 0=gol adversário topo)
+// ─────────────────────────────────────────────────────────────────────────────
+const POS_MAP: Record<string, { y: number; xBase: number }> = {
+  G:   { y: 91, xBase: 50 },
+  ZAG: { y: 75, xBase: 50 },
+  ZGD: { y: 75, xBase: 62 }, ZGE: { y: 75, xBase: 38 },
+  LD:  { y: 67, xBase: 84 }, LE:  { y: 67, xBase: 16 },
+  VOL: { y: 57, xBase: 50 },
+  MC:  { y: 48, xBase: 50 },
+  MD:  { y: 48, xBase: 67 }, ME:  { y: 48, xBase: 33 },
+  MO:  { y: 37, xBase: 50 },
+  PD:  { y: 27, xBase: 80 }, PE:  { y: 27, xBase: 20 },
+  SA:  { y: 20, xBase: 50 },
+  CA:  { y: 12, xBase: 50 },
 };
+const FALLBACK = { y: 50, xBase: 50 };
 
-/**
- * Retorna coordenadas percentuais (x, y) para cada posição no campo.
- * Campo renderizado de baixo (GK) para cima (ataque).
- */
-const getFormationCoords = (
-  index: number,
-  total: number,
-  sport: string
-): { x: number; y: number } => {
-  if (index === 0) return { x: 50, y: 88 }; // Goleiro na base
-
-  const rows = FORMATIONS[sport] ?? FORMATIONS.Society;
-  // Flatten: cada row pode ter N jogadores
-  const slots: { row: number; posInRow: number; rowCount: number }[] = [];
-  rows.forEach((rowDef, ri) => {
-    const count = rowDef[0];
-    for (let p = 0; p < count; p++) {
-      slots.push({ row: ri, posInRow: p, rowCount: count });
-    }
+// Distribui múltiplos jogadores na mesma zona Y horizontalmente
+const computeCoords = (players: Player[]) => {
+  const mapped = players.map(p => {
+    const pos = p.positions?.[0] ?? 'MO';
+    const pm  = POS_MAP[pos] ?? FALLBACK;
+    return { player: p, y: pm.y, xBase: pm.xBase };
   });
 
-  const slot = slots[index - 1]; // index 0 é GK, restante nos slots
-  if (!slot) return { x: 50, y: 50 };
+  // Agrupa por zona Y (arredonda p/ múltiplos de 10)
+  const groups = new Map<number, typeof mapped>();
+  mapped.forEach(item => {
+    const zone = Math.round(item.y / 10) * 10;
+    if (!groups.has(zone)) groups.set(zone, []);
+    groups.get(zone)!.push(item);
+  });
 
-  const totalRows = rows.length;
-  // Y: distribui de 72% (1ª linha de campo) a 20% (ataque)
-  const y = 72 - (slot.row / (totalRows - 1)) * 58;
-  // X: distribui horizontalmente
-  const xStep = 80 / (slot.rowCount + 1);
-  const x = xStep * (slot.posInRow + 1) + 10;
-
-  return { x, y };
+  const result: { player: Player; x: number; y: number }[] = [];
+  groups.forEach(group => {
+    if (group.length === 1) {
+      result.push({ player: group[0].player, x: group[0].xBase, y: group[0].y });
+    } else {
+      const step = 76 / (group.length + 1);
+      group.forEach((item, i) =>
+        result.push({ player: item.player, x: 12 + step * (i + 1), y: item.y })
+      );
+    }
+  });
+  return result;
 };
 
-const formatTimer = (seconds: number) => {
-  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-  const s = (seconds % 60).toString().padStart(2, '0');
-  return `${m}:${s}`;
+const fmtTime = (s: number) =>
+  `${Math.floor(s / 60).toString().padStart(2,'0')}:${(s % 60).toString().padStart(2,'0')}`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SVG DE LINHAS DO CAMPO (usa metros reais como viewBox → sem distorção)
+// ─────────────────────────────────────────────────────────────────────────────
+const FieldSVG: React.FC<{ cfg: FieldCfg; sport: SportKey }> = ({ cfg, sport }) => {
+  const { fieldW: W, fieldH: H, bigBoxW, bigBoxH, smallBoxW, smallBoxH,
+          goalW, circleR, penaltyY } = cfg;
+  const cx = W / 2;
+  const cy = H / 2;
+  const blue     = 'rgba(0,180,255,0.6)';
+  const blueFaint= 'rgba(0,180,255,0.35)';
+  const sw = W * 0.012; // espessura da linha proporcional
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none' }}
+    >
+      <defs>
+        <filter id="fglow2">
+          <feGaussianBlur stdDeviation={W * 0.012} result="b" />
+          <feComposite in="SourceGraphic" in2="b" operator="over" />
+        </filter>
+      </defs>
+
+      {/* Borda do campo */}
+      <rect x={W*0.03} y={H*0.015} width={W*0.94} height={H*0.97}
+        fill="none" stroke={blue} strokeWidth={sw*1.4} filter="url(#fglow2)" />
+
+      {/* Linha de meio-campo */}
+      <line x1={W*0.03} y1={cy} x2={W*0.97} y2={cy}
+        stroke={blueFaint} strokeWidth={sw} />
+
+      {/* Círculo central — usando r em metros → escala correta porque viewBox=metros */}
+      <circle cx={cx} cy={cy} r={circleR}
+        fill="none" stroke={blueFaint} strokeWidth={sw} />
+      <circle cx={cx} cy={cy} r={sw * 0.8} fill="rgba(0,180,255,0.7)" />
+
+      {/* === ÁREA ADVERSÁRIA (topo) === */}
+      {/* Área grande */}
+      <rect
+        x={cx - bigBoxW / 2} y={H * 0.015}
+        width={bigBoxW} height={bigBoxH}
+        fill="none" stroke={blueFaint} strokeWidth={sw}
+      />
+      {/* Área pequena */}
+      <rect
+        x={cx - smallBoxW / 2} y={H * 0.015}
+        width={smallBoxW} height={smallBoxH}
+        fill="none" stroke={blueFaint} strokeWidth={sw * 0.8}
+      />
+      {/* Ponto de pênalti (topo) */}
+      <circle cx={cx} cy={H * 0.015 + penaltyY} r={sw * 0.7} fill={blueFaint} />
+      {/* Arco de pênalti — só para Society e Campo */}
+      {sport !== 'Futsal' && (
+        <path
+          d={`M ${cx - circleR * 0.9} ${H * 0.015 + bigBoxH}
+              A ${circleR} ${circleR} 0 0 1 ${cx + circleR * 0.9} ${H * 0.015 + bigBoxH}`}
+          fill="none" stroke={blueFaint} strokeWidth={sw * 0.7}
+        />
+      )}
+
+      {/* === ÁREA DO GOLEIRO (base) === */}
+      {/* Área grande */}
+      <rect
+        x={cx - bigBoxW / 2} y={H * 0.985 - bigBoxH}
+        width={bigBoxW} height={bigBoxH}
+        fill="none" stroke={blueFaint} strokeWidth={sw}
+      />
+      {/* Área pequena */}
+      <rect
+        x={cx - smallBoxW / 2} y={H * 0.985 - smallBoxH}
+        width={smallBoxW} height={smallBoxH}
+        fill="none" stroke={blueFaint} strokeWidth={sw * 0.8}
+      />
+      {/* Ponto de pênalti (base) */}
+      <circle cx={cx} cy={H * 0.985 - penaltyY} r={sw * 0.7} fill={blueFaint} />
+      {sport !== 'Futsal' && (
+        <path
+          d={`M ${cx - circleR * 0.9} ${H * 0.985 - bigBoxH}
+              A ${circleR} ${circleR} 0 0 0 ${cx + circleR * 0.9} ${H * 0.985 - bigBoxH}`}
+          fill="none" stroke={blueFaint} strokeWidth={sw * 0.7}
+        />
+      )}
+
+      {/* Traves (linhas de gol) */}
+      <line x1={cx - goalW/2} y1={H*0.015} x2={cx + goalW/2} y2={H*0.015}
+        stroke={blue} strokeWidth={sw * 2} />
+      <line x1={cx - goalW/2} y1={H*0.985} x2={cx + goalW/2} y2={H*0.985}
+        stroke={blue} strokeWidth={sw * 2} />
+
+      {/* Arcos de canto (apenas Campo) */}
+      {sport === 'Campo' && (
+        <>
+          <path d={`M ${W*0.03+2} ${H*0.015+2} A 2 2 0 0 1 ${W*0.03+2+2} ${H*0.015}`}
+            fill="none" stroke={blueFaint} strokeWidth={sw} />
+          <path d={`M ${W*0.97-2} ${H*0.015+2} A 2 2 0 0 0 ${W*0.97-2-2} ${H*0.015}`}
+            fill="none" stroke={blueFaint} strokeWidth={sw} />
+          <path d={`M ${W*0.03+2} ${H*0.985-2} A 2 2 0 0 0 ${W*0.03+2+2} ${H*0.985}`}
+            fill="none" stroke={blueFaint} strokeWidth={sw} />
+          <path d={`M ${W*0.97-2} ${H*0.985-2} A 2 2 0 0 1 ${W*0.97-2-2} ${H*0.985}`}
+            fill="none" stroke={blueFaint} strokeWidth={sw} />
+        </>
+      )}
+    </svg>
+  );
 };
 
-// ─── PlayerNodeV2 ─────────────────────────────────────────────────────────────
-interface PlayerNodeV2Props {
-  player: Player;
-  x: number;
-  y: number;
-  shirtNumber: number;
-  isReserve?: boolean;
-}
-
-const PlayerNodeV2: React.FC<PlayerNodeV2Props> = ({ player, x, y, shirtNumber }) => {
-  const shortName = player.name.split(' ')[0].substring(0, 12).toUpperCase();
-  const mainPos = (player.positions?.[0] ?? 'SA').toUpperCase();
+// ─────────────────────────────────────────────────────────────────────────────
+// PLAYER NODE
+// ─────────────────────────────────────────────────────────────────────────────
+const PlayerNode: React.FC<{ player: Player; x: number; y: number; num: number; scale?: number }> = ({
+  player, x, y, num, scale = 1,
+}) => {
+  const name   = player.name.split(' ')[0].substring(0, 11).toUpperCase();
+  const pos    = (player.positions?.[0] ?? 'SA').toUpperCase();
   const rating = (player.rating ?? 3.0).toFixed(1);
+  const sz     = Math.round(34 * scale); // tamanho do avatar em px
+  const gold   = '#d4a017';
+  const blue   = '#00b4ff';
 
   return (
     <div
-      className="absolute flex flex-col items-center -translate-x-1/2 -translate-y-1/2 z-20 group"
-      style={{ left: `${x}%`, top: `${y}%`, transition: 'all 0.8s cubic-bezier(0.34,1.56,0.64,1)' }}
+      className="absolute flex flex-col items-center -translate-x-1/2 -translate-y-1/2 z-20"
+      style={{ left: `${x}%`, top: `${y}%`, transition: 'all 0.7s cubic-bezier(.34,1.56,.64,1)' }}
     >
-      {/* Radial glow sob o jogador */}
-      <div
-        className="absolute rounded-full pointer-events-none"
-        style={{
-          width: 56, height: 56,
-          background: 'radial-gradient(circle, rgba(0,180,255,0.25) 0%, transparent 70%)',
-          filter: 'blur(6px)',
-          transform: 'translateY(4px)',
-        }}
-      />
+      {/* Glow no chão */}
+      <div style={{ position:'absolute', width: sz, height: sz, borderRadius:'50%',
+        background:'radial-gradient(circle,rgba(0,180,255,0.2) 0%,transparent 70%)',
+        filter:'blur(5px)', transform:'translateY(3px)' }} />
 
-      {/* Rating Badge — acima da foto */}
-      <div
-        className="mb-1 px-1.5 py-0.5 text-[9px] font-black tracking-wider z-10"
-        style={{
-          background: 'linear-gradient(135deg, #d4a017 0%, #f5d060 50%, #c8860a 100%)',
-          color: '#000',
-          borderRadius: 2,
-          boxShadow: '0 0 8px rgba(212,160,23,0.6)',
-        }}
-      >
+      {/* Badge rating */}
+      <div style={{ marginBottom: 2, padding:'1px 5px', fontSize: 8, fontWeight: 900,
+        background: `linear-gradient(135deg,${gold},#f5d060,#c8860a)`, color:'#000',
+        borderRadius: 2, boxShadow:`0 0 6px ${gold}88`, lineHeight: 1.4 }}>
         {rating}
       </div>
 
-      {/* Foto / Avatar */}
-      <div
-        className="relative"
-        style={{
-          width: 52, height: 52,
-          borderRadius: '50%',
-          border: '2.5px solid rgba(0,180,255,0.8)',
-          boxShadow: '0 0 14px rgba(0,180,255,0.5), inset 0 0 6px rgba(0,180,255,0.15)',
-          overflow: 'hidden',
-          background: '#0a1628',
-          transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-        }}
-      >
+      {/* Avatar */}
+      <div style={{ position:'relative', width: sz, height: sz, borderRadius:'50%',
+        border:`2px solid ${blue}`, boxShadow:`0 0 10px ${blue}66`,
+        overflow:'hidden', background:'#0a1628', flexShrink:0 }}>
         {player.photo_url ? (
-          <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
+          <img src={player.photo_url} alt={player.name}
+            style={{ width:'100%', height:'100%', objectFit:'cover' }} />
         ) : (
-          <div
-            className="w-full h-full flex flex-col items-center justify-center"
-            style={{ background: 'linear-gradient(160deg, #0a2040 0%, #071428 100%)' }}
-          >
-            {/* Silhueta genérica */}
-            <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,180,255,0.25)', marginBottom: 2 }} />
-            <div style={{ width: 28, height: 14, borderRadius: '40% 40% 0 0', background: 'rgba(0,180,255,0.2)' }} />
+          <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column',
+            alignItems:'center', justifyContent:'center',
+            background:'linear-gradient(160deg,#0a2040,#071428)' }}>
+            <div style={{ width:sz*.38, height:sz*.38, borderRadius:'50%', background:`${blue}33`, marginBottom:2 }} />
+            <div style={{ width:sz*.55, height:sz*.28, borderRadius:'40% 40% 0 0', background:`${blue}22` }} />
           </div>
         )}
-
-        {/* Número da camisa — canto inferior direito */}
-        <div
-          className="absolute bottom-0 right-0 text-[8px] font-black leading-none"
-          style={{
-            background: 'linear-gradient(135deg, #0057b8 0%, #003d82 100%)',
-            color: '#fff',
-            padding: '2px 4px',
-            borderTopLeftRadius: 4,
-          }}
-        >
-          #{shirtNumber}
+        {/* Nº camisa */}
+        <div style={{ position:'absolute', bottom:0, right:0, fontSize:6, fontWeight:900,
+          background:'#0057b8', color:'#fff', padding:'1px 3px', borderTopLeftRadius:3 }}>
+          #{num}
         </div>
       </div>
 
-      {/* Nome + Posição */}
-      <div
-        className="mt-1.5 flex flex-col items-center"
-        style={{ maxWidth: 72 }}
-      >
-        <div
-          className="px-2 py-0.5 text-center"
-          style={{
-            background: 'rgba(0,0,0,0.85)',
-            border: '1px solid rgba(0,180,255,0.3)',
-            backdropFilter: 'blur(4px)',
-          }}
-        >
-          <span
-            className="text-[8px] font-black uppercase tracking-widest leading-none"
-            style={{ color: '#fff', textShadow: '0 0 8px rgba(0,180,255,0.5)' }}
-          >
-            {shortName}
+      {/* Nome + posição */}
+      <div style={{ marginTop: 3, display:'flex', flexDirection:'column', alignItems:'center', maxWidth: 64 }}>
+        <div style={{ padding:'1px 5px', background:'rgba(0,0,0,0.9)',
+          border:`1px solid ${blue}33`, textAlign:'center' }}>
+          <span style={{ fontSize:7, fontWeight:900, textTransform:'uppercase',
+            letterSpacing:'0.12em', color:'#fff', textShadow:`0 0 6px ${blue}44` }}>
+            {name}
           </span>
         </div>
-        <span
-          className="text-[7px] font-black uppercase mt-0.5"
-          style={{ color: 'rgba(0,180,255,0.7)', letterSpacing: '0.15em' }}
-        >
-          {mainPos}
+        <span style={{ fontSize:6, fontWeight:900, textTransform:'uppercase',
+          marginTop:1, color:`${blue}aa`, letterSpacing:'0.1em' }}>
+          {pos}
         </span>
       </div>
     </div>
   );
 };
 
-// ─── ReserveNodeV2 ───────────────────────────────────────────────────────────
-const ReserveNodeV2: React.FC<{ player: Player; shirtNumber: number }> = ({ player, shirtNumber }) => {
-  const shortName = player.name.split(' ')[0].substring(0, 10).toUpperCase();
-  const rating = (player.rating ?? 3.0).toFixed(1);
-
-  return (
-    <div className="flex flex-col items-center gap-1 group" style={{ minWidth: 44 }}>
-      <div
-        style={{
-          width: 36, height: 36, borderRadius: '50%',
-          border: '1.5px solid rgba(0,180,255,0.3)',
-          overflow: 'hidden',
-          background: '#0a1628',
-          opacity: 0.65,
-        }}
-      >
-        {player.photo_url ? (
-          <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-[8px] font-black" style={{ color: 'rgba(0,180,255,0.3)' }}>
-            {shirtNumber}
-          </div>
-        )}
-      </div>
-      <span className="text-[7px] font-bold uppercase truncate text-center" style={{ color: 'rgba(255,255,255,0.3)', maxWidth: 44 }}>
-        {shortName}
-      </span>
-      <span className="text-[6px] font-black" style={{ color: 'rgba(212,160,23,0.6)' }}>{rating}</span>
+// ─────────────────────────────────────────────────────────────────────────────
+// RESERVA NODE
+// ─────────────────────────────────────────────────────────────────────────────
+const ReserveNode: React.FC<{ player: Player; num: number }> = ({ player, num }) => (
+  <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, minWidth:40 }}>
+    <div style={{ width:30, height:30, borderRadius:'50%',
+      border:'1px solid rgba(0,180,255,0.25)', overflow:'hidden',
+      background:'#0a1628', opacity:0.65 }}>
+      {player.photo_url
+        ? <img src={player.photo_url} alt={player.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+        : <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center',
+            justifyContent:'center', fontSize:8, fontWeight:900, color:'rgba(0,180,255,0.3)' }}>{num}</div>
+      }
     </div>
-  );
-};
+    <span style={{ fontSize:6, fontWeight:700, textTransform:'uppercase',
+      color:'rgba(255,255,255,0.3)', maxWidth:42, overflow:'hidden',
+      textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+      {player.name.split(' ')[0].substring(0,9)}
+    </span>
+    <span style={{ fontSize:6, fontWeight:900, color:'rgba(212,160,23,0.55)' }}>
+      {(player.rating ?? 3).toFixed(1)}
+    </span>
+  </div>
+);
 
-// ─── Componente Principal ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENTE PRINCIPAL
+// ─────────────────────────────────────────────────────────────────────────────
 export const TacticalBoardV2: React.FC<TacticalBoardV2Props> = ({
-  homeTeam,
-  awayTeam,
-  homeTeamName = 'MANDANTE',
-  awayTeamName = 'VISITANTE',
-  homeScore = 0,
-  awayScore = 0,
-  timer = 0,
-  matchStatus = 'Agendada',
-  sportType = 'Society',
+  homeTeam, awayTeam,
+  homeTeamName = 'MANDANTE', awayTeamName = 'VISITANTE',
+  homeScore = 0, awayScore = 0,
+  timer = 0, matchStatus = 'Agendada',
+  sportType = 'Society', playersPerTeam = 7,
 }) => {
-  const [viewingTeam, setViewingTeam] = useState<'home' | 'away'>('home');
-  const [flare1, setFlare1] = useState({ x: 15, y: 20 });
-  const [flare2, setFlare2] = useState({ x: 82, y: 75 });
-  const limit = getLineLimit(sportType);
+  const [view, setView] = useState<'home'|'away'>('home');
+  const [flare, setFlare] = useState({ x: 18, y: 15 });
 
-  // Anima leve drift dos lens flares
+  // drift suave do lens flare
   useEffect(() => {
-    const id = setInterval(() => {
-      setFlare1({ x: 10 + Math.random() * 10, y: 10 + Math.random() * 20 });
-      setFlare2({ x: 75 + Math.random() * 10, y: 65 + Math.random() * 20 });
-    }, 3000);
+    const id = setInterval(() =>
+      setFlare({ x: 10 + Math.random()*15, y: 8 + Math.random()*18 }), 3500);
     return () => clearInterval(id);
   }, []);
 
-  const activeTeam = viewingTeam === 'home' ? homeTeam : awayTeam;
-  const activeTeamName = viewingTeam === 'home' ? homeTeamName : awayTeamName;
-  const starters = activeTeam.slice(0, limit);
-  const reserves = activeTeam.slice(limit);
+  const cfg        = getFieldCfg(sportType, playersPerTeam);
+  const activeTeam = view === 'home' ? homeTeam : awayTeam;
+  const activeName = view === 'home' ? homeTeamName : awayTeamName;
+  const starters   = activeTeam.slice(0, cfg.limit);
+  const reserves   = activeTeam.slice(cfg.limit);
+  const coords     = useMemo(() => computeCoords(starters), [starters]);
 
   const stats = useMemo(() => {
     if (!activeTeam.length) return { avg: 0, best: null as Player | null };
-    const avg = activeTeam.reduce((a, p) => a + (p.rating ?? 3), 0) / activeTeam.length;
-    const best = [...activeTeam].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))[0];
+    const avg  = activeTeam.reduce((a,p) => a + (p.rating ?? 3), 0) / activeTeam.length;
+    const best = [...activeTeam].sort((a,b) => (b.rating??0)-(a.rating??0))[0];
     return { avg, best };
   }, [activeTeam]);
 
-  // ── Paleta broadcast ──────────────────────────────────────────────────────
-  const neonBlue = '#00b4ff';
-  const gold = '#d4a017';
-  const goldLight = '#f5d060';
-  const fieldGreen = '#0c2d1a';
-  const fieldGreenMid = '#0a2616';
+  // Escala do avatar: Campo tem jogadores menores para caber no campo
+  const nodeScale = sportType === 'Campo' ? 0.82 : sportType === 'Futsal' ? 1.05 : 1;
+
+  const gold    = '#d4a017';
+  const blue    = '#00b4ff';
+  // Razão de aspecto real do campo (largura/altura em metros)
+  const fieldAR = `${cfg.fieldW}/${cfg.fieldH}`;
+  // Altura em px derivada da largura máxima e do aspect ratio
+  const fieldH_px = Math.round(cfg.maxW * cfg.fieldH / cfg.fieldW);
 
   return (
-    <div className="w-full flex flex-col items-center select-none" style={{ fontFamily: 'inherit' }}>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
+      userSelect:'none', fontFamily:'inherit', width:'100%' }}>
 
-      {/* ── BROADCAST HEADER ───────────────────────────────────────────────── */}
-      <div
-        className="w-full max-w-2xl mb-4 flex items-center justify-between px-4 py-2 relative overflow-hidden"
-        style={{
-          background: 'linear-gradient(90deg, rgba(0,0,0,0.95) 0%, rgba(0,12,30,0.95) 50%, rgba(0,0,0,0.95) 100%)',
-          borderBottom: `1.5px solid ${gold}`,
-          borderTop: `1.5px solid rgba(0,180,255,0.3)`,
-        }}
-      >
-        {/* Placar esquerdo */}
-        <div className="flex items-center gap-3">
-          <div
-            className="px-3 py-1"
-            style={{ background: 'rgba(0,180,255,0.1)', border: `1px solid ${neonBlue}40` }}
-          >
-            <div className="text-[8px] font-black uppercase tracking-widest mb-0.5" style={{ color: `${neonBlue}99` }}>
-              {homeTeamName.substring(0, 14)}
-            </div>
-            <div className="text-2xl font-black tabular-nums" style={{ color: homeScore > awayScore ? gold : '#fff', lineHeight: 1 }}>
-              {homeScore} <span style={{ color: 'rgba(255,255,255,0.2)' }}>-</span> {awayScore}
-            </div>
+      {/* ── BROADCAST HEADER ─────────────────────────────────────────────── */}
+      <div style={{ width: cfg.maxW, display:'flex', alignItems:'center',
+        justifyContent:'space-between', padding:'5px 10px', marginBottom:6,
+        background:'linear-gradient(90deg,rgba(0,0,0,0.97),rgba(0,12,30,0.97),rgba(0,0,0,0.97))',
+        borderBottom:`1.5px solid ${gold}`, borderTop:`1px solid ${blue}33` }}>
+
+        {/* Placar */}
+        <div style={{ padding:'2px 8px', background:`${blue}11`, border:`1px solid ${blue}33` }}>
+          <div style={{ fontSize:7, fontWeight:900, textTransform:'uppercase',
+            letterSpacing:'0.2em', color:`${blue}88`, lineHeight:1.2 }}>
+            {homeTeamName.substring(0,12)}
+          </div>
+          <div style={{ fontSize:18, fontWeight:900, color: homeScore>awayScore ? gold:'#fff',
+            lineHeight:1, fontVariantNumeric:'tabular-nums' }}>
+            {homeScore}&nbsp;<span style={{color:'rgba(255,255,255,0.2)'}}>-</span>&nbsp;{awayScore}
           </div>
         </div>
 
-        {/* Título central */}
-        <div className="flex flex-col items-center">
-          <h1 className="text-base md:text-xl font-black uppercase tracking-tighter" style={{ color: '#fff' }}>
-            MINHA PELADA <span style={{ color: gold, textShadow: `0 0 12px ${gold}` }}>PRO</span>
-          </h1>
-          <div className="flex items-center gap-2 mt-0.5">
-            <div className="h-[1px] w-6" style={{ background: `linear-gradient(90deg, transparent, ${gold})` }} />
-            <span className="text-[7px] font-black uppercase tracking-[0.25em]" style={{ color: `${neonBlue}80` }}>
-              HUD DE ESCALAÇÃO PROFISSIONAL | {sportType} {limit}x{limit}
-            </span>
-            <div className="h-[1px] w-6" style={{ background: `linear-gradient(90deg, ${gold}, transparent)` }} />
-          </div>
+        {/* Título */}
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+          <span style={{ fontSize:11, fontWeight:900, textTransform:'uppercase',
+            letterSpacing:'-0.02em', color:'#fff' }}>
+            PELADA <span style={{ color:gold, textShadow:`0 0 10px ${gold}` }}>PRO</span>
+          </span>
+          <span style={{ fontSize:6.5, fontWeight:900, textTransform:'uppercase',
+            letterSpacing:'0.18em', color:`${blue}66`, marginTop:1 }}>
+            {sportType} {cfg.limit}x{cfg.limit}
+          </span>
         </div>
 
-        {/* Timer direito */}
-        <div
-          className="px-3 py-1 text-right"
-          style={{ border: `1px solid ${neonBlue}30`, background: 'rgba(0,20,50,0.6)' }}
-        >
-          <div className="text-xl font-black font-mono tabular-nums" style={{ color: matchStatus === 'Em curso' ? gold : neonBlue }}>
-            {formatTimer(timer)}
+        {/* Timer */}
+        <div style={{ padding:'2px 8px', border:`1px solid ${blue}25`,
+          background:'rgba(0,20,50,0.7)', textAlign:'right' }}>
+          <div style={{ fontSize:16, fontWeight:900, fontFamily:'monospace',
+            color: matchStatus==='Em curso' ? gold : blue, lineHeight:1 }}>
+            {fmtTime(timer)}
           </div>
-          <div className="text-[7px] font-black uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
-            {matchStatus.toUpperCase()}
+          <div style={{ fontSize:6.5, fontWeight:900, textTransform:'uppercase',
+            color:'rgba(255,255,255,0.3)', letterSpacing:'0.1em' }}>
+            {matchStatus}
           </div>
         </div>
-
-        {/* Borda animada (scanline) */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'linear-gradient(90deg, transparent 0%, rgba(0,180,255,0.04) 50%, transparent 100%)',
-            animation: 'hud-scan-h 4s linear infinite',
-          }}
-        />
       </div>
 
-      {/* ── SELETOR DE TIMES ───────────────────────────────────────────────── */}
-      <div className="flex gap-1 mb-4 p-0.5" style={{ background: 'rgba(0,0,0,0.6)', border: `1px solid rgba(0,180,255,0.1)` }}>
-        {([['home', homeTeamName], ['away', awayTeamName]] as const).map(([side, name]) => (
-          <button
-            key={side}
-            onClick={() => setViewingTeam(side)}
-            className="px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
-            style={viewingTeam === side
-              ? { background: `linear-gradient(135deg, ${neonBlue}22, ${gold}22)`, color: gold, borderBottom: `2px solid ${gold}`, boxShadow: `0 0 12px ${gold}22` }
-              : { color: 'rgba(255,255,255,0.3)' }
-            }
-          >
-            {name}
+      {/* ── SELETOR DE TIMES ─────────────────────────────────────────────── */}
+      <div style={{ display:'flex', gap:2, marginBottom:6, padding:2,
+        background:'rgba(0,0,0,0.6)', border:`1px solid ${blue}18` }}>
+        {(['home','away'] as const).map(side => (
+          <button key={side} onClick={() => setView(side)}
+            style={{ padding:'4px 16px', fontSize:9, fontWeight:900,
+              textTransform:'uppercase', letterSpacing:'0.15em', border:'none', cursor:'pointer',
+              transition:'all .3s',
+              ...(view===side
+                ? { background:`linear-gradient(135deg,${blue}22,${gold}22)`,
+                    color:gold, borderBottom:`2px solid ${gold}` }
+                : { background:'transparent', color:'rgba(255,255,255,0.3)' }),
+            }}>
+            {side==='home' ? homeTeamName : awayTeamName}
           </button>
         ))}
       </div>
 
-      {/* ── LABEL TIME ATIVO ───────────────────────────────────────────────── */}
-      <div
-        className="w-full max-w-2xl mb-3 py-2 text-center relative overflow-hidden"
-        style={{
-          background: `linear-gradient(90deg, transparent, rgba(0,180,255,0.06), transparent)`,
-          borderTop: `1px solid ${neonBlue}30`,
-          borderBottom: `1px solid ${neonBlue}30`,
-        }}
-      >
-        <h2
-          className="text-base md:text-xl font-black uppercase tracking-[0.2em]"
-          style={{ color: '#fff', textShadow: `0 0 20px ${neonBlue}40` }}
-        >
-          {activeTeamName}
-        </h2>
+      {/* Nome do time ativo */}
+      <div style={{ width: cfg.maxW, textAlign:'center', padding:'4px 0', marginBottom:4,
+        borderTop:`1px solid ${blue}25`, borderBottom:`1px solid ${blue}25`,
+        background:`linear-gradient(90deg,transparent,${blue}08,transparent)` }}>
+        <span style={{ fontSize:12, fontWeight:900, textTransform:'uppercase',
+          letterSpacing:'0.18em', color:'#fff', textShadow:`0 0 16px ${blue}44` }}>
+          {activeName}
+        </span>
       </div>
 
-      {/* ── CAMPO TÁTICO ───────────────────────────────────────────────────── */}
-      <div
-        className="relative w-full max-w-2xl overflow-hidden"
-        style={{ aspectRatio: '16/10' }}
-      >
-        {/* BORDA ANIMADA (neon pulse) */}
-        <div
-          className="absolute inset-0 pointer-events-none z-30"
-          style={{
-            border: `2px solid ${neonBlue}`,
-            boxShadow: `0 0 18px ${neonBlue}40, inset 0 0 18px ${neonBlue}15`,
-            animation: 'border-glow-blue 3s ease-in-out infinite',
-          }}
-        />
+      {/* ── CAMPO DE FUTEBOL ─────────────────────────────────────────────── */}
+      <div style={{ position:'relative', width: cfg.maxW, height: fieldH_px, flexShrink:0 }}>
+
+        {/* Borda animada */}
+        <div style={{ position:'absolute', inset:0, zIndex:30, pointerEvents:'none',
+          border:`2px solid ${blue}`,
+          boxShadow:`0 0 14px ${blue}44, inset 0 0 14px ${blue}11`,
+          animation:'glow-pulse 3s ease-in-out infinite' }} />
+
         {/* Cantoneiras douradas */}
-        {[
-          { top: -1, left: -1, borderWidth: '3px 0 0 3px' },
-          { top: -1, right: -1, borderWidth: '3px 3px 0 0' },
-          { bottom: -1, left: -1, borderWidth: '0 0 3px 3px' },
-          { bottom: -1, right: -1, borderWidth: '0 3px 3px 0' },
-        ].map((style, i) => (
-          <div key={i} className="absolute w-5 h-5 pointer-events-none z-40" style={{ ...style, borderStyle: 'solid', borderColor: gold }} />
+        {[{top:-1,left:-1,bw:'3px 0 0 3px'},{top:-1,right:-1,bw:'3px 3px 0 0'},
+          {bottom:-1,left:-1,bw:'0 0 3px 3px'},{bottom:-1,right:-1,bw:'0 3px 3px 0'}
+        ].map(({bw,...pos},i) => (
+          <div key={i} style={{ position:'absolute', width:14, height:14, zIndex:40,
+            pointerEvents:'none', borderStyle:'solid', borderColor:gold,
+            borderWidth:bw, ...pos }} />
         ))}
 
         {/* GRAMADO */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: `linear-gradient(180deg, ${fieldGreen} 0%, ${fieldGreenMid} 50%, #071e10 100%)`,
-          }}
-        >
-          {/* Listras do gramado */}
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute inset-x-0"
-              style={{
-                top: `${i * 12.5}%`,
-                height: '12.5%',
-                background: i % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent',
-              }}
-            />
+        <div style={{ position:'absolute', inset:0,
+          background:'linear-gradient(180deg,#0b2d19 0%,#092513 50%,#071e10 100%)' }}>
+
+          {/* Listras alternadas do gramado */}
+          {Array.from({ length: 10 }).map((_,i) => (
+            <div key={i} style={{ position:'absolute', left:0, right:0,
+              top:`${i*10}%`, height:'10%',
+              background: i%2===0 ? 'rgba(255,255,255,0.013)':'transparent' }} />
           ))}
 
-          {/* Iluminação lateral azul (refletores) */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: `radial-gradient(ellipse 40% 50% at 0% 50%, rgba(0,100,255,0.18) 0%, transparent 70%),
-                           radial-gradient(ellipse 40% 50% at 100% 50%, rgba(0,100,255,0.18) 0%, transparent 70%),
-                           radial-gradient(ellipse 60% 30% at 50% 0%, rgba(0,180,255,0.08) 0%, transparent 60%)`,
-            }}
-          />
-
-          {/* Iluminação central dourada suave */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: `radial-gradient(ellipse 50% 40% at 50% 55%, rgba(212,160,23,0.06) 0%, transparent 70%)`,
-            }}
-          />
-
-          {/* ── LINHAS DO CAMPO ──────────────────────────────── */}
-          {/* Borda interna */}
-          <div
-            className="absolute"
-            style={{
-              top: '5%', left: '4%', right: '4%', bottom: '5%',
-              border: `1.5px solid rgba(0,180,255,0.5)`,
-              boxShadow: `0 0 8px rgba(0,180,255,0.2)`,
-            }}
-          />
-
-          {/* Linha do meio campo */}
-          <div
-            className="absolute"
-            style={{
-              top: '5%', bottom: '5%', left: '50%',
-              width: 1.5,
-              transform: 'translateX(-50%)',
-              background: `rgba(0,180,255,0.5)`,
-              boxShadow: `0 0 6px rgba(0,180,255,0.3)`,
-            }}
-          />
-
-          {/* Círculo central */}
-          <div
-            className="absolute"
-            style={{
-              width: '22%', aspectRatio: '1',
-              borderRadius: '50%',
-              top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              border: `1.5px solid rgba(0,180,255,0.45)`,
-              boxShadow: `0 0 10px rgba(0,180,255,0.2), inset 0 0 10px rgba(0,180,255,0.05)`,
-            }}
-          />
-
-          {/* Área grande (ataque — topo) */}
-          <div
-            className="absolute"
-            style={{
-              top: '5%', left: '22%', right: '22%', height: '22%',
-              border: `1.5px solid rgba(0,180,255,0.4)`,
-              borderTop: 'none',
-              boxShadow: `0 0 6px rgba(0,180,255,0.15)`,
-            }}
-          />
-
-          {/* Área pequena (goleiro — base) */}
-          <div
-            className="absolute"
-            style={{
-              bottom: '5%', left: '36%', right: '36%', height: '14%',
-              border: `1.5px solid rgba(0,180,255,0.35)`,
-              borderBottom: 'none',
-              boxShadow: `0 0 5px rgba(0,180,255,0.1)`,
-            }}
-          />
-
-          {/* Ponto central */}
-          <div
-            className="absolute rounded-full"
-            style={{
-              width: 5, height: 5,
-              top: '50%', left: '50%',
-              transform: 'translate(-50%,-50%)',
-              background: `rgba(0,180,255,0.7)`,
-              boxShadow: `0 0 6px ${neonBlue}`,
-            }}
-          />
+          {/* Iluminação dos refletores */}
+          <div style={{ position:'absolute', inset:0, pointerEvents:'none',
+            background:`radial-gradient(ellipse 35% 45% at 0% 50%,rgba(0,80,255,0.18) 0%,transparent 65%),
+                        radial-gradient(ellipse 35% 45% at 100% 50%,rgba(0,80,255,0.18) 0%,transparent 65%),
+                        radial-gradient(ellipse 55% 25% at 50% 5%,${blue}12 0%,transparent 60%),
+                        radial-gradient(ellipse 40% 30% at 50% 55%,${gold}08 0%,transparent 65%)` }} />
         </div>
 
-        {/* ── LENS FLARES ────────────────────────────────────── */}
-        {/* Flare 1 — canto superior esquerdo */}
-        <div
-          className="absolute pointer-events-none z-20"
-          style={{
-            left: `${flare1.x}%`,
-            top: `${flare1.y}%`,
-            transition: 'left 3s ease-in-out, top 3s ease-in-out',
-          }}
-        >
-          <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,180,255,0.35) 0%, transparent 70%)', filter: 'blur(8px)', transform: 'translate(-50%,-50%)' }} />
-          <div style={{ position: 'absolute', top: '50%', left: '50%', width: 120, height: 3, background: 'linear-gradient(90deg, transparent, rgba(0,180,255,0.3), transparent)', transform: 'translate(-50%,-50%) rotate(-30deg)', filter: 'blur(2px)' }} />
+        {/* SVG com linhas do campo em metros reais */}
+        <FieldSVG cfg={cfg} sport={sportType} />
+
+        {/* LENS FLARE — refletor superior esquerdo com drift */}
+        <div style={{ position:'absolute', left:`${flare.x}%`, top:`${flare.y}%`,
+          pointerEvents:'none', zIndex:20,
+          transition:'left 3.5s ease-in-out, top 3.5s ease-in-out' }}>
+          <div style={{ width:70, height:70, borderRadius:'50%', transform:'translate(-50%,-50%)',
+            background:`radial-gradient(circle,${blue}50 0%,transparent 70%)`, filter:'blur(8px)' }} />
+          <div style={{ position:'absolute', top:'50%', left:'50%', width:100, height:2,
+            background:`linear-gradient(90deg,transparent,${blue}40,transparent)`,
+            transform:'translate(-50%,-50%) rotate(-25deg)', filter:'blur(2px)' }} />
+        </div>
+        {/* Flare dourado fixo — refletor direito */}
+        <div style={{ position:'absolute', right:'6%', top:'4%', zIndex:10, pointerEvents:'none' }}>
+          <div style={{ width:55, height:55, borderRadius:'50%',
+            background:`radial-gradient(circle,rgba(212,160,23,0.22) 0%,transparent 70%)`,
+            filter:'blur(7px)' }} />
         </div>
 
-        {/* Flare 2 — canto inferior direito */}
-        <div
-          className="absolute pointer-events-none z-20"
-          style={{
-            left: `${flare2.x}%`,
-            top: `${flare2.y}%`,
-            transition: 'left 3s ease-in-out, top 3s ease-in-out',
-          }}
-        >
-          <div style={{ width: 100, height: 100, borderRadius: '50%', background: 'radial-gradient(circle, rgba(212,160,23,0.2) 0%, transparent 70%)', filter: 'blur(10px)', transform: 'translate(-50%,-50%)' }} />
-        </div>
+        {/* JOGADORES */}
+        {coords.map(({ player, x, y }, i) => (
+          <PlayerNode key={player.id} player={player} x={x} y={y}
+            num={i+1} scale={nodeScale} />
+        ))}
 
-        {/* Flare 3 — reflexo de refletor (topo direito fixo) */}
-        <div
-          className="absolute pointer-events-none z-10"
-          style={{ top: '2%', right: '8%' }}
-        >
-          <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%)', filter: 'blur(5px)' }} />
-        </div>
-        <div
-          className="absolute pointer-events-none z-10"
-          style={{ top: '2%', left: '8%' }}
-        >
-          <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%)', filter: 'blur(5px)' }} />
-        </div>
-
-        {/* ── JOGADORES NO CAMPO ──────────────────────────────── */}
-        {starters.map((player, i) => {
-          const { x, y } = getFormationCoords(i, starters.length, sportType);
-          return (
-            <PlayerNodeV2
-              key={player.id}
-              player={player}
-              x={x}
-              y={y}
-              shirtNumber={i + 1}
-            />
-          );
-        })}
-
-        {/* Overlay de scanline broadcast */}
-        <div
-          className="absolute inset-0 pointer-events-none z-10"
-          style={{
-            background: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px)',
-          }}
-        />
+        {/* Scanlines CRT */}
+        <div style={{ position:'absolute', inset:0, pointerEvents:'none', zIndex:11,
+          background:'repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.035) 3px,rgba(0,0,0,0.035) 4px)' }} />
       </div>
 
-      {/* ─── HUD FOOTER STATS ─────────────────────────────────────────────── */}
-      <div className="w-full max-w-2xl mt-4 grid grid-cols-2 gap-3">
-        {/* Média */}
-        <div
-          className="relative overflow-hidden p-3"
-          style={{
-            background: 'rgba(0,0,0,0.7)',
-            border: `1px solid rgba(0,180,255,0.2)`,
-            borderLeft: `3px solid ${neonBlue}`,
-          }}
-        >
-          <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            OPÇÕES DE TIME: <span style={{ color: gold }}>SORTEIO INTELIGENTE</span>
-          </p>
-          <div className="flex items-end gap-2">
-            <span className="text-2xl font-black italic" style={{ color: '#fff' }}>{stats.avg.toFixed(1)}</span>
-            <span className="text-[8px] font-black mb-1" style={{ color: `${neonBlue}80` }}>/10</span>
-            <span className="text-[8px] font-black uppercase mb-1" style={{ color: 'rgba(255,255,255,0.3)', letterSpacing: '0.15em' }}>MÉDIA DO TIME</span>
+      {/* ── STATS HUD ────────────────────────────────────────────────────── */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6,
+        width: cfg.maxW, marginTop:6 }}>
+        <div style={{ padding:'6px 10px', background:'rgba(0,0,0,0.7)',
+          border:`1px solid ${blue}22`, borderLeft:`3px solid ${blue}` }}>
+          <div style={{ fontSize:7, fontWeight:900, textTransform:'uppercase',
+            letterSpacing:'0.15em', color:'rgba(255,255,255,0.35)', marginBottom:2 }}>
+            SORTEIRO INTELIGENTE
+          </div>
+          <div style={{ display:'flex', alignItems:'flex-end', gap:4 }}>
+            <span style={{ fontSize:20, fontWeight:900, color:'#fff', lineHeight:1, fontStyle:'italic' }}>
+              {stats.avg.toFixed(1)}
+            </span>
+            <span style={{ fontSize:7.5, fontWeight:900, color:`${blue}77`, marginBottom:2 }}>/10</span>
+            <span style={{ fontSize:7, fontWeight:900, textTransform:'uppercase',
+              color:'rgba(255,255,255,0.25)', letterSpacing:'0.1em', marginBottom:2 }}>
+              MÉDIA
+            </span>
           </div>
         </div>
 
-        {/* Destaque */}
-        <div
-          className="relative overflow-hidden p-3"
-          style={{
-            background: 'rgba(0,0,0,0.7)',
-            border: `1px solid rgba(212,160,23,0.2)`,
-            borderLeft: `3px solid ${gold}`,
-          }}
-        >
-          <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <div style={{ padding:'6px 10px', background:'rgba(0,0,0,0.7)',
+          border:`1px solid ${gold}22`, borderLeft:`3px solid ${gold}` }}>
+          <div style={{ fontSize:7, fontWeight:900, textTransform:'uppercase',
+            letterSpacing:'0.15em', color:'rgba(255,255,255,0.35)', marginBottom:2 }}>
             JOGADOR DESTAQUE
-          </p>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-black uppercase italic truncate" style={{ color: '#fff' }}>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <span style={{ fontSize:12, fontWeight:900, textTransform:'uppercase',
+              fontStyle:'italic', color:'#fff' }}>
               {stats.best?.name.split(' ')[0] ?? '---'}
             </span>
-            <div className="px-2 py-0.5 text-[8px] font-black" style={{ background: `${gold}22`, border: `1px solid ${gold}44`, color: gold }}>
-              {stats.best ? `${(stats.best.rating ?? 0).toFixed(1)}` : '---'}
-            </div>
+            <span style={{ fontSize:9, fontWeight:900, padding:'1px 6px',
+              background:`${gold}18`, border:`1px solid ${gold}44`, color:gold }}>
+              {stats.best ? (stats.best.rating??0).toFixed(1) : '---'}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* ─── BANCO DE RESERVAS ────────────────────────────────────────────── */}
+      {/* ── BANCO DE RESERVAS ────────────────────────────────────────────── */}
       {reserves.length > 0 && (
-        <div
-          className="w-full max-w-2xl mt-6 py-4 px-4"
-          style={{ borderTop: `1px solid rgba(0,180,255,0.1)`, borderBottom: `1px solid rgba(0,180,255,0.1)` }}
-        >
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+        <div style={{ width: cfg.maxW, marginTop:10, paddingTop:8,
+          borderTop:`1px solid ${blue}15` }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+            <span style={{ fontSize:7, fontWeight:900, textTransform:'uppercase',
+              letterSpacing:'0.25em', color:'rgba(255,255,255,0.18)' }}>
               BANCO ({reserves.length})
             </span>
-            <div className="flex-1 h-[1px]" style={{ background: 'rgba(0,180,255,0.1)' }} />
+            <div style={{ flex:1, height:1, background:`${blue}12` }} />
           </div>
-          <div className="flex flex-wrap gap-4 justify-center">
-            {reserves.map((p, i) => (
-              <ReserveNodeV2 key={p.id} player={p} shirtNumber={limit + i + 1} />
+          <div style={{ display:'flex', flexWrap:'wrap', gap:10, justifyContent:'center' }}>
+            {reserves.map((p,i) => (
+              <ReserveNode key={p.id} player={p} num={cfg.limit+i+1} />
             ))}
           </div>
         </div>
       )}
 
-      {/* ─── BROADCAST WATERMARK ─────────────────────────────────────────── */}
-      <div className="mt-6 flex items-center gap-3" style={{ opacity: 0.25 }}>
-        <div className="h-[1px] w-12" style={{ background: `linear-gradient(90deg, transparent, ${gold})` }} />
-        <span className="text-[7px] font-black uppercase tracking-[0.4em]" style={{ color: gold }}>
-          BROADCAST PRO HUD v2.0
+      {/* ── WATERMARK ────────────────────────────────────────────────────── */}
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:12, opacity:0.2 }}>
+        <div style={{ height:1, width:36, background:`linear-gradient(90deg,transparent,${gold})` }} />
+        <span style={{ fontSize:6.5, fontWeight:900, textTransform:'uppercase',
+          letterSpacing:'0.35em', color:gold }}>
+          BROADCAST PRO HUD v2.1
         </span>
-        <div className="h-[1px] w-12" style={{ background: `linear-gradient(90deg, ${gold}, transparent)` }} />
+        <div style={{ height:1, width:36, background:`linear-gradient(90deg,${gold},transparent)` }} />
       </div>
 
-      {/* ─── KEYFRAMES INLINE ────────────────────────────────────────────── */}
+      {/* KEYFRAMES */}
       <style>{`
-        @keyframes border-glow-blue {
-          0%, 100% { box-shadow: 0 0 18px rgba(0,180,255,0.4), inset 0 0 18px rgba(0,180,255,0.1); border-color: rgba(0,180,255,0.9); }
-          50%       { box-shadow: 0 0 32px rgba(0,180,255,0.7), 0 0 60px rgba(0,180,255,0.2), inset 0 0 24px rgba(0,180,255,0.15); border-color: rgba(0,180,255,1); }
-        }
-        @keyframes hud-scan-h {
-          0%   { transform: translateX(-100%); }
-          100% { transform: translateX(200%); }
+        @keyframes glow-pulse {
+          0%,100% { box-shadow:0 0 14px rgba(0,180,255,0.4),inset 0 0 14px rgba(0,180,255,0.08); border-color:rgba(0,180,255,0.85); }
+          50%      { box-shadow:0 0 28px rgba(0,180,255,0.7),0 0 55px rgba(0,180,255,0.18),inset 0 0 20px rgba(0,180,255,0.14); border-color:rgba(0,180,255,1); }
         }
       `}</style>
     </div>

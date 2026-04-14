@@ -1061,6 +1061,7 @@ export default function MatchPage() {
                        timer={timer}
                        matchStatus={status}
                        sportType={config.sport_type}
+                       playersPerTeam={config.playersPerTeam}
                     />
                 </div>
 
