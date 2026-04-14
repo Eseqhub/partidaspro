@@ -165,8 +165,8 @@ export default function PlayerRegistrationPage() {
     <div className="min-h-screen bg-slate-950 py-12 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-10">
-            <h1 className="text-3xl font-black text-white uppercase tracking-tighter">Card de Atleta Pro</h1>
-            <p className="text-white/40 text-sm mt-2">Preencha seus dados para o sorteio e estatísticas.</p>
+            <h1 className="text-3xl font-black text-white uppercase tracking-tighter">Partidas<span className="text-primary">.Pro</span> | Card de Atleta</h1>
+            <p className="text-white/40 text-sm mt-2">Preencha seus dados para o sorteio e estatísticas biométricas.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

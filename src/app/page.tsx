@@ -12,17 +12,17 @@ export default function Home() {
             <ShieldCheck size={14} />
             KIT 2.0 PROTOCOL ACTIVE
           </div>
-          <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tight">
+          <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tight uppercase">
             Gestão Suprema para sua <br />
-            <span className="text-gradient">Pelada Profissional</span>
+            <span className="text-gradient font-black italic">Partida Pro</span>
           </h1>
           <p className="max-w-2xl text-lg text-white/60 mb-10">
             Organize times, controle presenças e acompanhe estatísticas de alto nível. 
-            A plataforma definitiva para quem leva o futebol de fim de semana a sério.
+            A plataforma definitiva para quem leva o esporte a sério.
           </p>
           <div className="flex items-center gap-4">
-            <Button href="/dashboard" size="lg">Criar meu Grupo</Button>
-            <Button variant="glass" size="lg">Ver Planos</Button>
+            <Button href="/signup" size="lg">Fundar meu Clube</Button>
+            <Button variant="glass" size="lg">Conhecer o SaaS</Button>
           </div>
         </div>
       </section>
@@ -35,9 +35,9 @@ export default function Home() {
               <Calendar size={24} />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-white mb-2">Próximas Partidas</h3>
+              <h3 className="text-xl font-bold text-white mb-2 uppercase tracking-tighter">Próximas Partidas</h3>
               <p className="text-sm text-white/50 mb-6">Confirme sua presença e veja quem vai pro jogo.</p>
-              <Button href="/dashboard/matches" variant="outline" size="sm" className="w-full">Agendar Pelada</Button>
+              <Button href="/login" variant="outline" size="sm" className="w-full">Agendar Jogo</Button>
             </div>
           </GlassCard>
 
@@ -46,9 +46,9 @@ export default function Home() {
               <Trophy size={24} />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-white mb-2 underline decoration-secondary/30 decoration-4">Ranking de Craques</h3>
+              <h3 className="text-xl font-bold text-white mb-2 underline decoration-secondary/30 decoration-4 uppercase tracking-tighter">Ranking de Craques</h3>
               <p className="text-sm text-white/50 mb-6">Acompanhe gols, assistências e vitórias da galera.</p>
-              <Button href="/dashboard/stats" variant="outline" size="sm" className="w-full border-secondary/50 text-secondary hover:bg-secondary/5 hover:border-secondary">Ver Tabela</Button>
+              <Button href="/login" variant="outline" size="sm" className="w-full border-secondary/50 text-secondary hover:bg-secondary/5 hover:border-secondary">Ver Analytics</Button>
             </div>
           </GlassCard>
 
@@ -57,9 +57,9 @@ export default function Home() {
               <Users size={24} />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-white mb-2">Seus Grupos</h3>
-              <p className="text-sm text-white/50 mb-6">Gerencie múltiplos grupos de peladeiros sem esforço.</p>
-              <Button href="/dashboard/players" variant="outline" size="sm" className="w-full border-accent/50 text-accent hover:bg-accent/5 hover:border-accent">Explorar Grupos</Button>
+              <h3 className="text-xl font-bold text-white mb-2 uppercase tracking-tighter">Seus Clubes</h3>
+              <p className="text-sm text-white/50 mb-6">Gerencie múltiplos grupos de atletas sem esforço.</p>
+              <Button href="/login" variant="outline" size="sm" className="w-full border-accent/50 text-accent hover:bg-accent/5 hover:border-accent">Explorar Central</Button>
             </div>
           </GlassCard>
         </div>
@@ -70,8 +70,8 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-end justify-between gap-8 mb-12">
             <div className="flex-1">
-              <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 italic tracking-tighter">Performance de Elite</h2>
-              <p className="text-white/60">Interface fluida projetada para facilitar a vida do organizador.</p>
+              <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 italic tracking-tighter uppercase">ESTAÇÃO DE COMANDO</h2>
+              <p className="text-white/60 font-medium">Interface fluida projetada para facilitar a vida do organizador profissional.</p>
             </div>
             <div className="flex gap-2">
               <div className="w-3 h-3 rounded-full bg-primary animate-pulse"></div>
@@ -85,8 +85,8 @@ export default function Home() {
                {/* Decorative background grid */}
                <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
                <div className="relative z-10 text-center">
-                  <div className="text-4xl font-black text-white/10 mb-2">DASHBOARD PREVIEW</div>
-                  <p className="text-sm text-white/20 uppercase tracking-[0.4em]">Arquitetura Limpa & Padrão Kit 2.0</p>
+                  <div className="text-4xl font-black text-white/10 mb-2 uppercase tracking-widest leading-none">Partidas Pro Console</div>
+                  <p className="text-sm text-white/20 uppercase tracking-[0.4em]">Arquitetura SaaS & Padrão Kit 2.0</p>
                </div>
             </div>
           </GlassCard>

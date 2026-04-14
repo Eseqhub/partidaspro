@@ -2,12 +2,12 @@ import { supabase } from '../supabase/client';
 import { Transaction, FinanceSummary } from '@/core/entities/finance';
 
 export class FinanceRepository {
-  private table = 'transactions';
+  private table = 'finances';
 
   async findAllByGroupId(groupId: string): Promise<Transaction[]> {
     const { data, error } = await supabase
       .from(this.table)
-      .select('*')
+      .select('*, player:players(name)')
       .eq('group_id', groupId)
       .order('date', { ascending: false });
 
@@ -32,12 +32,13 @@ export class FinanceRepository {
     };
 
     data.forEach((t: any) => {
+      const amount = Number(t.amount);
       if (t.type === 'Receita') {
-        summary.income += t.amount;
-        if (t.status === 'Pago') summary.received += t.amount;
-        else summary.pending += t.amount;
+        summary.income += amount;
+        if (t.status === 'Pago') summary.received += amount;
+        else summary.pending += amount;
       } else {
-        summary.expense += t.amount;
+        summary.expense += Math.abs(amount);
       }
     });
 
@@ -54,5 +55,26 @@ export class FinanceRepository {
 
     if (error) throw error;
     return data as Transaction;
+  }
+
+  async update(id: string, updates: Partial<Transaction>): Promise<Transaction> {
+    const { data, error } = await supabase
+      .from(this.table)
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Transaction;
+  }
+
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from(this.table)
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   }
 }

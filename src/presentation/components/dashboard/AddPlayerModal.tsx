@@ -6,6 +6,7 @@ import { Modal } from '@/presentation/components/ui/Modal';
 import { Input } from '@/presentation/components/ui/Input';
 import { Button } from '@/presentation/components/ui/Button';
 import { PositionSelector } from './PositionSelector';
+import { PhotoUploader } from '@/presentation/components/ui/PhotoUploader';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faStar, faSave } from '@fortawesome/free-solid-svg-icons';
 
@@ -23,19 +24,57 @@ export const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
   groupId 
 }) => {
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [rating, setRating] = useState(3);
   const [positions, setPositions] = useState<PlayerPositionV2[]>([]);
   const [isMensalista, setIsMensalista] = useState(true);
 
+  // Máscara para Telefone (XX) XXXXX-XXXX
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.length > 11) val = val.slice(0, 11);
+    
+    if (val.length > 2) {
+      if (val.length > 6) { // Já tem o dígito 9 e outro número
+        val = `(${val.slice(0, 2)}) ${val.slice(2, 7)}-${val.slice(7)}`;
+      } else {
+        val = `(${val.slice(0, 2)}) ${val.slice(2)}`;
+      }
+    }
+    setPhone(val);
+  };
+
+  // Máscara para Data DD/MM/YYYY
+  const handleBirthDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.length > 8) val = val.slice(0, 8);
+
+    if (val.length >= 5) {
+      val = `${val.slice(0, 2)}/${val.slice(2, 4)}/${val.slice(4)}`;
+    } else if (val.length >= 3) {
+      val = `${val.slice(0, 2)}/${val.slice(2)}`;
+    }
+    setBirthDate(val);
+  };
+
   const handleSave = () => {
     if (!name || positions.length === 0) {
-      alert('Favor preencher nome e ao menos uma posição.');
+      alert('Favor preencher NOME e ao menos UMA posição.');
       return;
     }
+
+    // Opcional: Se for persistir formato yyyy-mm-dd no banco, podemos converter Date,
+    // mas guardando como string, o frontend e backend se resolvem.
+    const finalBirthDate = birthDate.length === 10 ? birthDate : undefined;
 
     onSave({
       group_id: groupId,
       name,
+      phone: phone || undefined,
+      birth_date: finalBirthDate,
+      photo_url: photoUrl || undefined,
       rating,
       positions,
       status: 'Ativo',
@@ -44,6 +83,9 @@ export const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
     
     // Reset fields
     setName('');
+    setPhone('');
+    setBirthDate('');
+    setPhotoUrl(null);
     setRating(3);
     setPositions([]);
     onClose();
@@ -51,7 +93,9 @@ export const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="RECRUTAR ATLETA">
-      <div className="space-y-6">
+      <div className="space-y-4 pb-8">
+        <PhotoUploader onPhotoSelected={setPhotoUrl} />
+
         <Input 
           label="Nome do Atleta" 
           placeholder="EX: RONALDINHO GAÚCHO..." 
@@ -59,11 +103,32 @@ export const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
           onChange={(e) => setName(e.target.value)}
         />
 
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <Input 
+              label="Celular / WhatsApp" 
+              placeholder="(11) 99999-9999" 
+              type="tel"
+              value={phone}
+              onChange={handlePhoneChange}
+            />
+          </div>
+          <div className="flex-1">
+            <Input 
+              label="Data Nasc." 
+              placeholder="DD/MM/AAAA" 
+              type="text"
+              value={birthDate}
+              onChange={handleBirthDateChange}
+            />
+          </div>
+        </div>
+
         <div className="flex flex-col gap-2 mb-6">
           <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">
             Nível de Habilidade (1-5)
           </label>
-          <div className="flex items-center gap-4 bg-white/5 p-4 border border-white/10">
+          <div className="flex items-center justify-between bg-white/5 p-4 border border-white/10">
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
@@ -71,7 +136,7 @@ export const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
                   type="button"
                   onClick={() => setRating(star)}
                   className={`text-xl transition-all ${
-                    rating >= star ? 'text-primary' : 'text-white/10'
+                    rating >= star ? 'text-primary drop-shadow-[0_0_8px_rgba(204,255,0,0.5)]' : 'text-white/10'
                   }`}
                 >
                   <FontAwesomeIcon icon={faStar} />
@@ -88,17 +153,20 @@ export const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
           max={3}
         />
 
-        <div className="flex items-center gap-3 bg-white/5 p-4 border border-white/10 mb-8">
-            <button 
-                type="button"
-                onClick={() => setIsMensalista(!isMensalista)}
-                className={`w-5 h-5 border-2 flex items-center justify-center transition-all ${
-                    isMensalista ? 'bg-primary border-primary' : 'bg-transparent border-white/20'
-                }`}
-            >
-                {isMensalista && <div className="w-2 h-2 bg-black" />}
-            </button>
-            <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Atleta Mensalista</span>
+        <div className="flex items-center justify-between bg-white/5 p-4 border border-white/10 mb-8 mt-4 hover:border-primary/50 transition-all cursor-pointer" onClick={() => setIsMensalista(!isMensalista)}>
+            <div className="flex items-center gap-3">
+              <div 
+                  className={`w-5 h-5 border-2 flex items-center justify-center transition-all ${
+                      isMensalista ? 'bg-primary border-primary' : 'bg-transparent border-white/20'
+                  }`}
+              >
+                  {isMensalista && <div className="w-2 h-2 bg-black" />}
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-white">Atleta Mensalista</span>
+            </div>
+            <span className="text-[10px] text-white/40 uppercase font-bold tracking-widest">
+              {isMensalista ? 'MENSAL PAGO' : 'PAGA POR DIA'}
+            </span>
         </div>
 
         <Button 

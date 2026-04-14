@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { GlassCard } from '../ui/GlassCard';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -6,8 +6,11 @@ import {
   faPause, 
   faStop, 
   faTrophy,
-  faFutbol
+  faFutbol,
+  faExpand,
+  faChevronDown
 } from '@fortawesome/free-solid-svg-icons';
+import { MatchOverlay } from './MatchOverlay';
 
 interface ScoreboardProps {
   homeScore: number;
@@ -36,26 +39,27 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
   onStopMatch,
   onUpdateConfig
 }) => {
+  const [isMaximized, setIsMaximized] = useState(false);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const toggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
-    } else {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        }
-    }
-  };
-
-  const colors = ['Branco', 'Preto', 'Azul', 'Amarelo', 'Verde', 'Vermelho', 'Laranja'];
+  const colors = [
+    { name: 'Branco', class: 'bg-white text-black' },
+    { name: 'Preto', class: 'bg-slate-900 text-white' },
+    { name: 'Azul', class: 'bg-blue-600 text-white' },
+    { name: 'Amarelo', class: 'bg-yellow-400 text-black' },
+    { name: 'Verde', class: 'bg-green-600 text-white' },
+    { name: 'Vermelho', class: 'bg-red-600 text-white' },
+    { name: 'Laranja', class: 'bg-orange-500 text-white' }
+  ];
 
   return (
-    <GlassCard className="p-4 md:p-8 mb-8 relative border-primary/20 bg-black/40 overflow-hidden">
+    <>
+    <GlassCard className="p-4 md:p-8 mb-8 relative border-primary/20 bg-black/40 overflow-hidden shadow-[0_0_50px_rgba(163,230,53,0.05)]">
       {/* HUD Header Decoration */}
       <div className="flex justify-between items-center mb-6 border-b border-primary/10 pb-2">
         <div className="flex items-center gap-2">
@@ -64,100 +68,126 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
         </div>
         <div className="flex items-center gap-4">
             <button 
-                onClick={toggleFullScreen}
-                className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors"
+                onClick={() => setIsMaximized(true)}
+                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-all bg-white/5 px-3 py-1 border border-white/5"
             >
-                [ Full Screen ]
+                <FontAwesomeIcon icon={faExpand} /> Maximizar HUD
             </button>
             <div className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Live Data Feed</div>
         </div>
       </div>
       
-      <div className="flex items-center justify-between gap-2 md:gap-4">
+      <div className="flex items-center justify-between gap-2 md:gap-4 lg:px-6">
         {/* Home Team */}
         <div className="flex flex-col items-center flex-1">
-          <div className="w-16 h-16 md:w-20 md:h-20 bg-dark-surface border-2 border-primary/20 flex items-center justify-center relative group">
-             <FontAwesomeIcon icon={faTrophy} className="text-white/10 group-hover:text-primary transition-colors text-2xl md:text-3xl" />
-             <div className="absolute top-0 left-0 w-1 h-3 bg-primary" />
+          <div className="w-16 h-16 md:w-24 md:h-24 bg-slate-900 border-2 border-primary/20 flex items-center justify-center relative group">
+             <FontAwesomeIcon icon={faTrophy} className="text-white/10 group-hover:text-primary transition-colors text-2xl md:text-4xl" />
+             <div className="absolute top-0 left-0 w-1 h-4 bg-primary" />
              
              {/* Color Indicator */}
-             <div className="absolute -bottom-1 -left-1 px-2 py-0.5 bg-primary text-[8px] font-bold text-black uppercase">
+             <div className="absolute -bottom-2 -left-2 px-3 py-1 bg-primary text-[9px] font-black text-black uppercase shadow-lg z-10">
                 {homeColor}
              </div>
           </div>
-          <h3 className="text-white font-black text-center text-xs md:text-sm uppercase tracking-wider mt-3">{homeTeamName}</h3>
+          <h3 className="text-white font-black text-center text-[10px] md:text-sm uppercase tracking-widest mt-6 italic">{homeTeamName}</h3>
           
-          <select 
-            value={homeColor}
-            onChange={(e) => onUpdateConfig?.({ homeColor: e.target.value })}
-            className="mt-2 text-[10px] bg-white/5 border border-white/10 text-white/60 p-1 rounded"
-          >
-            {colors.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <div className="relative mt-3 w-full max-w-[100px]">
+            <select 
+                value={homeColor}
+                onChange={(e) => onUpdateConfig?.({ homeColor: e.target.value })}
+                className="w-full text-[9px] font-black uppercase tracking-widest bg-white/5 border border-white/10 text-white/40 py-2 px-3 rounded hover:border-primary/40 focus:border-primary transition-all appearance-none outline-none text-center"
+            >
+                {colors.map(c => <option key={c.name} value={c.name} className="bg-slate-900 font-bold">{c.name}</option>)}
+            </select>
+            <FontAwesomeIcon icon={faChevronDown} className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-white/20 pointer-events-none" />
+          </div>
         </div>
 
         {/* Score & Timer Area */}
         <div className="flex flex-col items-center gap-4 flex-grow px-2 md:px-8">
-          <div className="flex items-center gap-4 md:gap-8 text-6xl md:text-8xl font-black text-white tabular-nums tracking-tighter">
-            <span className={homeScore > awayScore ? 'text-primary' : ''}>{homeScore}</span>
+          <div className="flex items-center gap-4 md:gap-12 text-6xl md:text-[100px] font-black text-white tabular-nums tracking-tighter drop-shadow-[0_0_30px_rgba(255,255,255,0.05)]">
+            <span className={homeScore > awayScore ? 'text-primary' : 'text-white/80'}>{homeScore}</span>
             <div className="flex flex-col items-center gap-1 opacity-20">
-                <FontAwesomeIcon icon={faFutbol} className="text-sm md:text-xl animate-spin-slow" />
+                <FontAwesomeIcon icon={faFutbol} className={`text-sm md:text-xl ${status === 'Em curso' ? 'animate-spin-slow' : ''}`} />
             </div>
-            <span className={awayScore > homeScore ? 'text-primary' : ''}>{awayScore}</span>
+            <span className={awayScore > homeScore ? 'text-primary' : 'text-white/80'}>{awayScore}</span>
           </div>
           
-          <div className="bg-primary/10 border border-primary/30 px-4 md:px-8 py-2 relative">
+          <div className="bg-primary/5 border border-primary/20 px-6 md:px-12 py-3 relative group overflow-hidden">
+             {/* Animated Scanline */}
+             <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-transparent h-1/2 -translate-y-full group-hover:animate-scan transition-all pointer-events-none" />
+             
              {/* Corner Accents */}
-            <div className="absolute -top-1 -left-1 w-2 h-2 border-t border-l border-primary" />
-            <div className="absolute -bottom-1 -right-1 w-2 h-2 border-b border-r border-primary" />
-            <span className="text-2xl md:text-4xl font-mono text-primary font-black tracking-widest tabular-nums">
+            <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-primary" />
+            <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-primary" />
+            
+            <span className={`text-2xl md:text-5xl font-mono ${status === 'Em curso' ? 'text-primary' : 'text-white/30'} font-black tracking-[0.2em] tabular-nums transition-colors`}>
               {formatTime(timer)}
             </span>
           </div>
 
-          <div className="flex gap-2 md:gap-4">
+          <div className="flex gap-2 md:gap-4 mt-2">
             <button 
                 onClick={onToggleTimer}
-                className={`w-10 h-10 md:w-14 md:h-14 flex items-center justify-center transition-all ${
+                className={`w-12 h-12 md:w-16 md:h-16 flex items-center justify-center transition-all ${
                     status === 'Em curso' 
-                    ? 'bg-accent text-white hover:bg-accent/80' 
+                    ? 'bg-orange-500 text-black hover:bg-orange-400 rotate-90' 
                     : 'bg-primary text-black hover:bg-primary/80'
-                }`}
+                } shadow-[0_0_20px_rgba(163,230,53,0.1)] active:scale-95`}
             >
-                <FontAwesomeIcon icon={status === 'Em curso' ? faPause : faPlay} className="text-lg md:text-xl" />
+                <FontAwesomeIcon icon={status === 'Em curso' ? faPause : faPlay} className="text-lg md:text-2xl" />
             </button>
             <button 
                 onClick={onStopMatch}
-                className="w-10 h-10 md:w-14 md:h-14 bg-white/5 border border-white/10 text-white flex items-center justify-center hover:bg-white/10 transition-colors"
+                className="w-12 h-12 md:w-16 md:h-16 bg-white/5 border border-white/10 text-white/40 flex items-center justify-center hover:bg-red-500/20 hover:text-red-500 hover:border-red-500/40 transition-all active:scale-95"
             >
-                <FontAwesomeIcon icon={faStop} className="text-lg md:text-xl" />
+                <FontAwesomeIcon icon={faStop} className="text-lg md:text-2xl" />
             </button>
           </div>
         </div>
 
         {/* Away Team */}
         <div className="flex flex-col items-center flex-1">
-          <div className="w-16 h-16 md:w-20 md:h-20 bg-dark-surface border-2 border-white/5 flex items-center justify-center relative group">
-            <FontAwesomeIcon icon={faTrophy} className="text-white/10 group-hover:text-primary transition-colors text-2xl md:text-3xl" />
-            <div className="absolute top-0 right-0 w-1 h-3 bg-white/20" />
+          <div className="w-16 h-16 md:w-24 md:h-24 bg-slate-900 border-2 border-white/5 flex items-center justify-center relative group">
+            <FontAwesomeIcon icon={faTrophy} className="text-white/10 group-hover:text-primary transition-colors text-2xl md:text-4xl" />
+            <div className="absolute top-0 right-0 w-1 h-4 bg-white/20" />
             
              {/* Color Indicator */}
-             <div className="absolute -bottom-1 -right-1 px-2 py-0.5 bg-white/20 text-[8px] font-bold text-white uppercase">
+             <div className="absolute -bottom-2 -right-2 px-3 py-1 bg-white/20 text-[9px] font-black text-white uppercase shadow-lg z-10">
                 {awayColor}
              </div>
           </div>
-          <h3 className="text-white font-black text-center text-xs md:text-sm uppercase tracking-wider mt-3">{awayTeamName}</h3>
+          <h3 className="text-white font-black text-center text-[10px] md:text-sm uppercase tracking-widest mt-6 italic">{awayTeamName}</h3>
           
-          <select 
-            value={awayColor}
-            onChange={(e) => onUpdateConfig?.({ awayColor: e.target.value })}
-            className="mt-2 text-[10px] bg-white/5 border border-white/10 text-white/60 p-1 rounded"
-          >
-            {colors.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <div className="relative mt-3 w-full max-w-[100px]">
+            <select 
+                value={awayColor}
+                onChange={(e) => onUpdateConfig?.({ awayColor: e.target.value })}
+                className="w-full text-[9px] font-black uppercase tracking-widest bg-white/5 border border-white/10 text-white/40 py-2 px-3 rounded hover:border-primary/40 focus:border-primary transition-all appearance-none outline-none text-center"
+            >
+                {colors.map(c => <option key={c.name} value={c.name} className="bg-slate-900 font-bold">{c.name}</option>)}
+            </select>
+            <FontAwesomeIcon icon={faChevronDown} className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-white/20 pointer-events-none" />
+          </div>
         </div>
       </div>
     </GlassCard>
+
+    <MatchOverlay 
+        isOpen={isMaximized}
+        onClose={() => setIsMaximized(false)}
+        homeScore={homeScore}
+        awayScore={awayScore}
+        homeTeamName={homeTeamName}
+        awayTeamName={awayTeamName}
+        homeColor={homeColor}
+        awayColor={awayColor}
+        timer={timer}
+        status={status}
+        onToggleTimer={onToggleTimer!}
+        formatTime={formatTime}
+    />
+    </>
   );
 };
 

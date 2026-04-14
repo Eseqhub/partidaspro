@@ -75,13 +75,13 @@ export default function JoinGroupPage() {
               className="w-full py-4 text-slate-950 font-black uppercase tracking-widest text-sm"
               disabled={loading}
             >
-              {loading ? 'VERIFICANDO...' : 'ENTRAR NA PELADA'}
+              {loading ? 'VERIFICANDO...' : 'ENTRAR NA PARTIDA'}
             </Button>
           </form>
         </GlassCard>
 
         <p className="text-center mt-8 text-[10px] text-white/20 font-bold uppercase tracking-[0.2em]">
-          Peladeiros Pro &copy; 2026
+          Partidas Pro &copy; 2026
         </p>
       </div>
     </div>

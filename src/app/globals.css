@@ -4,7 +4,7 @@
   --background: #080808;
   --foreground: #f0f0f0;
   
-  --primary: #ccff00; /* Electric Lime */
+  --primary: #a3e635; /* Athletic Lime (Less Fluorescent) */
   --primary-foreground: #000000;
   
   --secondary: #00f0ff; /* Cyber Blue */
@@ -17,8 +17,8 @@
   --card-foreground: #f0f0f0;
   
   --border: #222222;
-  --border-active: #ccff00;
-  --ring: #ccff00;
+  --border-active: #a3e635;
+  --ring: #a3e635;
   
   --radius: 0px; 
 }

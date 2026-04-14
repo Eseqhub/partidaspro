@@ -15,20 +15,26 @@ import {
 
 export function Sidebar() {
   const pathname = usePathname();
+  // Extrair o slug da URL: /dashboard/[slug]/...
+  const pathParts = pathname.split('/');
+  const isInsideGroup = pathParts[1] === 'dashboard' && pathParts[2] && pathParts[2] !== 'finances' && pathParts[2] !== 'matches' && pathParts[2] !== 'players' && pathParts[2] !== 'stats';
+  const slug = isInsideGroup ? pathParts[2] : '';
 
-  const navItems = [
-    { label: 'Dashboard', icon: faGaugeHigh, href: '/dashboard' },
-    { label: 'Partidas', icon: faFutbol, href: '/dashboard/matches' },
-    { label: 'Jogadores', icon: faUsers, href: '/dashboard/players' },
-    { label: 'Finanças', icon: faWallet, href: '/dashboard/finances' },
-    { label: 'Estatísticas', icon: faChartSimple, href: '/dashboard/stats' },
+  const navItems = isInsideGroup ? [
+    { label: 'Visão Geral', icon: faGaugeHigh, href: `/dashboard/${slug}` },
+    { label: 'Partidas', icon: faFutbol, href: `/dashboard/${slug}/matches` },
+    { label: 'Jogadores', icon: faUsers, href: `/dashboard/${slug}/players` },
+    { label: 'Finanças', icon: faWallet, href: `/dashboard/${slug}/finances` },
+    { label: 'Estatísticas', icon: faChartSimple, href: `/dashboard/${slug}/stats` },
+  ] : [
+    { label: 'Meus Clubes', icon: faGaugeHigh, href: '/dashboard' },
   ];
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-[#0A0A0A] border-r border-[#222222] min-h-screen sticky top-0">
       <div className="p-8 border-b border-[#222222]">
-        <h1 className="text-xl font-black tracking-tighter text-white">
-          PELADEIROS<span className="text-primary italic">.PRO</span>
+        <h1 className="text-xl font-black tracking-tighter text-white uppercase">
+          PARTIDAS<span className="text-primary italic">.PRO</span>
         </h1>
       </div>
 

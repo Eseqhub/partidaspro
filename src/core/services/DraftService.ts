@@ -3,35 +3,28 @@ import { Player } from '../entities/player';
 export interface DraftResult {
   homeTeam: Player[];
   awayTeam: Player[];
+  waitingList: Player[];
   homeRating: number;
   awayRating: number;
 }
 
 export class DraftService {
-  /**
-   * Calcula o "Nível de Poder" do jogador baseado em múltiplos fatores.
-   */
+  // ... existing calculatePowerLevel and calculateAge methods ...
   private calculatePowerLevel(player: Player): number {
-    let score = player.rating * 10; // Base: 0 a 50
-
-    // Fator Idade (Presumindo que o auge físico é entre 20 e 35 anos)
+    let score = player.rating * 10; 
     if (player.birth_date) {
       const age = this.calculateAge(player.birth_date);
       if (age >= 20 && age <= 35) score += 5;
       else if (age > 35 && age < 45) score += 2;
       else if (age >= 45) score -= 2;
     }
-
-    // Fator Físico (Simple IMC-like ratio)
     if (player.height && player.weight) {
         const heightInMeters = player.height;
         const imc = player.weight / (heightInMeters * heightInMeters);
-        // IMC Ideal para atletas amadores (20-25)
         if (imc >= 20 && imc <= 26) score += 5;
         else if (imc > 26 && imc < 30) score += 2;
         else score -= 1;
     }
-
     return score;
   }
 
@@ -48,8 +41,9 @@ export class DraftService {
 
   /**
    * Realiza o sorteio de dois times balanceados por múltiplos fatores.
+   * Respeita o limite de jogadores por time.
    */
-  balanceTeams(players: Player[]): DraftResult {
+  balanceTeams(players: Player[], playersPerTeam: number = 20): DraftResult {
     // 1. Separar goleiros dos demais
     const goalkeepers = players.filter(p => p.positions.includes('G'));
     const fieldPlayers = players.filter(p => !p.positions.includes('G'));
@@ -61,11 +55,17 @@ export class DraftService {
 
     const homeTeam: Player[] = [];
     const awayTeam: Player[] = [];
+    let waitingList: Player[] = [];
 
     // 3. Distribuir goleiros
     goalkeepers.forEach((gk, index) => {
-      if (index % 2 === 0) homeTeam.push(gk);
-      else awayTeam.push(gk);
+      if (index % 2 === 0) {
+        if (homeTeam.length < playersPerTeam) homeTeam.push(gk);
+        else waitingList.push(gk);
+      } else {
+        if (awayTeam.length < playersPerTeam) awayTeam.push(gk);
+        else waitingList.push(gk);
+      }
     });
 
     // 4. Snake Draft Pro
@@ -74,11 +74,21 @@ export class DraftService {
       const isEven = index % 2 === 0;
 
       if (isSecondOfPair) {
-        if (isEven) awayTeam.push(player);
-        else homeTeam.push(player);
+        if (isEven) {
+            if (awayTeam.length < playersPerTeam) awayTeam.push(player);
+            else waitingList.push(player);
+        } else {
+            if (homeTeam.length < playersPerTeam) homeTeam.push(player);
+            else waitingList.push(player);
+        }
       } else {
-        if (isEven) homeTeam.push(player);
-        else awayTeam.push(player);
+        if (isEven) {
+            if (homeTeam.length < playersPerTeam) homeTeam.push(player);
+            else waitingList.push(player);
+        } else {
+            if (awayTeam.length < playersPerTeam) awayTeam.push(player);
+            else waitingList.push(player);
+        }
       }
     });
 
@@ -88,6 +98,7 @@ export class DraftService {
     return {
       homeTeam,
       awayTeam,
+      waitingList,
       homeRating,
       awayRating
     };

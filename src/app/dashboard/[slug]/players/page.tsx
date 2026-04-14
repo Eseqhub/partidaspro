@@ -17,19 +17,27 @@ import { GlassCard } from '@/presentation/components/ui/GlassCard';
 import { AddPlayerModal } from '@/presentation/components/dashboard/AddPlayerModal';
 import { PlayerRepository } from '@/infra/repositories/PlayerRepository';
 
+import { GroupRepository } from '@/infra/repositories/GroupRepository';
+import { useParams, useRouter } from 'next/navigation';
+
 export default function PlayersPage() {
+  const params = useParams();
+  const router = useRouter();
+  const slug = params.slug as string;
+
   const [players, setPlayers] = useState<Player[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [groupId, setGroupId] = useState<string | null>(null);
   
   const playerRepo = new PlayerRepository();
-  const groupId = '00000000-0000-0000-0000-000000000001'; // ID de teste fixo para bater com o Seed
+  const groupRepo = new GroupRepository();
 
-  const fetchPlayers = async () => {
+  const fetchPlayers = async (id: string) => {
     setLoading(true);
     try {
-      const data = await playerRepo.findAllByGroupId(groupId);
+      const data = await playerRepo.findAllByGroupId(id);
       setPlayers(data);
     } catch (err) {
       console.error(err);
@@ -39,13 +47,22 @@ export default function PlayersPage() {
   };
 
   useEffect(() => {
-    fetchPlayers();
-  }, []);
+    async function init() {
+        const group = await groupRepo.findBySlug(slug);
+        if (group) {
+            setGroupId(group.id);
+            fetchPlayers(group.id);
+        } else {
+            router.push('/dashboard');
+        }
+    }
+    init();
+  }, [slug]);
 
   const handleCreatePlayer = async (newPlayerData: Omit<Player, 'id' | 'created_at'>) => {
     try {
       await playerRepo.create(newPlayerData);
-      await fetchPlayers();
+      if (groupId) await fetchPlayers(groupId);
       setIsModalOpen(false);
     } catch (err) {
       alert('Erro ao criar jogador. Tente novamente.');
@@ -71,7 +88,7 @@ export default function PlayersPage() {
         </div>
         <div className="flex gap-3">
             <Button 
-                onClick={fetchPlayers}
+                onClick={() => groupId && fetchPlayers(groupId)}
                 className="font-black uppercase tracking-widest text-[10px] py-4 px-6 bg-white/5 text-white/40 hover:text-white transition-all border-none"
             >
                 <FontAwesomeIcon icon={faRotateRight} className={loading ? 'animate-spin' : ''} />
@@ -137,7 +154,7 @@ export default function PlayersPage() {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         onSave={handleCreatePlayer}
-        groupId={groupId}
+        groupId={groupId || ''}
       />
     </div>
   );

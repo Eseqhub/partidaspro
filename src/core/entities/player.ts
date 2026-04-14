@@ -8,6 +8,7 @@ export interface Player {
   full_name?: string;
   nationality?: string;
   birth_date?: string;
+  phone?: string;
   preferred_foot?: 'L' | 'R' | 'Ambidestro';
   height?: number;
   weight?: number;

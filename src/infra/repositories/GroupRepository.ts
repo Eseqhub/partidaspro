@@ -38,14 +38,39 @@ export class GroupRepository {
     return data as Group;
   }
 
-  async verifyPassword(groupId: string, password: string): Promise<boolean> {
+  async findAllByOwner(ownerId: string): Promise<Group[]> {
+    const { data, error } = await supabase
+      .from(this.table)
+      .select('*')
+      .eq('owner_id', ownerId)
+      .order('created_at', { ascending: false });
+
+    if (error) return [];
+    return data as Group[];
+  }
+
+  async verifyPassword(idOrSlug: string, password: string): Promise<boolean> {
+    const isUuid = idOrSlug.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+    const queryField = isUuid ? 'id' : 'slug';
+
     const { data, error } = await supabase
       .from(this.table)
       .select('invite_password')
-      .eq('id', groupId)
+      .eq(queryField, idOrSlug)
       .single();
 
     if (error || !data) return false;
     return data.invite_password === password;
+  }
+
+  async create(group: Omit<Group, 'id' | 'created_at'>): Promise<Group> {
+    const { data, error } = await supabase
+      .from(this.table)
+      .insert(group)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Group;
   }
 }

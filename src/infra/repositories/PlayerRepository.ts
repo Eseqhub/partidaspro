@@ -8,11 +8,28 @@ export class PlayerRepository {
     const { data, error } = await supabase
       .from(this.table)
       .select('*')
-      .eq('group_id', groupId)
-      .order('name');
+      .eq('group_id', groupId);
 
     if (error) throw error;
-    return data as Player[];
+    
+    // Ordenação técnica de posições (Broadcast Standard)
+    const positionOrder: Record<string, number> = {
+      'G': 1,
+      'ZG': 2, 'LD': 2, 'LE': 2,
+      'VOL': 3, 'MD': 3, 'ME': 3,
+      'MO': 4,
+      'PE': 5, 'PD': 5, 'ATA': 5, 'CA': 5
+    };
+
+    const sortedData = (data as Player[]).sort((a, b) => {
+      const weightA = positionOrder[a.positions[0]] || 99;
+      const weightB = positionOrder[b.positions[0]] || 99;
+      
+      if (weightA !== weightB) return weightA - weightB;
+      return a.name.localeCompare(b.name);
+    });
+
+    return sortedData;
   }
 
   async findById(id: string): Promise<Player | null> {
