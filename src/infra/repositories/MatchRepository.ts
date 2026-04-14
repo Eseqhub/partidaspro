@@ -87,4 +87,40 @@ export class MatchRepository {
     if (error) throw error;
     return data;
   }
+
+  // Presence Management
+  async getPresence(matchId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('match_presence')
+      .select('*, player:players(*)')
+      .eq('match_id', matchId);
+
+    if (error) throw error;
+    return data;
+  }
+
+  async savePresenceBatch(matchId: string, playerTeams: { player_id: string, team: string }[]): Promise<void> {
+    for (const item of playerTeams) {
+        await supabase
+            .from('match_presence')
+            .upsert({
+                match_id: matchId,
+                player_id: item.player_id,
+                team: item.team,
+                status: 'Confirmado'
+            });
+    }
+  }
+
+  async setPlayerPresence(matchId: string, playerId: string, confirmed: boolean): Promise<void> {
+      if (confirmed) {
+          await supabase.from('match_presence').upsert({
+              match_id: matchId,
+              player_id: playerId,
+              status: 'Confirmado'
+          });
+      } else {
+          await supabase.from('match_presence').delete().eq('match_id', matchId).eq('player_id', playerId);
+      }
+  }
 }

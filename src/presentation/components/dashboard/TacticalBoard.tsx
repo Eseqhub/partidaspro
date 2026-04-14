@@ -150,19 +150,19 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     <div className="w-full flex flex-col items-center select-none animate-in fade-in duration-700">
         
         {/* HUD Header */}
-        <div className="w-full max-w-[500px] mb-8 relative">
+        <div className="w-full max-w-xl mb-8 relative">
             <div className="flex flex-col items-center">
                 <div className="flex items-center gap-4 mb-2">
-                    <div className="h-[1px] w-12 bg-gradient-to-l from-primary/50 to-transparent" />
-                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tighter">
+                    <div className="h-[1px] w-8 md:w-12 bg-gradient-to-l from-primary/50 to-transparent" />
+                    <h2 className="text-lg md:text-2xl font-black text-white italic uppercase tracking-tighter text-center">
                         MINHA PELADA <span className="text-primary drop-shadow-[0_0_10px_rgba(204,255,0,0.5)]">PRO</span>
                     </h2>
-                    <div className="h-[1px] w-12 bg-gradient-to-r from-primary/50 to-transparent" />
+                    <div className="h-[1px] w-8 md:w-12 bg-gradient-to-r from-primary/50 to-transparent" />
                 </div>
                 <div className="bg-black/40 backdrop-blur-md border border-white/10 px-4 py-1 rounded-full flex items-center gap-3">
-                    <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.3em]">HUD DE ESCALAÇÃO PROFISSIONAL</span>
-                    <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
-                    <span className="text-[8px] font-black text-primary uppercase tracking-[0.3em]">{sportType} {limit}x{limit}</span>
+                    <span className="text-[7px] md:text-[8px] font-black text-white/40 uppercase tracking-[0.3em]">HUD DE ESCALAÇÃO PROFISSIONAL</span>
+                    <div className="w-1 h-1 bg-primary rounded-full animate-pulse shrink-0" />
+                    <span className="text-[7px] md:text-[8px] font-black text-primary uppercase tracking-[0.3em]">{sportType} {limit}x{limit}</span>
                 </div>
             </div>
         </div>
@@ -188,22 +188,22 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
         </div>
         
         {/* HUD Team Name Header */}
-        <div className="w-full max-w-[500px] mb-4">
+        <div className="w-full max-w-xl mb-4">
             <div className="relative h-12 flex items-center justify-center">
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent skew-x-[45deg]" />
                 <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-                <h3 className="text-lg md:text-xl font-black text-white uppercase italic tracking-[0.2em] relative z-10">
+                <h3 className="text-base md:text-xl font-black text-white uppercase italic tracking-[0.2em] relative z-10 px-4 text-center">
                     {activeTeamName}
                 </h3>
             </div>
         </div>
 
         {/* Perspective Container */}
-        <div className="relative w-full max-w-[500px] py-12" style={{ perspective: '1200px' }}>
+        <div className="relative w-full max-w-xl py-6 md:py-12" style={{ perspective: '1200px' }}>
             
             {/* Campo 3D */}
             <div 
-                className="relative w-full aspect-[1.2/1] bg-slate-950 border-2 border-primary/20 shadow-[0_0_50px_rgba(204,255,0,0.1)] overflow-hidden transition-all duration-1000 ease-in-out"
+                className="relative w-full aspect-[1.1/1] md:aspect-[1.2/1] bg-slate-950 border-2 border-primary/20 shadow-[0_0_50px_rgba(204,255,0,0.1)] overflow-hidden transition-all duration-1000 ease-in-out"
                 style={{ 
                     transform: 'rotateX(25deg)',
                     transformStyle: 'preserve-3d'
@@ -212,7 +212,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 {/* Gramado com Grid Cibernético */}
                 <div className="absolute inset-0 bg-[#020617]">
                     <div className="absolute inset-0 opacity-20" 
-                         style={{ backgroundImage: 'linear-gradient(rgba(204,255,0,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(204,255,0,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }} 
+                         style={{ backgroundImage: 'linear-gradient(rgba(204,255,0,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(204,255,0,0.1) 1px, transparent 1px)', backgroundSize: '30px 30px md:40px md:40px' }} 
                     />
                     
                     {/* Linhas do Campo Estilizadas */}
@@ -243,8 +243,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
         </div>
 
         {/* HUD FOOTER - Stats */}
-        <div className="w-full max-w-[500px] mt-8 grid grid-cols-2 gap-4">
-            <div className="bg-black/60 backdrop-blur-md border border-white/10 p-4 rounded-sm relative overflow-hidden group hover:border-primary/30 transition-colors">
+        <div className="w-full max-w-xl mt-8 grid grid-cols-2 gap-3 md:gap-4">
+            <div className="bg-black/60 backdrop-blur-md border border-white/10 p-3 md:p-4 rounded-sm relative overflow-hidden group hover:border-primary/30 transition-colors">
                 <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
                 <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">Média do Time</p>
                 <div className="flex items-end gap-2">

@@ -33,9 +33,11 @@ import {
   faLocationArrow,
   faFutbol,
   faList,
-  faSquare
+  faSquare,
+  faCalendarCheck
 } from '@fortawesome/free-solid-svg-icons';
 import { AddPlayerModal } from '@/presentation/components/dashboard/AddPlayerModal';
+import { AttendanceSelector } from '@/presentation/components/dashboard/AttendanceSelector';
 import { AudioService } from '@/infra/services/AudioService';
 import { useParams, useRouter } from 'next/navigation';
 
@@ -88,7 +90,8 @@ export default function MatchPage() {
     game_mode: 'Dois ou Dez' as GameMode,
     max_players: 14,
     max_goalkeepers: 2,
-    rules_text: ''
+    rules_text: '',
+    recurrence_day: 'Segunda-feira'
   });
 
   const playerRepo = new PlayerRepository();
@@ -146,7 +149,6 @@ export default function MatchPage() {
                 rules_text: group.rules_text || '',
                 sport_type: group.sport_type_default as SportType || 'Society'
             }));
-
             // Tentar recuperar partida live
             const liveMatch = await matchRepo.findLiveMatch(group.id);
             if (liveMatch) {
@@ -167,6 +169,26 @@ export default function MatchPage() {
                         homeTeamName: liveMatch.home_team_name || prev.homeTeamName,
                         awayTeamName: liveMatch.away_team_name || prev.awayTeamName
                     }));
+                }
+
+                // Recuperar times e lista de presença
+                const presence = await matchRepo.getPresence(liveMatch.id);
+                if (presence.length > 0) {
+                    const homePlayers = presence.filter((p: any) => p.team === 'home').map((p: any) => p.player);
+                    const awayPlayers = presence.filter((p: any) => p.team === 'away').map((p: any) => p.player);
+                    const waitingPlayers = presence.filter((p: any) => !p.team || p.team === 'waiting').map((p: any) => p.player);
+                    
+                    if (homePlayers.length > 0 || awayPlayers.length > 0) {
+                        setDraftResult({
+                            homeTeam: homePlayers,
+                            awayTeam: awayPlayers,
+                            waitingList: waitingPlayers,
+                            homeRating: homePlayers.reduce((acc: number, p: any) => acc + (p.rating || 3), 0),
+                            awayRating: awayPlayers.reduce((acc: number, p: any) => acc + (p.rating || 3), 0)
+                        });
+                        setSelectedPlayerIds(presence.map((p: any) => p.player_id));
+                        setActiveTab('match');
+                    }
                 }
             }
         } else {
@@ -325,10 +347,15 @@ export default function MatchPage() {
     }
   };
 
-  const togglePlayerAttendance = (id: string) => {
+  const togglePlayerAttendance = async (id: string) => {
+    const isPresent = selectedPlayerIds.includes(id);
     setSelectedPlayerIds(prev => 
-      prev.includes(id) ? prev.filter(pId => pId !== id) : [...prev, id]
+      isPresent ? prev.filter(pId => pId !== id) : [...prev, id]
     );
+
+    if (matchId) {
+        await matchRepo.setPlayerPresence(matchId, id, !isPresent);
+    }
   };
 
   const handleDraft = async () => {
@@ -399,6 +426,14 @@ export default function MatchPage() {
             match_fee: 0
         });
         setMatchId(newMatch.id);
+
+        // Salvar presença e times no banco
+        const presencePayload = [
+            ...result.homeTeam.map(p => ({ player_id: p.id, team: 'home' })),
+            ...result.awayTeam.map(p => ({ player_id: p.id, team: 'away' })),
+            ...result.waitingList.map(p => ({ player_id: p.id, team: 'waiting' }))
+        ];
+        await matchRepo.savePresenceBatch(newMatch.id, presencePayload);
     }
   };
 
@@ -600,6 +635,19 @@ export default function MatchPage() {
                   placeholder="EX: ARENA NACIONAL..."
                   className="w-full bg-black/20 border border-white/10 p-3 text-white focus:border-primary/40 outline-none"
                 />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block">Recorrência (Dia da Semana)</label>
+                <select 
+                  value={config.recurrence_day}
+                  onChange={(e) => setConfig({...config, recurrence_day: e.target.value})}
+                  className="w-full bg-black/20 border border-white/10 p-3 text-white outline-none focus:border-primary/40"
+                >
+                  {['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'].map(day => (
+                      <option key={day} value={day} className="bg-slate-900">{day}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -815,60 +863,66 @@ export default function MatchPage() {
                 </GlassCard>
             </div>
 
-            <div className="flex items-center justify-between px-2">
-                <div>
-                    <h2 className="text-xs font-black text-white/60 uppercase tracking-[0.3em]">Lista de Presentes</h2>
-                    <p className="text-[10px] text-white/20 uppercase tracking-widest">
-                        {selectedPlayerIds.length + guestPlayers.length} / {config.max_players + config.max_goalkeepers} Vagas ({guestPlayers.length} avulsos)
-                    </p>
+            <AttendanceSelector 
+                allPlayers={allPlayers}
+                selectedPlayerIds={selectedPlayerIds}
+                onToggle={togglePlayerAttendance}
+            />
+
+            <div className="border-t border-white/5 pt-8">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] flex items-center gap-2">
+                        <FontAwesomeIcon icon={faPlus} className="text-primary" /> Atletas Avulsos / Convidados
+                    </h3>
+                    <span className="text-[10px] text-white/20 font-bold bg-white/5 px-2 py-0.5 border border-white/5">
+                        {guestPlayers.length} ADICIONADOS
+                    </span>
                 </div>
-                <div className="flex gap-2">
+                
+                <div className="flex gap-2 mb-6">
+                    <input 
+                        type="text" 
+                        value={guestInput}
+                        onChange={(e) => setGuestInput(e.target.value)}
+                        placeholder="NOME DO CONVIDADO..."
+                        className="flex-1 bg-white/5 border border-white/10 p-4 text-white uppercase font-black text-[10px] tracking-[0.3em] outline-none focus:border-primary/40 focus:bg-primary/5 transition-all"
+                    />
                     <Button 
                         onClick={() => {
-                            const lineLimit = config.max_players;
-                            const gkLimit = config.max_goalkeepers;
-                            const available = allPlayers.filter(p => !selectedPlayerIds.includes(p.id));
-                            
-                            const newSelected = [...selectedPlayerIds];
-                            let currLine = selectedPlayerIds.filter(id => allPlayers.find(p => p.id === id)?.positions[0] !== 'G').length;
-                            let currGk = selectedPlayerIds.filter(id => allPlayers.find(p => p.id === id)?.positions.includes('G')).length;
-
-                            available.forEach(p => {
-                                if (p.positions.includes('G') && currGk < gkLimit) {
-                                    newSelected.push(p.id);
-                                    currGk++;
-                                } else if (!p.positions.includes('G') && currLine < lineLimit) {
-                                    newSelected.push(p.id);
-                                    currLine++;
-                                }
-                            });
-                            setSelectedPlayerIds(newSelected);
+                            if (guestInput) {
+                                setGuestPlayers([...guestPlayers, guestInput]);
+                                setGuestInput('');
+                            }
                         }}
-                        className="font-black uppercase tracking-widest text-[9px] py-4 px-4 bg-primary/10 text-primary hover:bg-primary hover:text-black transition-all border border-primary/20"
+                        className="bg-primary text-black px-8 font-black uppercase tracking-widest border-none h-auto"
                     >
-                        Auto-Preencher
-                    </Button>
-                    <Button 
-                        onClick={() => groupId && fetchPlayers(groupId)}
-                        className="font-black uppercase tracking-widest text-[10px] py-4 px-4 bg-white/5 text-white/40 hover:text-white transition-all border-none"
-                    >
-                        <FontAwesomeIcon icon={faRotateRight} className={loading ? 'animate-spin' : ''} />
+                        ADD
                     </Button>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {guestPlayers.map((name, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 bg-white/5 border border-white/5 group hover:border-white/10 transition-all rounded-sm">
+                            <span className="text-[10px] font-black uppercase text-white/60 tracking-widest italic">{name}</span>
+                            <button 
+                                onClick={() => setGuestPlayers(guestPlayers.filter((_, idx) => idx !== i))}
+                                className="text-white/10 hover:text-red-500 transition-colors p-2"
+                            >
+                                <FontAwesomeIcon icon={faTimes} />
+                            </button>
+                        </div>
+                    ))}
+                </div>
             </div>
-            
-            <AttendanceList 
-              players={allPlayers} 
-              selectedIds={selectedPlayerIds} 
-              onToggle={togglePlayerAttendance} 
-            />
 
             <Button 
               onClick={handleDraft}
-              disabled={selectedPlayerIds.length === 0}
-              className="w-full py-6 font-black uppercase tracking-[0.4em] text-xs bg-primary text-black hover:bg-primary/80 transition-all gap-4 border-none shadow-[0_0_30px_rgba(204,255,0,0.1)]"
+              disabled={selectedPlayerIds.length < 2 && guestPlayers.length === 0}
+              className="w-full py-8 font-black uppercase tracking-[0.4em] text-sm bg-primary text-black hover:bg-primary/80 transition-all gap-4 border-none shadow-[0_0_40px_rgba(204,255,0,0.15)] group relative overflow-hidden"
             >
-              <FontAwesomeIcon icon={faShuffle} /> REALIZAR SORTEIO
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+              <FontAwesomeIcon icon={faShuffle} className="text-xl group-hover:rotate-180 transition-all duration-700" />
+              Realizar Sorteio PRO
             </Button>
           </div>
         )}
@@ -1082,15 +1136,27 @@ export default function MatchPage() {
 
       {/* Floating Tactical Button - Reset */}
       <button 
-        onClick={() => {
-            setDraftResult(null);
-            setSelectedPlayerIds([]);
-            setActiveTab('attendance');
+        onClick={async () => {
+            if (confirm("Deseja iniciar uma NOVA PARTIDA? Isso limpará o sorteio atual.")) {
+                setDraftResult(null);
+                setSelectedPlayerIds([]);
+                setGuestPlayers([]);
+                setScore({ home: 0, away: 0 });
+                setTimer(0);
+                setStatus('Agendada');
+                setMatchId(null);
+                setActiveTab('attendance');
+                
+                // Se houver uma partida em curso, podemos marcá-la como finalizada no banco
+                if (matchId) {
+                    await matchRepo.update(matchId, { status: 'Finalizada' });
+                }
+            }
         }}
-        className="fixed bottom-20 md:bottom-8 right-6 md:right-8 w-16 h-16 bg-white/5 border border-white/10 text-white/20 shadow-xl flex items-center justify-center hover:text-red-500 hover:border-red-500/40 transition-all z-40 group"
-        title="Reiniciar Partida"
+        className="fixed bottom-20 md:bottom-8 right-6 md:right-8 w-16 h-16 bg-primary text-black shadow-xl shadow-primary/20 flex items-center justify-center hover:bg-primary/80 transition-all z-40 group"
+        title="Nova Partida"
       >
-        <FontAwesomeIcon icon={faUserSlash} className="text-xl" />
+        <FontAwesomeIcon icon={faPlus} className="text-xl group-hover:rotate-90 transition-all duration-300" />
       </button>
       {/* Modal de Registro de Eventos */}
       {isEventModalOpen && draftResult && (
