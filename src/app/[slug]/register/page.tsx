@@ -125,19 +125,25 @@ export default function PlayerRegistrationPage() {
         is_mensalista: false
       });
 
-      // Auto-confirmar na próxima partida se existir
-      const { data: nextMatch } = await supabase
-        .from('matches')
-        .select('id')
-        .eq('group_id', group.id)
-        .eq('status', 'Agendada')
-        .order('date', { ascending: true })
-        .limit(1)
-        .maybeSingle();
+      // Auto-confirmar na partida do link ou na próxima disponível
+      const urlMatchId = new URLSearchParams(window.location.search).get('matchId');
+      let targetMatchId = urlMatchId;
 
-      if (nextMatch) {
+      if (!targetMatchId) {
+        const { data: nextMatch } = await supabase
+            .from('matches')
+            .select('id')
+            .eq('group_id', group.id)
+            .eq('status', 'Agendada')
+            .order('date', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+        if (nextMatch) targetMatchId = nextMatch.id;
+      }
+
+      if (targetMatchId) {
          await supabase.from('match_presence').insert({
-            match_id: nextMatch.id,
+            match_id: targetMatchId,
             player_id: newPlayer.id,
             status: 'Confirmado'
          });

@@ -23,6 +23,8 @@ export function CreateGroupModal({ isOpen, onClose, onSuccess, ownerId }: Create
   const [loading, setLoading] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [description, setDescription] = useState('');
+  const [foundedYear, setFoundedYear] = useState<string>(new Date().getFullYear().toString());
 
   const groupRepo = new GroupRepository();
 
@@ -79,7 +81,9 @@ export function CreateGroupModal({ isOpen, onClose, onSuccess, ownerId }: Create
         owner_id: ownerId,
         logo_url: logoUrl,
         invite_password: requirePassword ? invitePassword : '', 
-        is_paid_model: false
+        is_paid_model: false,
+        description,
+        founded_year: parseInt(foundedYear) || new Date().getFullYear()
       });
 
       onSuccess();
@@ -155,6 +159,30 @@ export function CreateGroupModal({ isOpen, onClose, onSuccess, ownerId }: Create
                 className="w-full bg-black/40 border border-white/10 p-4 pl-12 text-white font-mono text-xs focus:border-primary/50 outline-none"
                 required
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2">
+                <label className="block text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Breve Descrição / Bio</label>
+                <input
+                    type="text"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="O melhor racha da região..."
+                    className="w-full bg-black/40 border border-white/10 p-4 text-white text-xs focus:border-primary/50 outline-none"
+                />
+            </div>
+            <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Ano Fundação</label>
+                <input
+                    type="number"
+                    value={foundedYear}
+                    onChange={(e) => setFoundedYear(e.target.value)}
+                    placeholder="2024"
+                    className="w-full bg-black/40 border border-white/10 p-4 text-white text-xs focus:border-primary/50 outline-none"
+                    required
+                />
             </div>
           </div>
 

@@ -51,18 +51,21 @@ export default function JoinGroupPage() {
     setError('');
 
     try {
+      const matchId = new URLSearchParams(window.location.search).get('matchId');
+      const nextStep = `/${slug}/register${matchId ? `?matchId=${matchId}` : ''}`;
+
       if (group?.invite_password) {
           const isValid = await groupRepo.verifyPassword(slug, password);
           if (isValid && group) {
             sessionStorage.setItem(`access_${group.id}`, 'true');
-            router.push(`/${slug}/register`);
+            router.push(nextStep);
           } else {
             setError('Senha de convite incorreta.');
           }
       } else if (group) {
           // Só tinha estatuto para aceitar
           sessionStorage.setItem(`access_${group.id}`, 'true');
-          router.push(`/${slug}/register`);
+          router.push(nextStep);
       }
     } catch (err) {
       setError('Erro ao verificar acesso.');

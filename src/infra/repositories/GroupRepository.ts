@@ -73,4 +73,24 @@ export class GroupRepository {
     if (error) throw error;
     return data as Group;
   }
+
+  async isEditor(groupId: string, userEmail: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('group_roles')
+      .select('id')
+      .eq('group_id', groupId)
+      .eq('user_email', userEmail)
+      .maybeSingle();
+    
+    if (error || !data) return false;
+    return true;
+  }
+
+  async addEditor(groupId: string, userEmail: string): Promise<void> {
+    const { error } = await supabase
+      .from('group_roles')
+      .upsert({ group_id: groupId, user_email: userEmail, role: 'editor' });
+    
+    if (error) throw error;
+  }
 }

@@ -7,6 +7,9 @@ export interface Group {
   invite_password?: string;
   is_paid_model?: boolean;
   rules_text?: string;
+  description?: string;
+  founded_year?: number;
+  recurrence_day?: string;
   sport_type_default?: 'Futsal' | 'Society' | 'Campo';
   created_at: string;
 }

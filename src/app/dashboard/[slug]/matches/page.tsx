@@ -63,10 +63,11 @@ export default function MatchPage() {
   const [events, setEvents] = useState<MatchEvent[]>([]);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [selectedEventType, setSelectedEventType] = useState<EventType>('Gol');
-  
-  // Jogadores Avulsos (Manuais)
   const [guestPlayers, setGuestPlayers] = useState<string[]>([]);
   const [guestInput, setGuestInput] = useState('');
+  const [userRole, setUserRole] = useState<'owner' | 'editor' | 'viewer'>('viewer');
+  const [editorInput, setEditorInput] = useState('');
+  const [editors, setEditors] = useState<any[]>([]);
   
   // Rotação e Filas
   const [teamsQueue, setTeamsQueue] = useState<Player[][]>([]);
@@ -91,7 +92,9 @@ export default function MatchPage() {
     max_players: 14,
     max_goalkeepers: 2,
     rules_text: '',
-    recurrence_day: 'Segunda-feira'
+    recurrence_day: 'Segunda-feira',
+    description: '',
+    founded_year: new Date().getFullYear()
   });
 
   const playerRepo = new PlayerRepository();
@@ -109,7 +112,10 @@ export default function MatchPage() {
             // Salvar padrões no Grupo
             await groupRepo.update(groupId, {
                 rules_text: config.rules_text || '',
-                sport_type_default: config.sport_type
+                sport_type_default: config.sport_type,
+                recurrence_day: config.recurrence_day,
+                description: (config as any).description,
+                founded_year: (config as any).founded_year
             });
             
             // Se houver uma partida ativa no estado, poderíamos atualizar aqui também
@@ -138,16 +144,32 @@ export default function MatchPage() {
 
   useEffect(() => {
     async function init() {
+        const { data: { user } } = await supabase.auth.getUser();
         const group = await groupRepo.findBySlug(slug);
-        if (group) {
+        
+        if (group && user) {
             setGroupId(group.id);
             fetchPlayers(group.id);
             
+            // Detectar Role
+            if (group.owner_id === user.id) {
+                setUserRole('owner');
+                // Se for dono, carregar lista de editores
+                const { data: roles } = await supabase.from('group_roles').select('*').eq('group_id', group.id);
+                setEditors(roles || []);
+            } else {
+                const isEditor = await groupRepo.isEditor(group.id, user.email || '');
+                if (isEditor) setUserRole('editor');
+            }
+
             // Carregar configurações padrão do grupo
             setConfig(prev => ({
                 ...prev,
                 rules_text: group.rules_text || '',
-                sport_type: group.sport_type_default as SportType || 'Society'
+                sport_type: group.sport_type_default as SportType || 'Society',
+                recurrence_day: (group as any).recurrence_day || 'Segunda-feira',
+                description: group.description || '',
+                founded_year: group.founded_year || new Date().getFullYear()
             }));
             // Tentar recuperar partida live
             const liveMatch = await matchRepo.findLiveMatch(group.id);
@@ -504,6 +526,21 @@ export default function MatchPage() {
       setStatus('Pausada');
   };
 
+  const handleNewMatch = () => {
+      setDraftResult(null);
+      setTeamsQueue([]);
+      setConsecutiveWins(0);
+      setLastWinnerId(null);
+      setScore({ home: 0, away: 0 });
+      setTimer(0);
+      setAccumulatedTime(0);
+      setStartTime(null);
+      setStatus('Pausada');
+      setMatchId(null);
+      setEvents([]);
+      setActiveTab('attendance');
+  };
+
   const addGuest = () => {
     if (!guestInput.trim()) return;
     setGuestPlayers(prev => [...prev, guestInput.trim()]);
@@ -635,6 +672,36 @@ export default function MatchPage() {
                   placeholder="EX: ARENA NACIONAL..."
                   className="w-full bg-black/20 border border-white/10 p-3 text-white focus:border-primary/40 outline-none"
                 />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-primary mb-2 block italic">Estatuto / Regras do Grupo</label>
+                <textarea 
+                  value={config.rules_text}
+                  onChange={(e) => setConfig({...config, rules_text: e.target.value})}
+                  className="w-full bg-black/20 border border-white/10 p-4 text-white font-mono text-xs h-32 outline-none focus:border-primary/40"
+                  placeholder="DIGITE AS REGRAS E MULTAS AQUI..."
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block">Descrição do Clube</label>
+                    <input 
+                        type="text"
+                        value={(config as any).description}
+                        onChange={(e) => setConfig({...config, description: e.target.value})}
+                        className="w-full bg-black/20 border border-white/10 p-3 text-white focus:border-primary/40 outline-none"
+                    />
+                </div>
+                <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block">Ano Fundação</label>
+                    <input 
+                        type="number"
+                        value={(config as any).founded_year}
+                        onChange={(e) => setConfig({...config, founded_year: parseInt(e.target.value)})}
+                        className="w-full bg-black/20 border border-white/10 p-3 text-white focus:border-primary/40 outline-none"
+                    />
+                </div>
               </div>
 
               <div>
@@ -784,29 +851,54 @@ export default function MatchPage() {
             </div>
           </GlassCard>
 
-          <GlassCard className="p-6">
-            <h3 className="text-white font-black uppercase tracking-widest text-sm mb-6 flex items-center gap-2">
-               Financeiro
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block">Valor por Pelada (R$)</label>
-                <input 
-                  type="number" 
-                  placeholder="20.00"
-                  className="w-full bg-black/20 border border-white/10 p-3 text-white focus:border-primary/40 outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block">Chave PIX para Recebimento</label>
-                <input 
-                  type="text" 
-                  placeholder="E-MAIL, CPF OU ALEATÓRIA"
-                  className="w-full bg-black/20 border border-white/10 p-3 text-white focus:border-primary/40 outline-none"
-                />
-              </div>
-            </div>
-          </GlassCard>
+          {userRole === 'owner' && (
+            <GlassCard className="p-6">
+                <h3 className="text-white font-black uppercase tracking-widest text-sm mb-6 flex items-center gap-2">
+                    Delegar Acesso (Editores)
+                </h3>
+                <div className="space-y-4">
+                    <div className="flex gap-2">
+                        <input 
+                            type="email" 
+                            value={editorInput}
+                            onChange={(e) => setEditorInput(e.target.value)}
+                            placeholder="E-MAIL DO COLABORADOR..."
+                            className="flex-1 bg-black/20 border border-white/10 p-3 text-white focus:border-primary/40 outline-none uppercase text-[10px] font-black tracking-widest"
+                        />
+                        <Button 
+                            onClick={async () => {
+                                if (editorInput && groupId) {
+                                    await groupRepo.addEditor(groupId, editorInput.toLowerCase());
+                                    setEditorInput('');
+                                    const { data: roles } = await supabase.from('group_roles').select('*').eq('group_id', groupId);
+                                    setEditors(roles || []);
+                                }
+                            }}
+                            className="bg-primary text-black px-6 font-black uppercase tracking-widest text-[10px]"
+                        >
+                            ADICIONAR
+                        </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {editors.map((ed, i) => (
+                            <div key={i} className="flex items-center justify-between p-3 bg-white/5 border border-white/5">
+                                <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{ed.user_email}</span>
+                                <button 
+                                    onClick={async () => {
+                                        await supabase.from('group_roles').delete().eq('id', ed.id);
+                                        setEditors(editors.filter(e => e.id !== ed.id));
+                                    }}
+                                    className="text-red-500/40 hover:text-red-500 transition-colors p-1"
+                                >
+                                    <FontAwesomeIcon icon={faTimes} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </GlassCard>
+          )}
           
           <div className="flex justify-end">
             <Button 
@@ -845,8 +937,8 @@ export default function MatchPage() {
                         <input 
                             id="rsvp-link"
                             readOnly
-                            value={`${typeof window !== 'undefined' ? window.location.origin : ''}/${slug}/matches/next/rsvp`}
-                            className="flex-1 bg-black/40 border border-white/10 p-2 text-[9px] text-primary/60 outline-none font-mono tracking-tighter"
+                            value={`${typeof window !== 'undefined' ? window.location.origin : ''}/${slug}/join${matchId ? `?matchId=${matchId}` : ''}`}
+                            className="flex-1 bg-black/40 border border-white/10 p-4 text-[10px] font-mono text-primary/60 outline-none"
                         />
                         <Button 
                             onClick={() => {
@@ -918,7 +1010,7 @@ export default function MatchPage() {
             <Button 
               onClick={handleDraft}
               disabled={selectedPlayerIds.length < 2 && guestPlayers.length === 0}
-              className="w-full py-8 font-black uppercase tracking-[0.4em] text-sm bg-primary text-black hover:bg-primary/80 transition-all gap-4 border-none shadow-[0_0_40px_rgba(204,255,0,0.15)] group relative overflow-hidden"
+              className={`w-full py-8 font-black uppercase tracking-[0.4em] text-sm bg-primary text-black hover:bg-primary/80 transition-all gap-4 border-none shadow-[0_0_40px_rgba(204,255,0,0.15)] group relative overflow-hidden ${userRole === 'viewer' ? 'hidden' : ''}`}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
               <FontAwesomeIcon icon={faShuffle} className="text-xl group-hover:rotate-180 transition-all duration-700" />
@@ -1007,9 +1099,30 @@ export default function MatchPage() {
 
         {activeTab === 'stats' && (
           <div className="space-y-6">
+            {/* Quick Stats Banner */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                {/* Botão Nova Partida (Apenas Dono) */}
+                {userRole === 'owner' && (
+                  <button 
+                      onClick={() => {
+                          if (confirm('Deseja realmente iniciar uma nova rodada? Todos os dados atuais do sorteio serão limpos.')) {
+                              handleNewMatch();
+                          }
+                      }}
+                      className="group flex items-center justify-center gap-4 bg-white/5 border border-white/5 hover:bg-primary/10 hover:border-primary/20 transition-all p-4"
+                  >
+                      <FontAwesomeIcon icon={faPlus} className="text-primary text-xs" />
+                      <span className="text-[10px] font-black uppercase text-white/40 group-hover:text-primary tracking-widest transition-colors">Nova Rodada</span>
+                  </button>
+                )}
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button 
                     onClick={() => {
+                        if (userRole === 'viewer') {
+                            alert('Apenas donos e editores podem registrar eventos.');
+                            return;
+                        }
                         if (!draftResult) {
                             alert('Primeiro faça o sorteio dos times!');
                             return;
@@ -1017,7 +1130,7 @@ export default function MatchPage() {
                         setSelectedEventType('Gol');
                         setIsEventModalOpen(true);
                     }}
-                    className="p-6 bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-all flex flex-col items-center justify-center gap-3 group"
+                    className={`p-6 bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-all flex flex-col items-center justify-center gap-3 group ${userRole === 'viewer' ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                     <div className="w-12 h-12 bg-primary text-black flex items-center justify-center text-xl shadow-[0_0_20px_rgba(204,255,0,0.2)]">
                         <FontAwesomeIcon icon={faFutbol} />
