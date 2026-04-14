@@ -371,6 +371,7 @@ export default function MatchPage() {
     }
 
     const result = draftService.balanceTeams(totalAvailable, config.playersPerTeam);
+    setDraftResult(result);
     setTeamsQueue([]);
     setConsecutiveWins(0);
     setActiveTab('match');
@@ -542,12 +543,12 @@ export default function MatchPage() {
       />
 
       {/* HUD Tabs */}
-      <div className="flex border border-white/10 mb-8 bg-black/20">
+      <div className="flex border border-white/10 mb-8 bg-black/20 overflow-x-auto no-scrollbar">
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex-1 flex items-center justify-center gap-3 py-4 transition-all relative ${
+            className={`flex-1 flex items-center justify-center gap-3 py-4 px-6 md:px-4 transition-all relative shrink-0 min-w-max md:min-w-0 ${
               activeTab === tab.id 
                 ? 'bg-primary text-black' 
                 : 'text-white/40 hover:text-white/60 hover:bg-white/5'
