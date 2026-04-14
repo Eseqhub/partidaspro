@@ -34,13 +34,17 @@ export default function PlayerRegistrationPage() {
     name: '',
     full_name: '',
     nationality: 'Brasil',
-    birth_date: '',
     preferred_foot: 'R' as 'L' | 'R' | 'Ambidestro',
     positions: ['MO'] as any[],
     height: '',
     weight: '',
     photo_url: ''
   });
+
+  // Estado separado para os 3 campos da data de nascimento
+  const [birthDay, setBirthDay] = useState('');
+  const [birthMonth, setBirthMonth] = useState('');
+  const [birthYear, setBirthYear] = useState('');
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -109,12 +113,17 @@ export default function PlayerRegistrationPage() {
         photoUrl = await uploadPhoto(photoFile);
       }
 
+      // Montar data de nascimento apenas se os 3 campos estiverem preenchidos
+      const birth_date = (birthDay && birthMonth && birthYear)
+        ? `${birthYear}-${birthMonth}-${birthDay}`
+        : undefined;
+
       const newPlayer = await playerRepo.create({
         group_id: group.id,
         name: form.name.substring(0, 15), // Limite para card
         full_name: form.full_name,
         nationality: form.nationality,
-        birth_date: form.birth_date,
+        birth_date,
         preferred_foot: form.preferred_foot,
         positions: form.positions,
         height: form.height ? parseFloat(form.height) : undefined,
@@ -225,14 +234,15 @@ export default function PlayerRegistrationPage() {
                         ) : (
                             <div className="flex flex-col items-center gap-3">
                                 <FontAwesomeIcon icon={faCamera} className="text-white/10 text-4xl" />
-                                <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.2em]">Upload Foto</span>
+                                <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.2em]">Câmera / Galeria</span>
                             </div>
                         )}
                         <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <span className="text-[10px] font-black text-white uppercase tracking-widest bg-slate-950/80 px-4 py-2">Mudar Foto</span>
                         </div>
                     </div>
-                    <input id="photo-input" type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+                    {/* capture="user" abre câmera frontal no mobile; sem esse atributo só abre galeria */}
+                    <input id="photo-input" type="file" accept="image/*" capture="user" className="hidden" onChange={handlePhotoChange} />
                 </div>
                 <p className="text-[8px] text-white/20 mt-4 uppercase font-black tracking-widest">Limite de arquivo: 5MB (PNG/JPG)</p>
             </div>
@@ -284,46 +294,44 @@ export default function PlayerRegistrationPage() {
                         <FontAwesomeIcon icon={faCakeCandles} className="text-[8px]" /> Nascimento
                     </label>
                     <div className="flex gap-2">
+                        {/* DIA - valor como string padded ("01") para match exato com o state */}
                         <select 
                             className="flex-1 bg-black/40 border border-white/10 p-4 text-white focus:border-primary/50 outline-none appearance-none font-bold"
-                            value={form.birth_date ? form.birth_date.split('-')[2] : ''}
-                            onChange={(e) => {
-                                const parts = form.birth_date.split('-');
-                                setForm({...form, birth_date: `${parts[0] || '1990'}-${parts[1] || '01'}-${e.target.value.padStart(2, '0')}`});
-                            }}
+                            value={birthDay}
+                            onChange={(e) => setBirthDay(e.target.value)}
                             required
                         >
                             <option value="">DIA</option>
-                            {Array.from({ length: 31 }, (_, i) => (
-                                <option key={i+1} value={i+1}>{i+1}</option>
-                            ))}
+                            {Array.from({ length: 31 }, (_, i) => {
+                                const val = String(i + 1).padStart(2, '0');
+                                return <option key={val} value={val}>{i + 1}</option>;
+                            })}
                         </select>
+
+                        {/* MÊS - valor como string padded ("01") */}
                         <select 
                             className="flex-1 bg-black/40 border border-white/10 p-4 text-white focus:border-primary/50 outline-none appearance-none font-bold"
-                            value={form.birth_date ? form.birth_date.split('-')[1] : ''}
-                            onChange={(e) => {
-                                const parts = form.birth_date.split('-');
-                                setForm({...form, birth_date: `${parts[0] || '1990'}-${e.target.value.padStart(2, '0')}-${parts[2] || '01'}`});
-                            }}
+                            value={birthMonth}
+                            onChange={(e) => setBirthMonth(e.target.value)}
                             required
                         >
                             <option value="">MÊS</option>
-                            {Array.from({ length: 12 }, (_, i) => (
-                                <option key={i+1} value={i+1}>{i+1}</option>
-                            ))}
+                            {Array.from({ length: 12 }, (_, i) => {
+                                const val = String(i + 1).padStart(2, '0');
+                                return <option key={val} value={val}>{i + 1}</option>;
+                            })}
                         </select>
+
+                        {/* ANO */}
                         <select 
                             className="flex-[1.5] bg-black/40 border border-white/10 p-4 text-white focus:border-primary/50 outline-none appearance-none font-bold"
-                            value={form.birth_date ? form.birth_date.split('-')[0] : ''}
-                            onChange={(e) => {
-                                const parts = form.birth_date.split('-');
-                                setForm({...form, birth_date: `${e.target.value}-${parts[1] || '01'}-${parts[2] || '01'}`});
-                            }}
+                            value={birthYear}
+                            onChange={(e) => setBirthYear(e.target.value)}
                             required
                         >
                             <option value="">ANO</option>
                             {Array.from({ length: 60 }, (_, i) => (
-                                <option key={i} value={2015 - i}>{2015 - i}</option>
+                                <option key={i} value={String(2015 - i)}>{2015 - i}</option>
                             ))}
                         </select>
                     </div>

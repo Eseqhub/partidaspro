@@ -6,7 +6,7 @@ import { supabase } from '@/infra/supabase/client';
 import React, { useState, useEffect } from 'react';
 import { Scoreboard } from '@/presentation/components/dashboard/Scoreboard';
 import { PlayerCard } from '@/presentation/components/dashboard/PlayerCard';
-import { TacticalBoard } from '@/presentation/components/dashboard/TacticalBoard';
+import { TacticalBoardV2 } from '@/presentation/components/dashboard/TacticalBoardV2';
 import { Player } from '@/core/entities/player';
 import { Match, SportType, GameMode, MatchStatus, MatchEvent, EventType } from '@/core/entities/match';
 import { GlassCard } from '@/presentation/components/ui/GlassCard';
@@ -1051,15 +1051,16 @@ export default function MatchPage() {
                 </div>
 
                 <div className="mb-12 flex justify-center">
-                    <TacticalBoard 
-                       homeTeam={draftResult.homeTeam} 
-                       awayTeam={draftResult.awayTeam} 
-                       homeColor={config.homeColor}
-                       awayColor={config.awayColor}
+                    <TacticalBoardV2
+                       homeTeam={draftResult.homeTeam}
+                       awayTeam={draftResult.awayTeam}
                        homeTeamName={config.homeTeamName || "TIME MANDANTE (A)"}
                        awayTeamName={config.awayTeamName || "TIME VISITANTE (B)"}
+                       homeScore={score.home}
+                       awayScore={score.away}
+                       timer={timer}
+                       matchStatus={status}
                        sportType={config.sport_type}
-                       events={events}
                     />
                 </div>
 
