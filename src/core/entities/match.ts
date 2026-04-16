@@ -2,6 +2,8 @@ export type MatchStatus = 'Agendada' | 'Em curso' | 'Pausada' | 'Finalizada';
 
 export type GameMode = 'Rachão' | 'Revezamento' | 'Dois ou Dez' | 'Vira-Acaba';
 export type SportType = 'Futsal' | 'Society' | 'Campo';
+export type MatchType = 'rachao' | 'desafio';
+export type ChallengeStatus = 'pendente' | 'aceito' | 'recusado';
 
 export interface Match {
   id: string;
@@ -25,6 +27,11 @@ export interface Match {
   game_mode?: GameMode;
   max_players?: number;
   max_goalkeepers?: number;
+  // Modo Desafio
+  match_type?: MatchType;
+  challenge_token?: string;
+  challenge_status?: ChallengeStatus;
+  away_group_name?: string;
   created_at?: string;
 }
 

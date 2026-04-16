@@ -74,32 +74,33 @@ const getFieldCfg = (sport: SportKey, ppt: number): FieldCfg => {
 const POS_MAP: Record<string, { y: number; xBase: number }> = {
   G:   { y: 91, xBase: 50 },
   ZAG: { y: 75, xBase: 50 },
-  ZGD: { y: 75, xBase: 62 }, ZGE: { y: 75, xBase: 38 },
-  LD:  { y: 67, xBase: 84 }, LE:  { y: 67, xBase: 16 },
+  ZGD: { y: 75, xBase: 63 }, ZGE: { y: 75, xBase: 37 },
+  LD:  { y: 65, xBase: 85 }, LE:  { y: 65, xBase: 15 },
   VOL: { y: 57, xBase: 50 },
   MC:  { y: 48, xBase: 50 },
-  MD:  { y: 48, xBase: 67 }, ME:  { y: 48, xBase: 33 },
+  MD:  { y: 48, xBase: 70 }, ME:  { y: 48, xBase: 30 },
   MO:  { y: 37, xBase: 50 },
-  PD:  { y: 27, xBase: 80 }, PE:  { y: 27, xBase: 20 },
-  SA:  { y: 20, xBase: 50 },
-  CA:  { y: 12, xBase: 50 },
+  PD:  { y: 26, xBase: 80 }, PE:  { y: 26, xBase: 20 },
+  SA:  { y: 18, xBase: 50 },
+  CA:  { y: 10, xBase: 50 },
 };
 const FALLBACK = { y: 50, xBase: 50 };
 
-// Distribui múltiplos jogadores na mesma zona Y horizontalmente
+// Distribui múltiplos jogadores na mesma posição tática
+// Agrupa somente jogadores com MESMO y E MESMO xBase (mesma função tática)
 const computeCoords = (players: Player[]) => {
   const mapped = players.map(p => {
     const pos = p.positions?.[0] ?? 'MO';
     const pm  = POS_MAP[pos] ?? FALLBACK;
-    return { player: p, y: pm.y, xBase: pm.xBase };
+    return { player: p, y: pm.y, xBase: pm.xBase, pos };
   });
 
-  // Agrupa por zona Y (arredonda p/ múltiplos de 10)
-  const groups = new Map<number, typeof mapped>();
+  // Agrupa por posição exata (mesmo y + xBase) — evita misturar ZAG com ZGD/ZGE
+  const groups = new Map<string, typeof mapped>();
   mapped.forEach(item => {
-    const zone = Math.round(item.y / 10) * 10;
-    if (!groups.has(zone)) groups.set(zone, []);
-    groups.get(zone)!.push(item);
+    const key = `${item.y}_${item.xBase}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(item);
   });
 
   const result: { player: Player; x: number; y: number }[] = [];
@@ -107,9 +108,16 @@ const computeCoords = (players: Player[]) => {
     if (group.length === 1) {
       result.push({ player: group[0].player, x: group[0].xBase, y: group[0].y });
     } else {
-      const step = 76 / (group.length + 1);
+      // Múltiplos jogadores na mesma função: espalha lateralmente de forma simétrica
+      const spread = Math.min(28, group.length * 10);
+      const step   = spread / (group.length - 1 || 1);
+      const startX = group[0].xBase - spread / 2;
       group.forEach((item, i) =>
-        result.push({ player: item.player, x: 12 + step * (i + 1), y: item.y })
+        result.push({
+          player: item.player,
+          x: group.length === 1 ? item.xBase : startX + step * i,
+          y: item.y,
+        })
       );
     }
   });
@@ -127,9 +135,12 @@ const FieldSVG: React.FC<{ cfg: FieldCfg; sport: SportKey }> = ({ cfg, sport }) 
           goalW, circleR, penaltyY } = cfg;
   const cx = W / 2;
   const cy = H / 2;
-  const blue     = 'rgba(0,180,255,0.6)';
-  const blueFaint= 'rgba(0,180,255,0.35)';
-  const sw = W * 0.012; // espessura da linha proporcional
+  const blue      = 'rgba(0,180,255,0.65)';
+  const blueFaint = 'rgba(0,180,255,0.32)';
+  const sw = W * 0.012;
+
+  // Área semicircular do Futsal (raio = bigBoxH, centrada no gol)
+  const futsalArcR = bigBoxH;
 
   return (
     <svg
@@ -138,87 +149,118 @@ const FieldSVG: React.FC<{ cfg: FieldCfg; sport: SportKey }> = ({ cfg, sport }) 
     >
       <defs>
         <filter id="fglow2">
-          <feGaussianBlur stdDeviation={W * 0.012} result="b" />
+          <feGaussianBlur stdDeviation={W * 0.014} result="b" />
           <feComposite in="SourceGraphic" in2="b" operator="over" />
         </filter>
       </defs>
 
       {/* Borda do campo */}
       <rect x={W*0.03} y={H*0.015} width={W*0.94} height={H*0.97}
-        fill="none" stroke={blue} strokeWidth={sw*1.4} filter="url(#fglow2)" />
+        fill="none" stroke={blue} strokeWidth={sw*1.5} filter="url(#fglow2)" />
 
       {/* Linha de meio-campo */}
       <line x1={W*0.03} y1={cy} x2={W*0.97} y2={cy}
         stroke={blueFaint} strokeWidth={sw} />
 
-      {/* Círculo central — usando r em metros → escala correta porque viewBox=metros */}
+      {/* Círculo central */}
       <circle cx={cx} cy={cy} r={circleR}
         fill="none" stroke={blueFaint} strokeWidth={sw} />
-      <circle cx={cx} cy={cy} r={sw * 0.8} fill="rgba(0,180,255,0.7)" />
+      <circle cx={cx} cy={cy} r={sw * 0.9} fill="rgba(0,180,255,0.75)" />
 
       {/* === ÁREA ADVERSÁRIA (topo) === */}
-      {/* Área grande */}
-      <rect
-        x={cx - bigBoxW / 2} y={H * 0.015}
-        width={bigBoxW} height={bigBoxH}
-        fill="none" stroke={blueFaint} strokeWidth={sw}
-      />
-      {/* Área pequena */}
-      <rect
-        x={cx - smallBoxW / 2} y={H * 0.015}
-        width={smallBoxW} height={smallBoxH}
-        fill="none" stroke={blueFaint} strokeWidth={sw * 0.8}
-      />
-      {/* Ponto de pênalti (topo) */}
-      <circle cx={cx} cy={H * 0.015 + penaltyY} r={sw * 0.7} fill={blueFaint} />
-      {/* Arco de pênalti — só para Society e Campo */}
-      {sport !== 'Futsal' && (
-        <path
-          d={`M ${cx - circleR * 0.9} ${H * 0.015 + bigBoxH}
-              A ${circleR} ${circleR} 0 0 1 ${cx + circleR * 0.9} ${H * 0.015 + bigBoxH}`}
-          fill="none" stroke={blueFaint} strokeWidth={sw * 0.7}
-        />
+      {sport === 'Futsal' ? (
+        <>
+          {/* Futsal: semicírculo de área */}
+          <path
+            d={`M ${cx - futsalArcR} ${H * 0.015}
+                A ${futsalArcR} ${futsalArcR} 0 0 1 ${cx + futsalArcR} ${H * 0.015}`}
+            fill="none" stroke={blueFaint} strokeWidth={sw * 0.9}
+          />
+          {/* Área pequena (retângulo do goleiro no futsal) */}
+          <rect
+            x={cx - smallBoxW / 2} y={H * 0.015}
+            width={smallBoxW} height={smallBoxH}
+            fill="none" stroke={blueFaint} strokeWidth={sw * 0.7}
+          />
+          {/* Ponto de penalti */}
+          <circle cx={cx} cy={H * 0.015 + penaltyY} r={sw * 0.7} fill={blueFaint} />
+          {/* Ponto de penalti duplo (futsal: 10m) */}
+          <circle cx={cx} cy={H * 0.015 + penaltyY * 1.65} r={sw * 0.5} fill={`${blueFaint.replace('0.32','0.2')}`} />
+        </>
+      ) : (
+        <>
+          <rect
+            x={cx - bigBoxW / 2} y={H * 0.015}
+            width={bigBoxW} height={bigBoxH}
+            fill="none" stroke={blueFaint} strokeWidth={sw}
+          />
+          <rect
+            x={cx - smallBoxW / 2} y={H * 0.015}
+            width={smallBoxW} height={smallBoxH}
+            fill="none" stroke={blueFaint} strokeWidth={sw * 0.8}
+          />
+          <circle cx={cx} cy={H * 0.015 + penaltyY} r={sw * 0.7} fill={blueFaint} />
+          <path
+            d={`M ${cx - circleR * 0.92} ${H * 0.015 + bigBoxH}
+                A ${circleR} ${circleR} 0 0 1 ${cx + circleR * 0.92} ${H * 0.015 + bigBoxH}`}
+            fill="none" stroke={blueFaint} strokeWidth={sw * 0.7}
+          />
+        </>
       )}
 
       {/* === ÁREA DO GOLEIRO (base) === */}
-      {/* Área grande */}
-      <rect
-        x={cx - bigBoxW / 2} y={H * 0.985 - bigBoxH}
-        width={bigBoxW} height={bigBoxH}
-        fill="none" stroke={blueFaint} strokeWidth={sw}
-      />
-      {/* Área pequena */}
-      <rect
-        x={cx - smallBoxW / 2} y={H * 0.985 - smallBoxH}
-        width={smallBoxW} height={smallBoxH}
-        fill="none" stroke={blueFaint} strokeWidth={sw * 0.8}
-      />
-      {/* Ponto de pênalti (base) */}
-      <circle cx={cx} cy={H * 0.985 - penaltyY} r={sw * 0.7} fill={blueFaint} />
-      {sport !== 'Futsal' && (
-        <path
-          d={`M ${cx - circleR * 0.9} ${H * 0.985 - bigBoxH}
-              A ${circleR} ${circleR} 0 0 0 ${cx + circleR * 0.9} ${H * 0.985 - bigBoxH}`}
-          fill="none" stroke={blueFaint} strokeWidth={sw * 0.7}
-        />
+      {sport === 'Futsal' ? (
+        <>
+          <path
+            d={`M ${cx - futsalArcR} ${H * 0.985}
+                A ${futsalArcR} ${futsalArcR} 0 0 0 ${cx + futsalArcR} ${H * 0.985}`}
+            fill="none" stroke={blueFaint} strokeWidth={sw * 0.9}
+          />
+          <rect
+            x={cx - smallBoxW / 2} y={H * 0.985 - smallBoxH}
+            width={smallBoxW} height={smallBoxH}
+            fill="none" stroke={blueFaint} strokeWidth={sw * 0.7}
+          />
+          <circle cx={cx} cy={H * 0.985 - penaltyY} r={sw * 0.7} fill={blueFaint} />
+          <circle cx={cx} cy={H * 0.985 - penaltyY * 1.65} r={sw * 0.5} fill={`${blueFaint.replace('0.32','0.2')}`} />
+        </>
+      ) : (
+        <>
+          <rect
+            x={cx - bigBoxW / 2} y={H * 0.985 - bigBoxH}
+            width={bigBoxW} height={bigBoxH}
+            fill="none" stroke={blueFaint} strokeWidth={sw}
+          />
+          <rect
+            x={cx - smallBoxW / 2} y={H * 0.985 - smallBoxH}
+            width={smallBoxW} height={smallBoxH}
+            fill="none" stroke={blueFaint} strokeWidth={sw * 0.8}
+          />
+          <circle cx={cx} cy={H * 0.985 - penaltyY} r={sw * 0.7} fill={blueFaint} />
+          <path
+            d={`M ${cx - circleR * 0.92} ${H * 0.985 - bigBoxH}
+                A ${circleR} ${circleR} 0 0 0 ${cx + circleR * 0.92} ${H * 0.985 - bigBoxH}`}
+            fill="none" stroke={blueFaint} strokeWidth={sw * 0.7}
+          />
+        </>
       )}
 
-      {/* Traves (linhas de gol) */}
+      {/* Traves */}
       <line x1={cx - goalW/2} y1={H*0.015} x2={cx + goalW/2} y2={H*0.015}
-        stroke={blue} strokeWidth={sw * 2} />
+        stroke={blue} strokeWidth={sw * 2.2} />
       <line x1={cx - goalW/2} y1={H*0.985} x2={cx + goalW/2} y2={H*0.985}
-        stroke={blue} strokeWidth={sw * 2} />
+        stroke={blue} strokeWidth={sw * 2.2} />
 
-      {/* Arcos de canto (apenas Campo) */}
+      {/* Arcos de canto (Campo) */}
       {sport === 'Campo' && (
         <>
-          <path d={`M ${W*0.03+2} ${H*0.015+2} A 2 2 0 0 1 ${W*0.03+2+2} ${H*0.015}`}
+          <path d={`M ${W*0.03+2} ${H*0.015+2} A 2 2 0 0 1 ${W*0.03+4} ${H*0.015}`}
             fill="none" stroke={blueFaint} strokeWidth={sw} />
-          <path d={`M ${W*0.97-2} ${H*0.015+2} A 2 2 0 0 0 ${W*0.97-2-2} ${H*0.015}`}
+          <path d={`M ${W*0.97-2} ${H*0.015+2} A 2 2 0 0 0 ${W*0.97-4} ${H*0.015}`}
             fill="none" stroke={blueFaint} strokeWidth={sw} />
-          <path d={`M ${W*0.03+2} ${H*0.985-2} A 2 2 0 0 0 ${W*0.03+2+2} ${H*0.985}`}
+          <path d={`M ${W*0.03+2} ${H*0.985-2} A 2 2 0 0 0 ${W*0.03+4} ${H*0.985}`}
             fill="none" stroke={blueFaint} strokeWidth={sw} />
-          <path d={`M ${W*0.97-2} ${H*0.985-2} A 2 2 0 0 1 ${W*0.97-2-2} ${H*0.985}`}
+          <path d={`M ${W*0.97-2} ${H*0.985-2} A 2 2 0 0 1 ${W*0.97-4} ${H*0.985}`}
             fill="none" stroke={blueFaint} strokeWidth={sw} />
         </>
       )}
@@ -367,11 +409,13 @@ export const TacticalBoardV2: React.FC<TacticalBoardV2Props> = ({
 
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
-      userSelect:'none', fontFamily:'inherit', width:'100%' }}>
+      userSelect:'none', fontFamily:'inherit', width:'100%',
+      maxWidth: cfg.maxW, /* ← responsivo: nunca ultrapassa o maxW do esporte */
+    }}>
 
       {/* ── BROADCAST HEADER ─────────────────────────────────────────────── */}
-      <div style={{ width: cfg.maxW, display:'flex', alignItems:'center',
-        justifyContent:'space-between', padding:'5px 10px', marginBottom:6,
+      <div style={{ width:'100%', display:'flex', alignItems:'center',
+        justifyContent:'space-between', padding:'5px 8px', marginBottom:6,
         background:'linear-gradient(90deg,rgba(0,0,0,0.97),rgba(0,12,30,0.97),rgba(0,0,0,0.97))',
         borderBottom:`1.5px solid ${gold}`, borderTop:`1px solid ${blue}33` }}>
 
@@ -432,7 +476,7 @@ export const TacticalBoardV2: React.FC<TacticalBoardV2Props> = ({
       </div>
 
       {/* Nome do time ativo */}
-      <div style={{ width: cfg.maxW, textAlign:'center', padding:'4px 0', marginBottom:4,
+      <div style={{ width:'100%', textAlign:'center', padding:'4px 0', marginBottom:4,
         borderTop:`1px solid ${blue}25`, borderBottom:`1px solid ${blue}25`,
         background:`linear-gradient(90deg,transparent,${blue}08,transparent)` }}>
         <span style={{ fontSize:12, fontWeight:900, textTransform:'uppercase',
@@ -442,7 +486,8 @@ export const TacticalBoardV2: React.FC<TacticalBoardV2Props> = ({
       </div>
 
       {/* ── CAMPO DE FUTEBOL ─────────────────────────────────────────────── */}
-      <div style={{ position:'relative', width: cfg.maxW, height: fieldH_px, flexShrink:0 }}>
+      {/* width: 100% + aspectRatio deixa o campo auto-escalar no mobile */}
+      <div style={{ position:'relative', width:'100%', aspectRatio:`${cfg.fieldW}/${cfg.fieldH}`, flexShrink:0 }}>
 
         {/* Borda animada */}
         <div style={{ position:'absolute', inset:0, zIndex:30, pointerEvents:'none',
@@ -516,7 +561,7 @@ export const TacticalBoardV2: React.FC<TacticalBoardV2Props> = ({
           border:`1px solid ${blue}22`, borderLeft:`3px solid ${blue}` }}>
           <div style={{ fontSize:7, fontWeight:900, textTransform:'uppercase',
             letterSpacing:'0.15em', color:'rgba(255,255,255,0.35)', marginBottom:2 }}>
-            SORTEIRO INTELIGENTE
+            SORTEIO INTELIGENTE
           </div>
           <div style={{ display:'flex', alignItems:'flex-end', gap:4 }}>
             <span style={{ fontSize:20, fontWeight:900, color:'#fff', lineHeight:1, fontStyle:'italic' }}>

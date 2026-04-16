@@ -17,7 +17,7 @@ export const AttendanceList: React.FC<AttendanceListProps> = ({
   onToggle 
 }) => {
   return (
-    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+    <div className="space-y-2 max-h-[55vh] md:max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
       {players.length === 0 && (
         <div className="text-center py-10 text-white/20 uppercase font-black text-[10px] tracking-widest border border-dashed border-white/10">
           Nenhum atleta cadastrado no sistema
