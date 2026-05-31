@@ -63,37 +63,50 @@ export const TacticalBoardV2: React.FC<TacticalBoardV2Props> = ({
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
       userSelect:'none', fontFamily:'inherit', width:'100%', maxWidth:cfg.maxW }}>
 
-      {/* Header broadcast */}
-      <div style={{ width:'100%', display:'flex', alignItems:'center',
-        justifyContent:'space-between', padding:'5px 8px', marginBottom:6,
+      {/* Header broadcast — placar grande + nomes dos times */}
+      <div style={{ width:'100%', padding:'8px 10px', marginBottom:6,
         background:'linear-gradient(90deg,rgba(0,0,0,0.97),rgba(0,12,30,0.97),rgba(0,0,0,0.97))',
         borderBottom:`1.5px solid ${GOLD}`, borderTop:`1px solid ${BLUE}33` }}>
 
-        <div style={{ padding:'2px 8px', background:`${BLUE}11`, border:`1px solid ${BLUE}33` }}>
-          <div style={{ fontSize:7, fontWeight:900, textTransform:'uppercase', letterSpacing:'0.2em', color:`${BLUE}88`, lineHeight:1.2 }}>
-            {homeTeamName.substring(0,12)}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+          {/* Time mandante */}
+          <div style={{ flex:1, minWidth:0, textAlign:'right' }}>
+            <div style={{ fontSize:12, fontWeight:900, textTransform:'uppercase', letterSpacing:'-0.01em',
+              color: homeScore>awayScore ? GOLD : '#fff', lineHeight:1.1,
+              overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              {homeTeamName}
+            </div>
           </div>
-          <div style={{ fontSize:18, fontWeight:900, color:homeScore>awayScore?GOLD:'#fff', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>
-            {homeScore}&nbsp;<span style={{color:'rgba(255,255,255,0.2)'}}>-</span>&nbsp;{awayScore}
+
+          {/* Placar grande */}
+          <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:8, padding:'0 4px' }}>
+            <span style={{ fontSize:34, fontWeight:900, fontVariantNumeric:'tabular-nums', lineHeight:1,
+              color: homeScore>awayScore ? GOLD : '#fff' }}>{homeScore}</span>
+            <span style={{ fontSize:20, fontWeight:900, color:'rgba(255,255,255,0.25)' }}>-</span>
+            <span style={{ fontSize:34, fontWeight:900, fontVariantNumeric:'tabular-nums', lineHeight:1,
+              color: awayScore>homeScore ? GOLD : '#fff' }}>{awayScore}</span>
+          </div>
+
+          {/* Time visitante */}
+          <div style={{ flex:1, minWidth:0, textAlign:'left' }}>
+            <div style={{ fontSize:12, fontWeight:900, textTransform:'uppercase', letterSpacing:'-0.01em',
+              color: awayScore>homeScore ? GOLD : '#fff', lineHeight:1.1,
+              overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              {awayTeamName}
+            </div>
           </div>
         </div>
 
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
-          <span style={{ fontSize:11, fontWeight:900, textTransform:'uppercase', letterSpacing:'-0.02em', color:'#fff' }}>
-            PELADA <span style={{ color:GOLD, textShadow:`0 0 10px ${GOLD}` }}>PRO</span>
-          </span>
-          <span style={{ fontSize:6.5, fontWeight:900, textTransform:'uppercase', letterSpacing:'0.18em', color:`${BLUE}66`, marginTop:1 }}>
-            {sportType} {cfg.limit}x{cfg.limit}
-          </span>
-        </div>
-
-        <div style={{ padding:'2px 8px', border:`1px solid ${BLUE}25`, background:'rgba(0,20,50,0.7)', textAlign:'right' }}>
-          <div style={{ fontSize:16, fontWeight:900, fontFamily:'monospace', color:matchStatus==='Em curso'?GOLD:BLUE, lineHeight:1 }}>
+        {/* Cronômetro + status */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginTop:4 }}>
+          <span style={{ fontSize:13, fontWeight:900, fontFamily:'monospace',
+            color: matchStatus==='Em curso' ? GOLD : BLUE, lineHeight:1 }}>
             {fmtTime(timer)}
-          </div>
-          <div style={{ fontSize:6.5, fontWeight:900, textTransform:'uppercase', color:'rgba(255,255,255,0.3)', letterSpacing:'0.1em' }}>
+          </span>
+          <span style={{ width:3, height:3, borderRadius:'50%', background:'rgba(255,255,255,0.2)' }} />
+          <span style={{ fontSize:7, fontWeight:900, textTransform:'uppercase', letterSpacing:'0.15em', color:'rgba(255,255,255,0.35)' }}>
             {matchStatus}
-          </div>
+          </span>
         </div>
       </div>
 
