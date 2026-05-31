@@ -37,11 +37,27 @@ interface Props {
   onSuccess: (matchId: string) => void;
 }
 
-const neon  = '#ccff00';
-const blue  = '#00b4ff';
-const gold  = '#d4a017';
-const green = '#22c55e';
+const neon   = '#ccff00';
+const blue   = '#00b4ff';
+const gold   = '#d4a017';
+const green  = '#22c55e';
 const purple = '#a855f7';
+
+// Cores de camisa disponíveis
+const SHIRT_COLORS: { label: string; hex: string }[] = [
+  { label: 'Branco',    hex: '#ffffff' },
+  { label: 'Preto',     hex: '#111111' },
+  { label: 'Vermelho',  hex: '#EF4444' },
+  { label: 'Azul',      hex: '#3B82F6' },
+  { label: 'Verde',     hex: '#22C55E' },
+  { label: 'Amarelo',   hex: '#EAB308' },
+  { label: 'Laranja',   hex: '#F97316' },
+  { label: 'Roxo',      hex: '#A855F7' },
+  { label: 'Rosa',      hex: '#EC4899' },
+  { label: 'Cinza',     hex: '#6B7280' },
+  { label: 'Ciano',     hex: '#06B6D4' },
+  { label: 'Marrom',    hex: '#92400E' },
+];
 
 const CAMPOS: { value: TipoCampo; label: string; sub: string; players: number; emoji: string }[] = [
   { value: 'Futsal 5x5',  label: 'Futsal',  sub: '5 × 5',   players: 5,  emoji: '🏟️' },
@@ -124,6 +140,17 @@ export function NovaPartidaModal({ isOpen, groupId, groupSlug, onClose, onSucces
   const handleCreate = async () => {
     setSaving(true);
     try {
+      // Garante sessão válida antes de operar
+      const { error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr) {
+        const { error: refreshErr } = await supabase.auth.refreshSession();
+        if (refreshErr) {
+          alert('Sua sessão expirou. Faça login novamente.');
+          setSaving(false);
+          return;
+        }
+      }
+
       const { data: match, error: mErr } = await supabase
         .from('matches')
         .insert({
@@ -345,16 +372,41 @@ export function NovaPartidaModal({ isOpen, groupId, groupSlug, onClose, onSucces
                 </div>
               </div>
 
-              {/* Nomes dos times (Rachão e Manual) */}
+              {/* Nomes + Cores dos times */}
               {(draft.modalidade === 'Rachão' || draft.modalidade === 'Manual' || draft.modalidade === 'Bolão') && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div>
-                    <label style={lbl}>Nome Time A</label>
-                    <input style={inp} value={draft.nome_time_a} onChange={e => set('nome_time_a', e.target.value)} placeholder="TIME CASA..." />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {/* Time A */}
+                  <div style={{ padding: '14px 16px', background: `${draft.cor_time_a !== '#111111' ? draft.cor_time_a : '#fff'}0a`, border: `1px solid ${draft.cor_time_a !== '#111111' ? draft.cor_time_a : '#fff'}30` }}>
+                    <label style={{ ...lbl, marginBottom: 8 }}>Time A — Nome &amp; Cor</label>
+                    <input style={{ ...inp, marginBottom: 10 }} value={draft.nome_time_a} onChange={e => set('nome_time_a', e.target.value)} placeholder="TIME CASA..." />
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {SHIRT_COLORS.map(c => (
+                        <button key={c.hex} onClick={() => set('cor_time_a', c.label)} title={c.label}
+                          style={{ width: 28, height: 28, borderRadius: '50%', background: c.hex, border: `2px solid ${draft.cor_time_a === c.label ? '#fff' : 'transparent'}`, cursor: 'pointer', flexShrink: 0, boxShadow: draft.cor_time_a === c.label ? `0 0 0 2px ${c.hex}` : 'none', transition: 'all .15s' }} />
+                      ))}
+                    </div>
+                    {draft.cor_time_a && (
+                      <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', marginTop: 6, fontWeight: 700, textTransform: 'uppercase' }}>
+                        Selecionado: {draft.cor_time_a}
+                      </p>
+                    )}
                   </div>
-                  <div>
-                    <label style={lbl}>{draft.modalidade === 'Bolão' ? 'Prefixo Times' : 'Nome Time B'}</label>
-                    <input style={inp} value={draft.nome_time_b} onChange={e => set('nome_time_b', e.target.value)} placeholder={draft.modalidade === 'Bolão' ? 'TIME...' : 'VISITANTE...'} />
+
+                  {/* Time B */}
+                  <div style={{ padding: '14px 16px', background: `${draft.cor_time_b !== '#111111' ? draft.cor_time_b : '#fff'}0a`, border: `1px solid ${draft.cor_time_b !== '#111111' ? draft.cor_time_b : '#fff'}30` }}>
+                    <label style={{ ...lbl, marginBottom: 8 }}>{draft.modalidade === 'Bolão' ? 'Prefixo Times' : 'Time B'} — Nome &amp; Cor</label>
+                    <input style={{ ...inp, marginBottom: 10 }} value={draft.nome_time_b} onChange={e => set('nome_time_b', e.target.value)} placeholder={draft.modalidade === 'Bolão' ? 'TIME...' : 'VISITANTE...'} />
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {SHIRT_COLORS.map(c => (
+                        <button key={c.hex} onClick={() => set('cor_time_b', c.label)} title={c.label}
+                          style={{ width: 28, height: 28, borderRadius: '50%', background: c.hex, border: `2px solid ${draft.cor_time_b === c.label ? '#fff' : 'transparent'}`, cursor: 'pointer', flexShrink: 0, boxShadow: draft.cor_time_b === c.label ? `0 0 0 2px ${c.hex}` : 'none', transition: 'all .15s' }} />
+                      ))}
+                    </div>
+                    {draft.cor_time_b && (
+                      <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', marginTop: 6, fontWeight: 700, textTransform: 'uppercase' }}>
+                        Selecionado: {draft.cor_time_b}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
