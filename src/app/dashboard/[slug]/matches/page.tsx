@@ -172,7 +172,17 @@ export default function MatchPage() {
           setAccumulatedTime(liveMatch.timer_seconds);
           setTimer(liveMatch.timer_seconds);
           setStatus(liveMatch.status);
-          if (liveMatch.match_type) setMatchType(liveMatch.match_type as MatchType);
+          // Prioridade: match_type salvo (novo), fallback: modality (NovaPartidaModal)
+          const resolvedType: MatchType =
+            liveMatch.match_type === 'manual'  ? 'manual'
+            : liveMatch.match_type === 'desafio' ? 'desafio'
+            : (liveMatch as any).modality === 'Manual'  ? 'manual'
+            : (liveMatch as any).modality === 'Bolão'   ? 'rachao'  // Bolão usa rachao como base
+            : 'rachao';
+          setMatchType(resolvedType);
+          if ((liveMatch as any).modality === 'Bolão') {
+            setConfig(prev => ({ ...prev, game_mode: 'Bolão' }));
+          }
           setSessionPhase('active');
 
           const matchEvents = await matchRepo.getEvents(liveMatch.id);
@@ -191,6 +201,8 @@ export default function MatchPage() {
             const homePlayers    = presence.filter((p: any) => p.team === 'home' && p.player).map((p: any) => p.player);
             const awayPlayers    = presence.filter((p: any) => p.team === 'away' && p.player).map((p: any) => p.player);
             const waitingPlayers = presence.filter((p: any) => (!p.team || p.team === 'waiting') && p.player).map((p: any) => p.player);
+            const allPresenceIds = presence.map((p: any) => p.player_id).filter(Boolean);
+            setSelectedPlayerIds(allPresenceIds);
 
             if (homePlayers.length > 0 || awayPlayers.length > 0) {
               const calcRating = (team: Player[]) =>
@@ -203,9 +215,14 @@ export default function MatchPage() {
                 homeRating: calcRating(homePlayers),
                 awayRating: calcRating(awayPlayers),
               });
-              setSelectedPlayerIds(presence.map((p: any) => p.player_id).filter(Boolean));
               setActiveTab('match');
+            } else {
+              // Jogadores confirmados mas sem time atribuído ainda → chamada
+              setActiveTab('attendance');
             }
+          } else {
+            // Partida nova sem presença → vai para chamada
+            setActiveTab('attendance');
           }
         }
       }
