@@ -6,10 +6,11 @@ import {
   faArrowTrendUp, faArrowTrendDown, faWallet,
   faCircleCheck, faHourglassHalf, faUsers,
   faCalendarAlt, faChevronLeft, faChevronRight,
-  faSpinner
+  faSpinner, faQrcode
 } from '@fortawesome/free-solid-svg-icons';
 import { FinanceRepository } from '@/infra/repositories/FinanceRepository';
 import { Player } from '@/core/entities/player';
+import { PixRateioPanel } from '@/presentation/components/clube/components/PixRateioPanel';
 
 const blue  = '#00b4ff';
 const gold  = '#d4a017';
@@ -20,6 +21,7 @@ interface Props {
   finances: any[];
   summary: { balance: number; income: number; expense: number; received: number; pending: number };
   groupId: string;
+  groupName?: string;
   players?: Player[];
   onRefresh: () => void;
 }
@@ -37,8 +39,8 @@ function FinanceCard({ label, value, sub, color, icon }: { label: string; value:
   );
 }
 
-export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, players = [], onRefresh }) => {
-  const [subTab, setSubTab] = useState<'geral' | 'mensalistas'>('geral');
+export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, groupName = 'Pelada', players = [], onRefresh }) => {
+  const [subTab, setSubTab] = useState<'geral' | 'mensalistas' | 'cobrancas'>('geral');
   const [currentDate, setCurrentDate] = useState(new Date());
   
   // Payment Modal State
@@ -101,9 +103,17 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, playe
         </button>
         <button onClick={() => setSubTab('mensalistas')}
           style={{ padding: '8px 16px', background: subTab === 'mensalistas' ? `${gold}20` : 'transparent', border: 'none', borderRadius: 4, color: subTab === 'mensalistas' ? gold : 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', cursor: 'pointer', transition: 'all .2s' }}>
-          <FontAwesomeIcon icon={faUsers} style={{ marginRight: 6 }} /> Controle de Mensalistas
+          <FontAwesomeIcon icon={faUsers} style={{ marginRight: 6 }} /> Mensalistas
+        </button>
+        <button onClick={() => setSubTab('cobrancas')}
+          style={{ padding: '8px 16px', background: subTab === 'cobrancas' ? `${green}20` : 'transparent', border: 'none', borderRadius: 4, color: subTab === 'cobrancas' ? green : 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', cursor: 'pointer', transition: 'all .2s' }}>
+          <FontAwesomeIcon icon={faQrcode} style={{ marginRight: 6 }} /> PIX & Rateio
         </button>
       </div>
+
+      {subTab === 'cobrancas' && (
+        <PixRateioPanel groupId={groupId} groupName={groupName} players={players} onRefresh={onRefresh} />
+      )}
 
       {subTab === 'geral' && (
         <>

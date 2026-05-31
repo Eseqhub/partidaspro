@@ -193,7 +193,7 @@ export default function DashboardSlugPage() {
         {/* Conteúdo */}
         {tab === 'overview'      && <OverviewTab      group={group} players={players} finances={finances} summary={summary} matches={matches} onCopyLink={handleCopyLink} onNavigate={router.push} />}
         {tab === 'elenco'        && <ElencoTab        players={players} groupId={group.id} onNavigate={router.push} onRefresh={load} />}
-        {tab === 'financeiro'    && <FinancesTab      finances={finances} summary={summary} groupId={group.id} players={players} onRefresh={load} />}
+        {tab === 'financeiro'    && <FinancesTab      finances={finances} summary={summary} groupId={group.id} groupName={group.name} players={players} onRefresh={load} />}
         {tab === 'configuracoes' && <ClubSettingsTab  group={group} editors={editors} isOwner={isOwner} groupId={group.id} groupRepo={groupRepo} supabase={supabase} onSave={handleSaveGroup} />}
 
         <p className="text-center mt-16 text-[9px] text-white/10 font-bold uppercase tracking-[0.5em]">
