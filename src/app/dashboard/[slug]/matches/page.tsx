@@ -793,6 +793,7 @@ export default function MatchPage() {
               userRole={userRole}
               matchType="rachao"
               setSelectedPlayerIds={setSelectedPlayerIds}
+              playersPerTeam={SPORT_PLAYERS[config.sport_type] ?? config.playersPerTeam}
               homeFormations={availableFormations}
               awayFormations={availableFormations}
               homeFormationId={homeFormation.id}
@@ -842,6 +843,7 @@ export default function MatchPage() {
               guestPlayers={guestPlayers} setGuestPlayers={setGuestPlayers}
               handleDraft={handleDraft} userRole={userRole} matchType="rachao"
               setSelectedPlayerIds={setSelectedPlayerIds}
+              playersPerTeam={SPORT_PLAYERS[config.sport_type] ?? config.playersPerTeam}
               homeFormations={availableFormations}
               awayFormations={availableFormations}
               homeFormationId={homeFormation.id}
@@ -910,6 +912,7 @@ export default function MatchPage() {
                 guestPlayers={guestPlayers} setGuestPlayers={setGuestPlayers}
                 handleDraft={handleDraft} userRole={userRole} matchType={matchType === 'desafio' ? 'desafio' : 'rachao'}
                 setSelectedPlayerIds={setSelectedPlayerIds}
+              playersPerTeam={SPORT_PLAYERS[config.sport_type] ?? config.playersPerTeam}
                 homeFormations={availableFormations}
                 awayFormations={availableFormations}
                 homeFormationId={homeFormation.id}

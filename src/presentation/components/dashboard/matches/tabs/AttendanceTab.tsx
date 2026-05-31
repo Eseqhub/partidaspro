@@ -5,6 +5,7 @@ import { GlassCard } from '@/presentation/components/ui/GlassCard';
 import { Button } from '@/presentation/components/ui/Button';
 import { AttendanceSelector } from '@/presentation/components/dashboard/AttendanceSelector';
 import { FormationSelector } from '@/presentation/components/dashboard/FormationSelector';
+import { GameStatusBanner } from '@/presentation/components/dashboard/matches/GameStatusBanner';
 import { Player } from '@/core/entities/player';
 import { Formation } from '@/presentation/components/dashboard/TacticalBoardV2/formations';
 
@@ -23,6 +24,7 @@ interface AttendanceTabProps {
   userRole: string;
   matchType?: 'rachao' | 'desafio';
   setSelectedPlayerIds: (ids: string[]) => void;
+  playersPerTeam?: number;
   // Formações
   homeFormations?: Formation[];
   awayFormations?: Formation[];
@@ -49,6 +51,7 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
   userRole,
   matchType = 'rachao',
   setSelectedPlayerIds,
+  playersPerTeam = 7,
   homeFormations,
   awayFormations,
   homeFormationId,
@@ -60,6 +63,15 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
 }) => {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+      {/* Vai dar jogo? */}
+      {matchType !== 'desafio' && (
+        <GameStatusBanner
+          confirmed={selectedPlayerIds.length + guestPlayers.length}
+          playersPerTeam={playersPerTeam}
+        />
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Registro de Jogador */}
         <button 
