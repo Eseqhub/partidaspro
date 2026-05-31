@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { Button } from "@/presentation/components/ui/Button";
 import { GlobalHeader } from "@/presentation/components/layout/GlobalHeader";
+import { PWARegister } from "@/presentation/components/layout/PWARegister";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,6 +19,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Partidas Pro - Gestão Esportiva de Elite",
   description: "Plataforma SaaS para organização e gestão de peladas e grupos esportivos.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Partidas Pro",
+  },
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export const viewport: Viewport = {
@@ -39,6 +50,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col selection:bg-primary/30 selection:text-white">
+        <PWARegister />
         <GlobalHeader />
         <main className="flex-1 pt-16">
           {children}

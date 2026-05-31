@@ -1,6 +1,7 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShuffle, faPlay, faUsers } from '@fortawesome/free-solid-svg-icons';
+import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import { GlassCard } from '@/presentation/components/ui/GlassCard';
 import { Button } from '@/presentation/components/ui/Button';
 import { TacticalBoardV2 } from '@/presentation/components/dashboard/TacticalBoardV2';
@@ -8,6 +9,7 @@ import { PlayerRow } from '@/presentation/components/dashboard/PlayerRow';
 import { DraftResult } from '@/core/services/DraftService';
 import { SportType } from '@/core/entities/match';
 import { Formation } from '@/presentation/components/dashboard/TacticalBoardV2/formations';
+import { buildLineupMessage, openWhatsApp } from '@/core/services/ShareService';
 
 const CAMPO_MAP: Record<string, { sportType: SportType; playersPerTeam: number; label: string }> = {
   'Futsal 5x5':  { sportType: 'Futsal',  playersPerTeam: 5,  label: 'Futsal 5×5'  },
@@ -108,6 +110,19 @@ export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
           />
         </div>
       </div>
+
+      {/* Compartilhar escalação no WhatsApp */}
+      <button
+        onClick={() => openWhatsApp(buildLineupMessage(
+          homeTeamName, awayTeamName, draftResult.homeTeam, draftResult.awayTeam,
+          { campo: campoCfg.label, local: config.location },
+        ))}
+        className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] transition-all"
+        style={{ background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.3)', color: '#25D366' }}
+      >
+        <FontAwesomeIcon icon={faWhatsapp} className="text-sm" />
+        Compartilhar Escalação
+      </button>
 
       {/* Times — layout compacto lado a lado */}
       <div className="grid grid-cols-2 gap-3">

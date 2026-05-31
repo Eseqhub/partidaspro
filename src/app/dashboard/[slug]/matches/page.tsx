@@ -11,6 +11,8 @@ import { GroupRepository } from '@/infra/repositories/GroupRepository';
 import { DraftService, DraftResult } from '@/core/services/DraftService';
 import { TournamentService, BolaoState } from '@/core/services/TournamentService';
 import { Formation, getFormations, defaultFormation } from '@/presentation/components/dashboard/TacticalBoardV2/formations';
+import { buildResultMessage, openWhatsApp } from '@/core/services/ShareService';
+import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import { AudioService } from '@/infra/services/AudioService';
 import { useParams } from 'next/navigation';
 
@@ -925,6 +927,28 @@ export default function MatchPage() {
                 {config.awayTeamName || 'TIME B'} GANHOU
               </button>
             </div>
+
+            {/* Compartilhar resultado no WhatsApp */}
+            <button
+              onClick={() => {
+                const scorersMap = new Map<string, { name: string; team: 'home' | 'away'; goals: number }>();
+                events.filter(e => e.type === 'Gol').forEach(e => {
+                  const name = (e as any).player?.name ?? '?';
+                  const key = e.player_id;
+                  if (!scorersMap.has(key)) scorersMap.set(key, { name, team: e.team, goals: 0 });
+                  scorersMap.get(key)!.goals++;
+                });
+                openWhatsApp(buildResultMessage(
+                  config.homeTeamName || 'Time A', config.awayTeamName || 'Time B',
+                  score.home, score.away, Array.from(scorersMap.values()),
+                ));
+              }}
+              className="w-full mt-4 flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-black uppercase tracking-[0.2em] text-[10px]"
+              style={{ background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.3)', color: '#25D366' }}
+            >
+              <FontAwesomeIcon icon={faWhatsapp} className="text-sm" />
+              Compartilhar Resultado
+            </button>
           </GlassCard>
         </div>
       )}
