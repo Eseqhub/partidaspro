@@ -22,6 +22,7 @@ interface PlayerStat {
   redCards: number;
   matches: number;
   wins: number;
+  mvps: number;
   score: number;
 }
 
@@ -138,7 +139,7 @@ export default function StatsPage() {
           statsMap.set(pid, {
             id: pid, name: p.player.name, photo_url: p.player.photo_url,
             positions: p.player.positions ?? [],
-            goals: 0, assists: 0, yellowCards: 0, redCards: 0, matches: 0, wins: 0, score: 0,
+            goals: 0, assists: 0, yellowCards: 0, redCards: 0, matches: 0, wins: 0, mvps: 0, score: 0,
           });
         }
         const match = allMatches.find(m => m.id === p.match_id);
@@ -158,10 +159,11 @@ export default function StatsPage() {
         else if (ev.type === 'Assistência')   s.assists++;
         else if (ev.type === 'Cartão Amarelo') s.yellowCards++;
         else if (ev.type === 'Cartão Vermelho') s.redCards++;
+        else if (ev.type === 'Craque')        s.mvps++;
       });
 
       statsMap.forEach(s => {
-        s.score = s.goals * 4 + s.assists * 2 + s.wins * 3 - s.yellowCards - s.redCards * 3;
+        s.score = s.goals * 4 + s.assists * 2 + s.wins * 3 + s.mvps * 5 - s.yellowCards - s.redCards * 3;
       });
 
       setPlayerStats(Array.from(statsMap.values()).filter(s => s.matches > 0));
@@ -243,7 +245,7 @@ export default function StatsPage() {
               {view === 'geral' && (
                 <>
                   <p className="text-[7px] font-black uppercase tracking-widest text-white/20 mb-3 px-2">
-                    Gol=4pts · Assist=2pts · Vitória=3pts · Amarelo=-1 · Vermelho=-3
+                    Gol=4 · Assist=2 · Vitória=3 · 🏆Craque=5 · Amarelo=-1 · Vermelho=-3
                   </p>
                   <StatTable players={byScore} statKey="score" />
                 </>

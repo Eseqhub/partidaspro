@@ -112,6 +112,9 @@ export default function MatchPage() {
     winnerResult: 'home' | 'away' | 'draw';
   } | null>(null);
 
+  // Craque da partida atual
+  const [mvpPlayerId, setMvpPlayerId] = useState<string | null>(null);
+
   // Formações selecionadas
   const availableFormations = getFormations(config.sport_type, config.playersPerTeam);
   const [homeFormation, setHomeFormation] = useState<Formation>(defaultFormation(config.sport_type, config.playersPerTeam));
@@ -324,6 +327,18 @@ export default function MatchPage() {
         await matchRepo.update(matchId, { home_score: ns.home, away_score: ns.away });
       }
       setIsEventModalOpen(false);
+    } catch (error) { console.error(error); }
+  };
+
+  // Elege o Craque da Partida (salvo como evento type 'Craque', sem migração)
+  const handleElectMVP = async (playerId: string, team: 'home' | 'away') => {
+    if (!matchId) return;
+    try {
+      const newEvent = await matchRepo.addEvent({
+        match_id: matchId, player_id: playerId, type: 'Craque', team, minute: Math.floor(timer / 60),
+      });
+      setEvents(prev => [newEvent, ...prev.filter(e => e.type !== 'Craque')]); // 1 craque por partida
+      setMvpPlayerId(playerId);
     } catch (error) { console.error(error); }
   };
 
@@ -608,6 +623,7 @@ export default function MatchPage() {
     setConsecutiveWins(newConsecutive);
     setScore({ home: 0, away: 0 });
     setTimer(0); setAccumulatedTime(0); setStartTime(null);
+    setMvpPlayerId(null);
     setStatus('Agendada'); // volta para "Agendada" → mostrará botão INICIAR PARTIDA
 
     const nextMatch = await createMatchRecord({ match_type: matchType });
@@ -640,6 +656,7 @@ export default function MatchPage() {
     setTeamAssignments({});
     setBolaoState(null);
     setNextTeamCtx(null);
+    setMvpPlayerId(null);
     setActiveTab('attendance');
   };
 
@@ -881,6 +898,7 @@ export default function MatchPage() {
                 userRole={userRole} handleNewMatch={handleNewMatch} draftResult={draftResult}
                 setSelectedEventType={setSelectedEventType} setIsEventModalOpen={setIsEventModalOpen}
                 events={events}
+                onElectMVP={handleElectMVP} mvpPlayerId={mvpPlayerId}
               />
             )}
             {activeTab === 'settings' && (

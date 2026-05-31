@@ -40,7 +40,7 @@ export interface Match {
   created_at?: string;
 }
 
-export type EventType = 'Gol' | 'Assistência' | 'Cartão Amarelo' | 'Cartão Vermelho' | 'Entrada' | 'Saída';
+export type EventType = 'Gol' | 'Assistência' | 'Cartão Amarelo' | 'Cartão Vermelho' | 'Entrada' | 'Saída' | 'Craque';
 
 export interface MatchEvent {
   id: string;
