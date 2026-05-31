@@ -26,6 +26,7 @@ import { WaitingListTab } from '@/presentation/components/dashboard/matches/tabs
 import { TeamAssignmentTab, PlayerRole } from '@/presentation/components/dashboard/matches/tabs/TeamAssignmentTab';
 import { BolaoTab } from '@/presentation/components/dashboard/matches/tabs/BolaoTab';
 import { NextTeamModal } from '@/presentation/components/dashboard/matches/NextTeamModal';
+import { TieBreakModal } from '@/presentation/components/dashboard/matches/TieBreakModal';
 import { faTableList } from '@fortawesome/free-solid-svg-icons';
 
 import { AddPlayerModal } from '@/presentation/components/dashboard/AddPlayerModal';
@@ -114,6 +115,9 @@ export default function MatchPage() {
 
   // Craque da partida atual
   const [mvpPlayerId, setMvpPlayerId] = useState<string | null>(null);
+
+  // Modal de desempate (empate)
+  const [tieBreakOpen, setTieBreakOpen] = useState(false);
 
   // Formações selecionadas
   const availableFormations = getFormations(config.sport_type, config.playersPerTeam);
@@ -671,6 +675,7 @@ export default function MatchPage() {
     setBolaoState(null);
     setNextTeamCtx(null);
     setMvpPlayerId(null);
+    setTieBreakOpen(false);
     setActiveTab('attendance');
   };
 
@@ -928,6 +933,16 @@ export default function MatchPage() {
         </>
       )}
 
+      {/* Modal de desempate */}
+      {tieBreakOpen && draftResult && (
+        <TieBreakModal
+          homeTeamName={config.homeTeamName || 'Time A'}
+          awayTeamName={config.awayTeamName || 'Time B'}
+          onClose={() => setTieBreakOpen(false)}
+          onResolve={(winner) => { setTieBreakOpen(false); handleNextMatch(winner); }}
+        />
+      )}
+
       {/* Modal de seleção do próximo time */}
       {nextTeamCtx && draftResult && (
         <NextTeamModal
@@ -943,7 +958,7 @@ export default function MatchPage() {
       )}
 
       {/* Overlay de fim de partida */}
-      {status === 'Finalizada' && draftResult && sessionPhase === 'active' && bolaoState?.phase !== 'done' && !nextTeamCtx && (
+      {status === 'Finalizada' && draftResult && sessionPhase === 'active' && bolaoState?.phase !== 'done' && !nextTeamCtx && !tieBreakOpen && (
         <div className="fixed inset-0 z-[150] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
           <GlassCard className="w-full max-w-lg p-8 rounded-3xl border-primary/20 text-center">
             <h2 className="text-xl font-black text-white uppercase tracking-widest mb-8 italic">
@@ -953,8 +968,8 @@ export default function MatchPage() {
               <button onClick={() => handleNextMatch('home')} className="py-5 bg-primary text-black font-black uppercase tracking-widest rounded-xl">
                 {config.homeTeamName || 'TIME A'} GANHOU
               </button>
-              <button onClick={() => handleNextMatch('draw')} className="py-4 bg-white/5 text-white/40 font-black uppercase tracking-widest rounded-xl">
-                EMPATE
+              <button onClick={() => setTieBreakOpen(true)} className="py-4 bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black uppercase tracking-widest rounded-xl">
+                EMPATE — DESEMPATAR
               </button>
               <button onClick={() => handleNextMatch('away')} className="py-5 bg-primary text-black font-black uppercase tracking-widest rounded-xl">
                 {config.awayTeamName || 'TIME B'} GANHOU
