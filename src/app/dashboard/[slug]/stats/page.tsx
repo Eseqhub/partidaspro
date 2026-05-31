@@ -6,11 +6,12 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/infra/supabase/client';
 import { GroupRepository } from '@/infra/repositories/GroupRepository';
 import { aggregateAllPlayers, SeasonStanding } from '@/core/services/PlayerStatsService';
+import { generateSeasonImage, shareSeasonImage } from '@/core/services/seasonImage';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faFutbol, faHandshake, faTrophy,
   faArrowLeft, faChartBar, faMedal, faShieldHalved,
-  faCrown, faChevronLeft, faChevronRight,
+  faCrown, faChevronLeft, faChevronRight, faShareNodes,
 } from '@fortawesome/free-solid-svg-icons';
 
 interface PlayerStat {
@@ -298,6 +299,29 @@ export default function StatsPage() {
                     </p>
                   ) : (
                     <>
+                      {/* Compartilhar resumo da temporada */}
+                      <button
+                        onClick={async () => {
+                          try {
+                            const top = (key: 'goals' | 'assists' | 'mvpCount') =>
+                              [...seasonStandings].sort((a, b) => (b[key] as number) - (a[key] as number))[0];
+                            const ts = top('goals'), ta = top('assists'), cr = top('mvpCount');
+                            const blob = await generateSeasonImage({
+                              groupName, monthLabel,
+                              champion: champion ? { name: champion.name, points: champion.points, wins: champion.wins } : undefined,
+                              topScorer:   ts && ts.goals    > 0 ? { name: ts.name, value: ts.goals }    : undefined,
+                              topAssister: ta && ta.assists  > 0 ? { name: ta.name, value: ta.assists }  : undefined,
+                              craque:      cr && cr.mvpCount > 0 ? { name: cr.name, value: cr.mvpCount } : undefined,
+                            });
+                            await shareSeasonImage(blob, `Resumo da temporada — ${monthLabel}`);
+                          } catch (e: any) { alert('Erro ao gerar imagem: ' + (e?.message ?? '')); }
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] mb-1"
+                        style={{ background: 'rgba(0,180,255,0.12)', border: '1px solid rgba(0,180,255,0.3)', color: '#00b4ff' }}
+                      >
+                        <FontAwesomeIcon icon={faShareNodes} /> Compartilhar Resumo do Mês
+                      </button>
+
                       {/* Campeão */}
                       {champion && (
                         <div style={{
