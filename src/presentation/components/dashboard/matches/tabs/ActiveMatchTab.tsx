@@ -11,6 +11,7 @@ import { Formation } from '@/presentation/components/dashboard/TacticalBoardV2/f
 import { buildLineupMessage, openWhatsApp } from '@/core/services/ShareService';
 import { generateLineupImage, shareLineupImage } from '@/core/services/lineupImage';
 import { faFont, faImage } from '@fortawesome/free-solid-svg-icons';
+import { LiveFeed } from '@/presentation/components/dashboard/matches/LiveFeed';
 
 const CAMPO_MAP: Record<string, { sportType: SportType; playersPerTeam: number; label: string }> = {
   'Futsal 5x5':  { sportType: 'Futsal',  playersPerTeam: 5,  label: 'Futsal 5×5'  },
@@ -34,12 +35,13 @@ interface ActiveMatchTabProps {
   onStartMatch?: () => void;
   homeFormation?: Formation;
   awayFormation?: Formation;
+  events?: any[];
 }
 
 export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
   draftResult, config, setConfig, score, timer, status,
   setActiveTab, matchType = 'rachao', onStartMatch,
-  homeFormation, awayFormation,
+  homeFormation, awayFormation, events = [],
 }) => {
   const campoCfg = CAMPO_MAP[config.tipo_campo ?? config.sport_type ?? 'Society 7x7']
     ?? { sportType: 'Society' as SportType, playersPerTeam: 7, label: 'Society 7×7' };
@@ -111,6 +113,11 @@ export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
           />
         </div>
       </div>
+
+      {/* Feed de eventos ao vivo */}
+      {status !== 'Agendada' && (
+        <LiveFeed events={events} homeTeamName={homeTeamName} awayTeamName={awayTeamName} />
+      )}
 
       {/* Compartilhar escalação — Texto ou Imagem */}
       <div>

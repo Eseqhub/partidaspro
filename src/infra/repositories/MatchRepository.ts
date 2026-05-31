@@ -108,6 +108,19 @@ export class MatchRepository {
       .subscribe();
   }
 
+  /** Realtime: novos eventos (gols/assistências/cartões) registrados por qualquer pessoa. */
+  subscribeToEvents(matchId: string, onInsert: (event: any) => void) {
+    return supabase
+      .channel(`events:${matchId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'events',
+        filter: `match_id=eq.${matchId}`,
+      }, (payload) => onInsert(payload.new))
+      .subscribe();
+  }
+
   // ── EVENTS ───────────────────────────────────────────────────────────────
 
   async getEvents(matchId: string): Promise<any[]> {

@@ -277,6 +277,20 @@ export default function MatchPage() {
     return () => { supabase.removeChannel(sub); };
   }, [matchId]);
 
+  // Realtime: eventos registrados por qualquer pessoa aparecem no feed ao vivo
+  useEffect(() => {
+    if (!matchId) return;
+    const sub = matchRepo.subscribeToEvents(matchId, (raw) => {
+      setEvents(prev => {
+        if (prev.some(e => e.id === raw.id)) return prev; // evita duplicar (quem registrou já tem)
+        const player = allPlayers.find(p => p.id === raw.player_id);
+        const enriched = { ...raw, player: player ? { name: player.name } : undefined };
+        return [enriched, ...prev]; // placar sincroniza via subscribeToMatch
+      });
+    });
+    return () => { supabase.removeChannel(sub); };
+  }, [matchId, allPlayers]);
+
   useEffect(() => {
     let interval: any;
     if (status === 'Em curso' && startTime) {
@@ -891,6 +905,7 @@ export default function MatchPage() {
                 onStartMatch={status === 'Agendada' ? toggleTimer : undefined}
                 homeFormation={homeFormation}
                 awayFormation={awayFormation}
+                events={events}
               />
             )}
             {activeTab === 'stats' && (
