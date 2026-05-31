@@ -74,16 +74,16 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary }) => {
           ? <p style={{ textAlign: 'center', padding: '32px 0', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)' }}>Sem movimentações registradas</p>
           : <div style={{ display: 'flex', flexDirection: 'column' }}>
               {/* Cabeçalho */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 90px 80px', gap: 12, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 4 }}>
-                {['Descrição', 'Atleta', 'Data', 'Valor'].map(col => (
-                  <span key={col} style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.25)' }}>{col}</span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 56px 76px', gap: 8, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 4 }}>
+                {['Descrição', 'Data', 'Valor'].map((col, i) => (
+                  <span key={col} style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.25)', textAlign: i === 2 ? 'right' : 'left' }}>{col}</span>
                 ))}
               </div>
               {transactions.map((f: any) => {
                 const isReceita = f.type === 'Receita';
                 const amount    = isReceita ? f.amount : -f.amount;
                 return (
-                  <div key={f.id} style={{ display: 'grid', gridTemplateColumns: '1fr 140px 90px 80px', gap: 12,
+                  <div key={f.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 56px 76px', gap: 8,
                     padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.03)', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                       <div style={{ width: 22, height: 22, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -91,22 +91,19 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary }) => {
                         <FontAwesomeIcon icon={isReceita ? faArrowTrendUp : faArrowTrendDown}
                           style={{ fontSize: 9, color: isReceita ? green : red }} />
                       </div>
-                      <div style={{ minWidth: 0 }}>
+                      <div style={{ minWidth: 0, overflow: 'hidden' }}>
                         <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
                           {f.description ?? f.category ?? 'Movimentação'}
                         </span>
-                        <span style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', color: isReceita ? `${green}80` : `${red}80`, letterSpacing: '0.1em' }}>
-                          {f.type} · {f.status ?? ''}
+                        <span style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', color: isReceita ? `${green}80` : `${red}80`, letterSpacing: '0.1em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                          {f.type}{f.player?.name ? ` · ${f.player.name}` : ''}{f.status ? ` · ${f.status}` : ''}
                         </span>
                       </div>
                     </div>
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {f.player?.name ?? '—'}
-                    </span>
                     <span style={{ fontSize: 9, fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)' }}>
-                      {new Date(f.date ?? f.created_at).toLocaleDateString('pt-BR')}
+                      {new Date(f.date ?? f.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                     </span>
-                    <span style={{ fontSize: 12, fontWeight: 900, fontFamily: 'monospace', color: amount > 0 ? green : red, textAlign: 'right' }}>
+                    <span style={{ fontSize: 12, fontWeight: 900, fontFamily: 'monospace', color: amount > 0 ? green : red, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {amount > 0 ? '+' : ''}R${Math.abs(amount).toFixed(2)}
                     </span>
                   </div>

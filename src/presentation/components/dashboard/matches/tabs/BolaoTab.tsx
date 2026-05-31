@@ -194,27 +194,32 @@ export const BolaoTab: React.FC<BolaoTabProps> = ({ bolaoState }) => {
           </h3>
         </div>
 
-        {/* Header da tabela */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '20px 1fr 26px 26px 26px 26px 28px 28px 32px',
-          gap: 4, padding: '4px 8px',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-        }}>
-          <span style={headerStyle}>#</span>
-          <span style={{ ...headerStyle, textAlign: 'left' }}>Time</span>
-          <span style={headerStyle}>V</span>
-          <span style={headerStyle}>E</span>
-          <span style={headerStyle}>D</span>
-          <span style={headerStyle}>GF</span>
-          <span style={headerStyle}>SD</span>
-          <span style={headerStyle}>Status</span>
-          <span style={headerStyle}>PTS</span>
-        </div>
+        {/* Scroll horizontal em telas estreitas */}
+        <div style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: 320 }}>
+            {/* Header da tabela */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '20px 1fr 26px 26px 26px 26px 28px 28px 32px',
+              gap: 4, padding: '4px 8px',
+              borderBottom: '1px solid rgba(255,255,255,0.08)',
+            }}>
+              <span style={headerStyle}>#</span>
+              <span style={{ ...headerStyle, textAlign: 'left' }}>Time</span>
+              <span style={headerStyle}>V</span>
+              <span style={headerStyle}>E</span>
+              <span style={headerStyle}>D</span>
+              <span style={headerStyle}>GF</span>
+              <span style={headerStyle}>SD</span>
+              <span style={headerStyle}>Status</span>
+              <span style={headerStyle}>PTS</span>
+            </div>
 
-        {standings.map((team, i) => (
-          <StandingsRow key={team.id} team={team} rank={i + 1} />
-        ))}
+            {standings.map((team, i) => (
+              <StandingsRow key={team.id} team={team} rank={i + 1} />
+            ))}
+          </div>
+        </div>
       </GlassCard>
 
       {/* Histórico */}

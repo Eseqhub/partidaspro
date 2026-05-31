@@ -69,7 +69,7 @@ export const PlayerStatsPanel: React.FC<Props> = ({ playerId, groupId }) => {
           <FontAwesomeIcon icon={faChartSimple} style={{ color: '#ccff00', fontSize: 10 }} />
           Estatísticas na Pelada
         </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <StatTile label="Jogos"   value={stats.matches} color="#00b4ff" />
           <StatTile label="Gols"    value={stats.goals}   color="#ccff00" sub={stats.matches ? `${(stats.goals / stats.matches).toFixed(1)}/jogo` : undefined} />
           <StatTile label="Assist." value={stats.assists} color="#A855F7" />
@@ -77,7 +77,7 @@ export const PlayerStatsPanel: React.FC<Props> = ({ playerId, groupId }) => {
         </div>
 
         {/* Linha secundária */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
           <StatTile label="Hat-tricks" value={stats.hatTricks} color="#F97316" />
           <StatTile label="Sequência" value={stats.bestStreak} color="#EAB308" sub="vitórias" />
           <StatTile label="Amarelos"  value={stats.yellowCards} color="#EAB308" />
