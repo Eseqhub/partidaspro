@@ -60,31 +60,34 @@ export const RecurringSessionCard: React.FC<Props> = ({ match, groupId, groupSlu
     setLoading(true);
     try {
       // Cria nova partida com mesma config
-      const { data: newMatch, error } = await supabase
-        .from('matches')
-        .insert({
-          group_id:        groupId,
-          date:            nextDate,
-          status:          'Agendada',
-          field_type:      match.field_type,
-          modality:        match.modality,
-          match_type:      match.match_type ?? 'rachao',
-          home_team_name:  match.home_team_name,
-          away_team_name:  match.away_team_name,
-          home_color:      match.home_color,
-          away_color:      match.away_color,
-          goal_limit:      match.goal_limit ?? 0,
-          duration_minutes: match.duration_minutes ?? 10,
-          stoppage_minutes: match.stoppage_minutes ?? 0,
-          home_score:      0,
-          away_score:      0,
-          timer_seconds:   0,
-          match_fee:       0,
-          recorrencia:     match.recorrencia,
-          recorrencia_dia: match.recorrencia_dia,
-        })
-        .select('id')
-        .single();
+      const basePayload: Record<string, any> = {
+        group_id:        groupId,
+        date:            nextDate,
+        status:          'Agendada',
+        field_type:      match.field_type,
+        modality:        match.modality,
+        match_type:      match.match_type ?? 'rachao',
+        home_team_name:  match.home_team_name,
+        away_team_name:  match.away_team_name,
+        home_color:      match.home_color,
+        away_color:      match.away_color,
+        goal_limit:      match.goal_limit ?? 0,
+        duration_minutes: match.duration_minutes ?? 10,
+        stoppage_minutes: match.stoppage_minutes ?? 0,
+        home_score:      0,
+        away_score:      0,
+        timer_seconds:   0,
+        match_fee:       0,
+      };
+      const recPayload = { recorrencia: match.recorrencia, recorrencia_dia: match.recorrencia_dia };
+
+      let newMatch: any, error: any;
+      ({ data: newMatch, error } = await supabase
+        .from('matches').insert({ ...basePayload, ...recPayload }).select('id').single());
+      if (error && /recorrencia/i.test(error.message ?? '')) {
+        ({ data: newMatch, error } = await supabase
+          .from('matches').insert(basePayload).select('id').single());
+      }
 
       if (error || !newMatch) throw error ?? new Error('Falha ao criar sessão');
 

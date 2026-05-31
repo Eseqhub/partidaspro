@@ -157,37 +157,47 @@ export function NovaPartidaModal({ isOpen, groupId, groupSlug, onClose, onSucces
         }
       }
 
-      const { data: match, error: mErr } = await supabase
-        .from('matches')
-        .insert({
-          group_id:        groupId,
-          date:            draft.data,
-          status:          'Agendada',
-          field_type:      draft.tipo_campo,
-          modality:        draft.modalidade,
-          match_type:      draft.modalidade === 'Desafio' ? 'desafio'
-                         : draft.modalidade === 'Manual'  ? 'manual'
-                         : 'rachao',
-          start_time:      draft.hora_inicio,
-          end_time:        draft.hora_fim,
-          home_team_name:  draft.nome_time_a || 'Time Casa',
-          away_team_name:  draft.modalidade === 'Desafio'
-                           ? (draft.nome_time_adversario || 'Adversário')
-                           : draft.nome_time_b || 'Visitante',
-          home_color:      draft.cor_time_a,
-          away_color:      draft.cor_time_b,
-          goal_limit:      draft.limite_gols,
-          duration_minutes: draft.duracao_minutos,
-          home_score:      0,
-          away_score:      0,
-          timer_seconds:   0,
-          stoppage_minutes: 0,
-          match_fee:       0,
-          recorrencia:     draft.recorrencia !== 'nao' ? draft.recorrencia : null,
-          recorrencia_dia: draft.recorrencia !== 'nao' ? draft.recorrencia_dia : null,
-        })
-        .select('id')
-        .single();
+      // Payload base (colunas garantidas)
+      const basePayload: Record<string, any> = {
+        group_id:        groupId,
+        date:            draft.data,
+        status:          'Agendada',
+        field_type:      draft.tipo_campo,
+        modality:        draft.modalidade,
+        match_type:      draft.modalidade === 'Desafio' ? 'desafio'
+                       : draft.modalidade === 'Manual'  ? 'manual'
+                       : 'rachao',
+        start_time:      draft.hora_inicio,
+        end_time:        draft.hora_fim,
+        home_team_name:  draft.nome_time_a || 'Time Casa',
+        away_team_name:  draft.modalidade === 'Desafio'
+                         ? (draft.nome_time_adversario || 'Adversário')
+                         : draft.nome_time_b || 'Visitante',
+        home_color:      draft.cor_time_a,
+        away_color:      draft.cor_time_b,
+        goal_limit:      draft.limite_gols,
+        duration_minutes: draft.duracao_minutos,
+        home_score:      0,
+        away_score:      0,
+        timer_seconds:   0,
+        stoppage_minutes: 0,
+        match_fee:       0,
+      };
+
+      // Colunas opcionais de recorrência (podem não existir no schema ainda)
+      const recPayload = draft.recorrencia !== 'nao'
+        ? { recorrencia: draft.recorrencia, recorrencia_dia: draft.recorrencia_dia }
+        : {};
+
+      let match: any, mErr: any;
+      ({ data: match, error: mErr } = await supabase
+        .from('matches').insert({ ...basePayload, ...recPayload }).select('id').single());
+
+      // Se a coluna de recorrência não existir, recria sem ela (não bloqueia a partida)
+      if (mErr && /recorrencia/i.test(mErr.message ?? '')) {
+        ({ data: match, error: mErr } = await supabase
+          .from('matches').insert(basePayload).select('id').single());
+      }
 
       if (mErr) throw mErr;
 
