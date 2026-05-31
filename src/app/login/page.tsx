@@ -6,7 +6,8 @@ import { Button } from '@/presentation/components/ui/Button';
 import { supabase } from '@/infra/supabase/client';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEnvelope, faLock, faArrowRight, faFutbol } from '@fortawesome/free-solid-svg-icons';
+import { faEnvelope, faLock, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { LogoMark } from '@/presentation/components/ui/Logo';
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -45,12 +46,11 @@ export default function LoginPage() {
 
       <div className="max-w-md w-full relative z-10">
         <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 border border-primary/20 mb-6 relative">
-                 <FontAwesomeIcon icon={faFutbol} className="text-primary text-3xl animate-pulse" />
-                 <div className="absolute inset-0 rounded-full border border-primary/40 animate-ping opacity-20" />
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary/[0.07] border border-primary/20 mb-6">
+                 <LogoMark size={52} />
             </div>
-            <h1 className="text-3xl font-black text-white uppercase tracking-tighter">Portal do <span className="text-primary italic">Organizador</span></h1>
-            <p className="text-white/40 text-sm mt-2 font-bold uppercase tracking-widest">Partidas Pro SaaS Console</p>
+            <h1 className="text-3xl font-black text-white uppercase tracking-tighter">Portal do <span className="text-primary">Organizador</span></h1>
+            <p className="text-white/40 text-sm mt-2 font-bold uppercase tracking-widest">Partidas Pro</p>
         </div>
 
         <GlassCard className="p-8">

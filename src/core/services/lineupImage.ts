@@ -22,6 +22,16 @@ function textOn(hex: string): string {
   return lum > 0.6 ? '#000000' : '#ffffff';
 }
 
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
 interface LineupParams {
   homeTeam: Player[];
   awayTeam: Player[];
@@ -135,11 +145,24 @@ export async function generateLineupImage(p: LineupParams): Promise<Blob> {
     drawPlayer(c.player, px, py, ac, i + 1);
   });
 
-  // ── Rodapé ──────────────────────────────────────────────────────────────
-  ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.font = '900 20px Arial';
-  ctx.fillText('PARTIDAS.PRO — SORTEIO INTELIGENTE', W / 2, H - 36);
+  // ── Rodapé com a marca ──────────────────────────────────────────────────
+  const lime = '#ccff00';
+  const my = H - 48; // baseline da marca
+  // Mini campo
+  ctx.strokeStyle = lime; ctx.globalAlpha = 0.9; ctx.lineWidth = 2.5;
+  roundRect(ctx, W / 2 - 150, my - 16, 24, 30, 5); ctx.stroke();
+  ctx.globalAlpha = 0.5;
+  ctx.beginPath(); ctx.moveTo(W / 2 - 150, my - 1); ctx.lineTo(W / 2 - 126, my - 1); ctx.stroke();
+  ctx.beginPath(); ctx.arc(W / 2 - 138, my - 1, 5, 0, Math.PI * 2); ctx.stroke();
+  ctx.globalAlpha = 1; ctx.fillStyle = lime;
+  [[-145, 7], [-131, 7], [-138, 12]].forEach(([dx, dy]) => { ctx.beginPath(); ctx.arc(W / 2 + dx, my + dy, 2.6, 0, Math.PI * 2); ctx.fill(); });
+  // Wordmark
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.font = '900 24px Arial';
+  ctx.fillStyle = '#fff'; ctx.fillText('PARTIDAS', W / 2 - 112, my - 1);
+  const pw = ctx.measureText('PARTIDAS').width;
+  ctx.fillStyle = lime; ctx.fillText(' PRO', W / 2 - 112 + pw, my - 1);
+  ctx.textBaseline = 'alphabetic';
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(b => b ? resolve(b) : reject(new Error('Falha ao gerar imagem')), 'image/png', 0.95);

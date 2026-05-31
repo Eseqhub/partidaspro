@@ -6,7 +6,8 @@ import { Button } from '@/presentation/components/ui/Button';
 import { supabase } from '@/infra/supabase/client';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEnvelope, faLock, faUser, faArrowRight, faShield } from '@fortawesome/free-solid-svg-icons';
+import { faEnvelope, faLock, faUser, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { LogoMark } from '@/presentation/components/ui/Logo';
 import Link from 'next/link';
 
 export default function SignupPage() {
@@ -53,10 +54,10 @@ export default function SignupPage() {
 
       <div className="max-w-md w-full relative z-10">
         <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 border border-primary/20 mb-6 relative">
-                 <FontAwesomeIcon icon={faShield} className="text-primary text-3xl" />
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary/[0.07] border border-primary/20 mb-6">
+                 <LogoMark size={52} />
             </div>
-            <h1 className="text-3xl font-black text-white uppercase tracking-tighter">Crie seu <span className="text-primary italic">Clube</span></h1>
+            <h1 className="text-3xl font-black text-white uppercase tracking-tighter">Crie seu <span className="text-primary">Clube</span></h1>
             <p className="text-white/40 text-sm mt-2 font-bold uppercase tracking-widest">Inicie sua plataforma Partidas Pro hoje</p>
         </div>
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/presentation/components/ui/Button";
 import { GlobalHeader } from "@/presentation/components/layout/GlobalHeader";
 import { PWARegister } from "@/presentation/components/layout/PWARegister";
+import { Logo } from "@/presentation/components/ui/Logo";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -56,8 +57,9 @@ export default function RootLayout({
           {children}
         </main>
         <footer className="py-12 border-t border-white/5 bg-slate-950/50">
-          <div className="max-w-7xl mx-auto px-6 text-center">
-            <p className="text-sm text-white/40">&copy; 2026 Partidas Pro. Todos os direitos reservados.</p>
+          <div className="max-w-7xl mx-auto px-6 flex flex-col items-center gap-3">
+            <Logo size={26} />
+            <p className="text-[11px] text-white/30 font-medium">&copy; 2026 Partidas Pro. Todos os direitos reservados.</p>
           </div>
         </footer>
       </body>
