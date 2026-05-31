@@ -1,7 +1,51 @@
 import { supabase } from '../supabase/client';
 
+// Owner permanente — nunca perde acesso, mesmo sem a tabela super_admins
+export const OWNER_EMAIL = 'eseqmotion@gmail.com';
+
+export interface MonthlyPoint { month: string; label: string; matches: number; players: number; goals: number }
+
 export class AdminRepository {
 
+  // ── Controle de acesso (delegável) ────────────────────────────────────
+  async isSuperAdmin(email?: string | null): Promise<boolean> {
+    if (!email) return false;
+    if (email.toLowerCase() === OWNER_EMAIL.toLowerCase()) return true;
+    try {
+      const { data } = await supabase
+        .from('super_admins').select('email').eq('email', email.toLowerCase()).maybeSingle();
+      return !!data;
+    } catch {
+      return false; // tabela ainda não existe → só o owner tem acesso
+    }
+  }
+
+  async listAdmins(): Promise<{ email: string; added_by?: string; created_at?: string; owner: boolean }[]> {
+    const base = [{ email: OWNER_EMAIL, owner: true }];
+    try {
+      const { data } = await supabase.from('super_admins').select('*').order('created_at', { ascending: true });
+      const extra = (data ?? [])
+        .filter((r: any) => r.email?.toLowerCase() !== OWNER_EMAIL.toLowerCase())
+        .map((r: any) => ({ email: r.email, added_by: r.added_by, created_at: r.created_at, owner: false }));
+      return [...base, ...extra];
+    } catch {
+      return base;
+    }
+  }
+
+  async addAdmin(email: string, addedBy: string): Promise<void> {
+    const { error } = await supabase.from('super_admins')
+      .upsert({ email: email.toLowerCase().trim(), added_by: addedBy }, { onConflict: 'email' });
+    if (error) throw error;
+  }
+
+  async removeAdmin(email: string): Promise<void> {
+    if (email.toLowerCase() === OWNER_EMAIL.toLowerCase()) throw new Error('Não é possível remover o owner.');
+    const { error } = await supabase.from('super_admins').delete().eq('email', email.toLowerCase());
+    if (error) throw error;
+  }
+
+  // ── Estatísticas globais ──────────────────────────────────────────────
   async getGlobalStats() {
     const [
       { count: groupsCount },
@@ -16,20 +60,53 @@ export class AdminRepository {
       supabase.from('matches').select('*', { count: 'exact', head: true }),
       supabase.from('events').select('*', { count: 'exact', head: true }).eq('type', 'Gol'),
     ]);
-
     return {
-      groupsCount:       groupsCount       ?? 0,
-      playersCount:      playersCount      ?? 0,
+      groupsCount:        groupsCount        ?? 0,
+      playersCount:       playersCount       ?? 0,
       activeMatchesCount: activeMatchesCount ?? 0,
-      totalMatchesCount: totalMatchesCount  ?? 0,
-      totalGoals:        totalGoals         ?? 0,
+      totalMatchesCount:  totalMatchesCount  ?? 0,
+      totalGoals:         totalGoals         ?? 0,
     };
   }
 
+  // ── Atividade mensal (para gráficos) ──────────────────────────────────
+  async getActivitySeries(monthsBack = 6): Promise<MonthlyPoint[]> {
+    const [{ data: matches }, { data: players }, { data: goals }] = await Promise.all([
+      supabase.from('matches').select('created_at, date'),
+      supabase.from('players').select('created_at'),
+      supabase.from('events').select('created_at').eq('type', 'Gol'),
+    ]);
+
+    // Monta os últimos N meses (sem usar Date.now diretamente — base no maior created_at ou hoje)
+    const now = new Date();
+    const buckets: MonthlyPoint[] = [];
+    for (let i = monthsBack - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      buckets.push({
+        month: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+        label: d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase(),
+        matches: 0, players: 0, goals: 0,
+      });
+    }
+    const idx = new Map(buckets.map((b, i) => [b.month, i]));
+    const keyOf = (iso?: string) => {
+      if (!iso) return null;
+      const d = new Date(iso);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    };
+
+    (matches ?? []).forEach((m: any) => { const k = idx.get(keyOf(m.date ?? m.created_at) ?? ''); if (k !== undefined) buckets[k].matches++; });
+    (players ?? []).forEach((p: any) => { const k = idx.get(keyOf(p.created_at) ?? '');         if (k !== undefined) buckets[k].players++; });
+    (goals ?? []).forEach((g: any)   => { const k = idx.get(keyOf(g.created_at) ?? '');         if (k !== undefined) buckets[k].goals++; });
+
+    return buckets;
+  }
+
+  // ── Listagens ─────────────────────────────────────────────────────────
   async getAllGroups() {
     const { data, error } = await supabase
       .from('groups')
-      .select('id, name, slug, logo_url, description, sport_type_default, created_at, owner_id')
+      .select('id, name, slug, logo_url, description, sport_type_default, founded_year, recurrence_day, created_at, owner_id')
       .order('created_at', { ascending: false });
     if (error) return [];
     return data;
@@ -41,15 +118,11 @@ export class AdminRepository {
       { data: matches },
       { count: matchCount },
     ] = await Promise.all([
-      supabase.from('players').select('id, name, positions, skill_level, rating, status, photo_url').eq('group_id', groupId).order('name'),
+      supabase.from('players').select('id, name, positions, skill_level, rating, status, photo_url, phone').eq('group_id', groupId).order('name'),
       supabase.from('matches').select('id, date, status, home_team_name, away_team_name, home_score, away_score, modality, field_type').eq('group_id', groupId).order('created_at', { ascending: false }).limit(10),
       supabase.from('matches').select('*', { count: 'exact', head: true }).eq('group_id', groupId),
     ]);
-    return {
-      players: players ?? [],
-      matches:  matches  ?? [],
-      matchCount: matchCount ?? 0,
-    };
+    return { players: players ?? [], matches: matches ?? [], matchCount: matchCount ?? 0 };
   }
 
   async getAllMatches() {
@@ -57,7 +130,7 @@ export class AdminRepository {
       .from('matches')
       .select('id, date, status, home_team_name, away_team_name, home_score, away_score, modality, field_type, group_id, created_at')
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(200);
     if (error) return [];
     return data;
   }
@@ -65,25 +138,41 @@ export class AdminRepository {
   async getAllPlayers() {
     const { data, error } = await supabase
       .from('players')
-      .select('id, name, positions, skill_level, rating, status, photo_url, group_id, created_at')
+      .select('id, name, full_name, phone, positions, skill_level, rating, status, is_mensalista, birth_date, photo_url, group_id, created_at')
       .order('created_at', { ascending: false })
-      .limit(200);
+      .limit(500);
     if (error) return [];
     return data;
   }
 
-  async deleteGroup(groupId: string) {
-    const { error } = await supabase.from('groups').delete().eq('id', groupId);
+  async getAllFinances() {
+    const { data, error } = await supabase
+      .from('finances')
+      .select('id, group_id, player_id, type, category, description, amount, status, date, created_at')
+      .order('date', { ascending: false })
+      .limit(500);
+    if (error) return [];
+    return data;
+  }
+
+  // ── Edição ────────────────────────────────────────────────────────────
+  async updatePlayer(id: string, updates: Record<string, any>) {
+    const { error } = await supabase.from('players').update(updates).eq('id', id);
     if (error) throw error;
   }
 
-  async deletePlayer(playerId: string) {
-    const { error } = await supabase.from('players').delete().eq('id', playerId);
+  async updateGroup(id: string, updates: Record<string, any>) {
+    const { error } = await supabase.from('groups').update(updates).eq('id', id);
     if (error) throw error;
   }
 
-  async deleteMatch(matchId: string) {
-    const { error } = await supabase.from('matches').delete().eq('id', matchId);
+  async updateMatch(id: string, updates: Record<string, any>) {
+    const { error } = await supabase.from('matches').update(updates).eq('id', id);
     if (error) throw error;
   }
+
+  // ── Exclusão ──────────────────────────────────────────────────────────
+  async deleteGroup(id: string)  { const { error } = await supabase.from('groups').delete().eq('id', id);   if (error) throw error; }
+  async deletePlayer(id: string) { const { error } = await supabase.from('players').delete().eq('id', id);  if (error) throw error; }
+  async deleteMatch(id: string)  { const { error } = await supabase.from('matches').delete().eq('id', id);  if (error) throw error; }
 }
