@@ -182,16 +182,23 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
       )}
 
       {/* Botão de Sorteio: apenas no Rachão */}
-      {matchType !== 'desafio' && (
-        <Button 
-          onClick={handleDraft}
-          disabled={selectedPlayerIds.length < 2 && guestPlayers.length === 0}
-          className={`w-full py-8 font-black uppercase tracking-[0.4em] text-sm bg-gradient-to-r from-primary to-green-400 text-black hover:scale-[1.01] transition-all gap-4 border-none shadow-[0_0_40px_rgba(204,255,0,0.15)] group relative overflow-hidden rounded-xl ${userRole === 'viewer' ? 'hidden' : ''}`}
-        >
-          <FontAwesomeIcon icon={faShuffle} className="text-xl group-hover:rotate-180 transition-all duration-700" />
-          Realizar Sorteio PRO
-        </Button>
-      )}
+      {matchType !== 'desafio' && userRole !== 'viewer' && (() => {
+        const total = selectedPlayerIds.length + guestPlayers.length;
+        const ready = total >= 2;
+        return (
+          <button
+            onClick={handleDraft}
+            className={`w-full py-7 font-black uppercase tracking-[0.35em] text-sm flex items-center justify-center gap-4 border-none rounded-xl group relative overflow-hidden transition-all ${
+              ready
+                ? 'bg-gradient-to-r from-primary to-green-400 text-black hover:scale-[1.01] shadow-[0_0_40px_rgba(204,255,0,0.15)] cursor-pointer'
+                : 'bg-white/5 text-white/30 cursor-pointer'
+            }`}
+          >
+            <FontAwesomeIcon icon={faShuffle} className={`text-xl ${ready ? 'group-hover:rotate-180 transition-all duration-700' : ''}`} />
+            {ready ? `Realizar Sorteio (${total})` : 'Selecione 2+ jogadores'}
+          </button>
+        );
+      })()}
 
       {/* Modo Desafio: times já definidos */}
       {matchType === 'desafio' && userRole !== 'viewer' && (

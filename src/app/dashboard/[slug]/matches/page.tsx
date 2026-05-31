@@ -416,6 +416,7 @@ export default function MatchPage() {
 
   // Sorteio (modo Rachão / Bolão)
   const handleDraft = async () => {
+   try {
     const realPlayers = allPlayers.filter(p => selectedPlayerIds.includes(p.id));
     const guests: Player[] = guestPlayers.map((name, i) => ({
       id: `guest-${i}-${Date.now()}`,
@@ -485,6 +486,10 @@ export default function MatchPage() {
 
     setSessionPhase('active');
     setActiveTab('match');
+   } catch (err: any) {
+     console.error('[handleDraft] erro:', err);
+     alert('Erro ao sortear: ' + (err?.message ?? 'tente novamente'));
+   }
   };
 
   // Confirmação de times (modo Manual / Time Contra Time)
