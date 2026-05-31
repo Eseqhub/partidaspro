@@ -12,7 +12,9 @@ import { DraftService, DraftResult } from '@/core/services/DraftService';
 import { TournamentService, BolaoState } from '@/core/services/TournamentService';
 import { Formation, getFormations, defaultFormation } from '@/presentation/components/dashboard/TacticalBoardV2/formations';
 import { buildResultMessage, openWhatsApp } from '@/core/services/ShareService';
+import { generateResultImage, shareResultImage } from '@/core/services/resultImage';
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
+import { faImage } from '@fortawesome/free-solid-svg-icons';
 import { AudioService } from '@/infra/services/AudioService';
 import { useParams } from 'next/navigation';
 
@@ -358,6 +360,17 @@ export default function MatchPage() {
       setEvents(prev => [newEvent, ...prev.filter(e => e.type !== 'Craque')]); // 1 craque por partida
       setMvpPlayerId(playerId);
     } catch (error) { console.error(error); }
+  };
+
+  // Agrega artilheiros da partida (para compartilhar)
+  const computeScorers = (): { name: string; team: 'home' | 'away'; goals: number }[] => {
+    const map = new Map<string, { name: string; team: 'home' | 'away'; goals: number }>();
+    events.filter(e => e.type === 'Gol').forEach((e: any) => {
+      const key = e.player_id;
+      if (!map.has(key)) map.set(key, { name: e.player?.name ?? '?', team: e.team, goals: 0 });
+      map.get(key)!.goals++;
+    });
+    return Array.from(map.values()).sort((a, b) => b.goals - a.goals);
   };
 
   const togglePlayerAttendance = async (id: string) => {
@@ -982,27 +995,44 @@ export default function MatchPage() {
               </button>
             </div>
 
-            {/* Compartilhar resultado no WhatsApp */}
-            <button
-              onClick={() => {
-                const scorersMap = new Map<string, { name: string; team: 'home' | 'away'; goals: number }>();
-                events.filter(e => e.type === 'Gol').forEach(e => {
-                  const name = (e as any).player?.name ?? '?';
-                  const key = e.player_id;
-                  if (!scorersMap.has(key)) scorersMap.set(key, { name, team: e.team, goals: 0 });
-                  scorersMap.get(key)!.goals++;
-                });
-                openWhatsApp(buildResultMessage(
-                  config.homeTeamName || 'Time A', config.awayTeamName || 'Time B',
-                  score.home, score.away, Array.from(scorersMap.values()),
-                ));
-              }}
-              className="w-full mt-4 flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-black uppercase tracking-[0.2em] text-[10px]"
-              style={{ background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.3)', color: '#25D366' }}
-            >
-              <FontAwesomeIcon icon={faWhatsapp} className="text-sm" />
-              Compartilhar Resultado
-            </button>
+            {/* Compartilhar resultado — Texto ou Imagem */}
+            <p className="text-[8px] font-black uppercase tracking-[0.25em] text-white/30 mt-5 mb-2">Compartilhar Resultado</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  const sc = computeScorers();
+                  openWhatsApp(buildResultMessage(
+                    config.homeTeamName || 'Time A', config.awayTeamName || 'Time B',
+                    score.home, score.away, sc,
+                  ));
+                }}
+                className="flex items-center justify-center gap-2 py-3 rounded-xl font-black uppercase tracking-[0.15em] text-[10px]"
+                style={{ background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.3)', color: '#25D366' }}
+              >
+                <FontAwesomeIcon icon={faWhatsapp} /> Texto
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const mvp = mvpPlayerId
+                      ? [...draftResult.homeTeam, ...draftResult.awayTeam].find(p => p.id === mvpPlayerId)?.name
+                      : undefined;
+                    const blob = await generateResultImage({
+                      groupName: config.homeTeamName ? undefined : undefined,
+                      homeName: config.homeTeamName || 'Time A', awayName: config.awayTeamName || 'Time B',
+                      homeColor: config.homeColor, awayColor: config.awayColor,
+                      homeScore: score.home, awayScore: score.away,
+                      scorers: computeScorers(), mvpName: mvp,
+                    });
+                    await shareResultImage(blob, `${config.homeTeamName || 'Time A'} ${score.home} x ${score.away} ${config.awayTeamName || 'Time B'}`);
+                  } catch (e: any) { alert('Erro ao gerar imagem: ' + (e?.message ?? '')); }
+                }}
+                className="flex items-center justify-center gap-2 py-3 rounded-xl font-black uppercase tracking-[0.15em] text-[10px]"
+                style={{ background: 'rgba(0,180,255,0.12)', border: '1px solid rgba(0,180,255,0.3)', color: '#00b4ff' }}
+              >
+                <FontAwesomeIcon icon={faImage} /> Imagem
+              </button>
+            </div>
           </GlassCard>
         </div>
       )}
