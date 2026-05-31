@@ -1,12 +1,13 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faShuffle } from '@fortawesome/free-solid-svg-icons';
+import { faShuffle, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { GlassCard } from '@/presentation/components/ui/GlassCard';
 import { Button } from '@/presentation/components/ui/Button';
 import { TacticalBoardV2 } from '@/presentation/components/dashboard/TacticalBoardV2';
 import { PlayerCard } from '@/presentation/components/dashboard/PlayerCard';
 import { DraftResult } from '@/core/services/DraftService';
 import { SportType } from '@/core/entities/match';
+import { Formation } from '@/presentation/components/dashboard/TacticalBoardV2/formations';
 
 // Mapa: tipo_campo (do wizard / banco) → SportKey + playersPerTeam esperado pelo TacticalBoardV2
 const CAMPO_MAP: Record<string, { sportType: SportType; playersPerTeam: number; label: string }> = {
@@ -29,6 +30,9 @@ interface ActiveMatchTabProps {
   status: string;
   setActiveTab: (tab: any) => void;
   matchType?: 'rachao' | 'desafio';
+  onStartMatch?: () => void;
+  homeFormation?: Formation;
+  awayFormation?: Formation;
 }
 
 export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
@@ -40,6 +44,9 @@ export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
   status,
   setActiveTab,
   matchType = 'rachao',
+  onStartMatch,
+  homeFormation,
+  awayFormation,
 }) => {
   // Resolve as configurações do campo com base no tipo_campo real da partida
   const campoCfg = CAMPO_MAP[config.tipo_campo ?? config.sport_type ?? 'Society 7x7']
@@ -72,7 +79,23 @@ export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
   }
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+      {/* ── BOTÃO INICIAR PARTIDA (só aparece quando ainda não iniciou) ── */}
+      {status === 'Agendada' && onStartMatch && (
+        <div className="flex flex-col items-center gap-3 py-6 border border-dashed border-primary/20 rounded-2xl bg-primary/[0.03]">
+          <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30">
+            Times sorteados · Pronto para começar
+          </p>
+          <button
+            onClick={onStartMatch}
+            className="flex items-center gap-3 px-10 py-4 bg-primary text-black font-black uppercase tracking-[0.3em] text-sm rounded-xl shadow-[0_0_40px_rgba(204,255,0,0.25)] hover:scale-105 transition-all active:scale-95"
+          >
+            <FontAwesomeIcon icon={faPlay} />
+            INICIAR PARTIDA
+          </button>
+        </div>
+      )}
 
       {/* Badge do tipo de campo (read-only — vem da partida criada) */}
       <div className="flex justify-center">
@@ -105,6 +128,8 @@ export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
               matchStatus={status as any}
               sportType={campoCfg.sportType}
               playersPerTeam={campoCfg.playersPerTeam}
+              homeFormation={homeFormation}
+              awayFormation={awayFormation}
             />
           </div>
         </div>

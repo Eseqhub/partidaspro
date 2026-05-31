@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Player } from '@/core/entities/player';
 import { getFieldCfg, computeCoords, fmtTime, SportKey } from './fieldConfig';
+import { Formation } from './formations';
 import { FieldSVG } from './FieldSVG';
 import { PlayerNode } from './PlayerNode';
 import { ReserveNode } from './ReserveNode';
@@ -18,6 +19,8 @@ export interface TacticalBoardV2Props {
   matchStatus?: 'Agendada' | 'Em curso' | 'Pausada' | 'Finalizada';
   sportType?: SportKey;
   playersPerTeam?: number;
+  homeFormation?: Formation;
+  awayFormation?: Formation;
 }
 
 const BLUE = '#00b4ff';
@@ -29,6 +32,7 @@ export const TacticalBoardV2: React.FC<TacticalBoardV2Props> = ({
   homeScore = 0, awayScore = 0,
   timer = 0, matchStatus = 'Agendada',
   sportType = 'Society', playersPerTeam = 7,
+  homeFormation, awayFormation,
 }) => {
   const [view, setView] = useState<'home'|'away'>('home');
   const [flare, setFlare] = useState({ x: 18, y: 15 });
@@ -44,8 +48,9 @@ export const TacticalBoardV2: React.FC<TacticalBoardV2Props> = ({
   const activeName = view === 'home' ? homeTeamName : awayTeamName;
   const starters   = activeTeam.slice(0, cfg.limit);
   const reserves   = activeTeam.slice(cfg.limit);
-  const coords     = useMemo(() => computeCoords(starters), [starters]);
-  const nodeScale  = sportType === 'Campo' ? 0.82 : sportType === 'Futsal' ? 1.05 : 1;
+  const activeFormation = view === 'home' ? homeFormation : awayFormation;
+  const coords     = useMemo(() => computeCoords(starters, sportType, activeFormation), [starters, sportType, activeFormation]);
+  const nodeScale  = sportType === 'Campo' ? 0.78 : sportType === 'Futsal' ? 1.1 : 0.95;
 
   const stats = useMemo(() => {
     if (!activeTeam.length) return { avg: 0, best: null as Player | null };
@@ -133,18 +138,30 @@ export const TacticalBoardV2: React.FC<TacticalBoardV2Props> = ({
             pointerEvents:'none', borderStyle:'solid', borderColor:GOLD, borderWidth:bw, ...pos }} />
         ))}
 
-        {/* Gramado */}
+        {/* Gramado — cores distintas por modalidade */}
         <div style={{ position:'absolute', inset:0,
-          background:'linear-gradient(180deg,#0b2d19 0%,#092513 50%,#071e10 100%)' }}>
-          {Array.from({ length: 10 }).map((_,i) => (
-            <div key={i} style={{ position:'absolute', left:0, right:0, top:`${i*10}%`, height:'10%',
-              background: i%2===0 ? 'rgba(255,255,255,0.013)':'transparent' }} />
+          background: sportType === 'Futsal'
+            ? 'linear-gradient(180deg,#0a2240 0%,#071a30 50%,#050f1e 100%)'   // azul escuro para futsal (quadra)
+            : sportType === 'Campo'
+            ? 'linear-gradient(180deg,#0c3318 0%,#082a12 50%,#051a0b 100%)'   // verde bem escuro campo
+            : 'linear-gradient(180deg,#0b2d1a 0%,#092514 50%,#071e10 100%)',  // verde society
+        }}>
+          {/* Faixas alternadas do gramado */}
+          {Array.from({ length: sportType === 'Campo' ? 12 : 8 }).map((_,i) => (
+            <div key={i} style={{
+              position:'absolute', left:0, right:0,
+              top:`${i*(100/(sportType === 'Campo' ? 12 : 8))}%`,
+              height:`${100/(sportType === 'Campo' ? 12 : 8)}%`,
+              background: i%2===0 ? 'rgba(255,255,255,0.018)':'transparent',
+            }} />
           ))}
+          {/* Gradiente de luz */}
           <div style={{ position:'absolute', inset:0, pointerEvents:'none',
-            background:`radial-gradient(ellipse 35% 45% at 0% 50%,rgba(0,80,255,0.18) 0%,transparent 65%),
-                        radial-gradient(ellipse 35% 45% at 100% 50%,rgba(0,80,255,0.18) 0%,transparent 65%),
-                        radial-gradient(ellipse 55% 25% at 50% 5%,${BLUE}12 0%,transparent 60%),
-                        radial-gradient(ellipse 40% 30% at 50% 55%,${GOLD}08 0%,transparent 65%)` }} />
+            background: sportType === 'Futsal'
+              ? `radial-gradient(ellipse 70% 50% at 50% 50%,rgba(0,100,255,0.12) 0%,transparent 70%)`
+              : `radial-gradient(ellipse 50% 40% at 50% 8%,${BLUE}10 0%,transparent 55%),
+                 radial-gradient(ellipse 40% 30% at 50% 55%,${GOLD}07 0%,transparent 60%)`,
+          }} />
         </div>
 
         <FieldSVG cfg={cfg} sport={sportType} />

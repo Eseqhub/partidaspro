@@ -10,6 +10,7 @@ import { MatchRepository } from '@/infra/repositories/MatchRepository';
 import { GroupRepository } from '@/infra/repositories/GroupRepository';
 import { DraftService, DraftResult } from '@/core/services/DraftService';
 import { TournamentService, BolaoState } from '@/core/services/TournamentService';
+import { Formation, getFormations, defaultFormation } from '@/presentation/components/dashboard/TacticalBoardV2/formations';
 import { AudioService } from '@/infra/services/AudioService';
 import { useParams } from 'next/navigation';
 
@@ -101,6 +102,11 @@ export default function MatchPage() {
   // Bolão tournament state
   const [bolaoState, setBolaoState] = useState<BolaoState | null>(null);
 
+  // Formações selecionadas
+  const availableFormations = getFormations(config.sport_type, config.playersPerTeam);
+  const [homeFormation, setHomeFormation] = useState<Formation>(defaultFormation(config.sport_type, config.playersPerTeam));
+  const [awayFormation, setAwayFormation] = useState<Formation>(defaultFormation(config.sport_type, config.playersPerTeam));
+
   const playerRepo       = new PlayerRepository();
   const groupRepo        = new GroupRepository();
   const matchRepo        = new MatchRepository();
@@ -188,13 +194,18 @@ export default function MatchPage() {
           const matchEvents = await matchRepo.getEvents(liveMatch.id);
           setEvents(matchEvents);
 
-          if (liveMatch.home_team_name || liveMatch.away_team_name) {
-            setConfig(prev => ({
-              ...prev,
-              homeTeamName: liveMatch.home_team_name || prev.homeTeamName,
-              awayTeamName: liveMatch.away_team_name || prev.awayTeamName,
-            }));
-          }
+          // Carrega todas as configurações salvas na partida
+          setConfig(prev => ({
+            ...prev,
+            homeTeamName:   liveMatch.home_team_name   || prev.homeTeamName,
+            awayTeamName:   liveMatch.away_team_name   || prev.awayTeamName,
+            homeColor:      liveMatch.home_color       || prev.homeColor,
+            awayColor:      liveMatch.away_color       || prev.awayColor,
+            duration:       liveMatch.duration_minutes || prev.duration,
+            stoppage:       liveMatch.stoppage_minutes ?? prev.stoppage,
+            goalLimit:      liveMatch.goal_limit       ?? prev.goalLimit,
+            sport_type:    (liveMatch.sport_type as any) || prev.sport_type,
+          }));
 
           const presence = await matchRepo.getPresence(liveMatch.id);
           if (presence.length > 0) {
@@ -230,6 +241,14 @@ export default function MatchPage() {
     }
     init();
   }, [slug]);
+
+  // Atualiza formações quando sport/playersPerTeam muda
+  useEffect(() => {
+    const def = defaultFormation(config.sport_type, config.playersPerTeam);
+    setHomeFormation(def);
+    setAwayFormation(def);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.sport_type, config.playersPerTeam]);
 
   useEffect(() => {
     if (!matchId) return;
@@ -665,6 +684,14 @@ export default function MatchPage() {
               userRole={userRole}
               matchType="rachao"
               setSelectedPlayerIds={setSelectedPlayerIds}
+              homeFormations={availableFormations}
+              awayFormations={availableFormations}
+              homeFormationId={homeFormation.id}
+              awayFormationId={awayFormation.id}
+              homeTeamName={config.homeTeamName || 'Time A'}
+              awayTeamName={config.awayTeamName || 'Time B'}
+              onSelectHomeFormation={id => { const f = availableFormations.find(x => x.id === id); if (f) setHomeFormation(f); }}
+              onSelectAwayFormation={id => { const f = availableFormations.find(x => x.id === id); if (f) setAwayFormation(f); }}
             />
           )}
 
@@ -732,6 +759,9 @@ export default function MatchPage() {
                 draftResult={draftResult} config={config} setConfig={setConfig}
                 score={score} timer={timer} status={status}
                 setActiveTab={setActiveTab} matchType={matchType === 'desafio' ? 'desafio' : 'rachao'}
+                onStartMatch={status === 'Agendada' ? toggleTimer : undefined}
+                homeFormation={homeFormation}
+                awayFormation={awayFormation}
               />
             )}
             {activeTab === 'stats' && (

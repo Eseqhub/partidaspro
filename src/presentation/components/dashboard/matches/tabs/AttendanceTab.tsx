@@ -1,10 +1,12 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faShuffle, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faShuffle, faTimes, faTableCells } from '@fortawesome/free-solid-svg-icons';
 import { GlassCard } from '@/presentation/components/ui/GlassCard';
 import { Button } from '@/presentation/components/ui/Button';
 import { AttendanceSelector } from '@/presentation/components/dashboard/AttendanceSelector';
+import { FormationSelector } from '@/presentation/components/dashboard/FormationSelector';
 import { Player } from '@/core/entities/player';
+import { Formation } from '@/presentation/components/dashboard/TacticalBoardV2/formations';
 
 interface AttendanceTabProps {
   allPlayers: Player[];
@@ -21,6 +23,15 @@ interface AttendanceTabProps {
   userRole: string;
   matchType?: 'rachao' | 'desafio';
   setSelectedPlayerIds: (ids: string[]) => void;
+  // Formações
+  homeFormations?: Formation[];
+  awayFormations?: Formation[];
+  homeFormationId?: string;
+  awayFormationId?: string;
+  homeTeamName?: string;
+  awayTeamName?: string;
+  onSelectHomeFormation?: (id: string) => void;
+  onSelectAwayFormation?: (id: string) => void;
 }
 
 export const AttendanceTab: React.FC<AttendanceTabProps> = ({
@@ -38,6 +49,14 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
   userRole,
   matchType = 'rachao',
   setSelectedPlayerIds,
+  homeFormations,
+  awayFormations,
+  homeFormationId,
+  awayFormationId,
+  homeTeamName = 'Time A',
+  awayTeamName = 'Time B',
+  onSelectHomeFormation,
+  onSelectAwayFormation,
 }) => {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -131,6 +150,36 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Seleção de Formações (só Rachão com formações disponíveis) */}
+      {matchType !== 'desafio' && homeFormations && awayFormations && homeFormationId && awayFormationId && (
+        <GlassCard className="p-5 border-white/5 bg-white/[0.02] rounded-xl space-y-5">
+          <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40 flex items-center gap-2">
+            <FontAwesomeIcon icon={faTableCells} className="text-primary" />
+            Formações dos Times
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {onSelectHomeFormation && (
+              <FormationSelector
+                formations={homeFormations}
+                selected={homeFormationId}
+                onSelect={onSelectHomeFormation}
+                teamName={homeTeamName}
+                teamColor="#ccff00"
+              />
+            )}
+            {onSelectAwayFormation && (
+              <FormationSelector
+                formations={awayFormations}
+                selected={awayFormationId}
+                onSelect={onSelectAwayFormation}
+                teamName={awayTeamName}
+                teamColor="#00b4ff"
+              />
+            )}
+          </div>
+        </GlassCard>
+      )}
 
       {/* Botão de Sorteio: apenas no Rachão */}
       {matchType !== 'desafio' && (

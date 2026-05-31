@@ -36,21 +36,27 @@ export const ScoreboardV2: React.FC<ScoreboardProps> = ({
   };
 
   const colors = [
-    { name: 'Branco' }, { name: 'Preto' }, { name: 'Azul' },
-    { name: 'Amarelo' }, { name: 'Verde' }, { name: 'Vermelho' }, { name: 'Laranja' },
+    { name: 'Branco' }, { name: 'Preto' }, { name: 'Vermelho' }, { name: 'Azul' },
+    { name: 'Verde' }, { name: 'Amarelo' }, { name: 'Laranja' }, { name: 'Roxo' },
+    { name: 'Rosa' }, { name: 'Cinza' }, { name: 'Ciano' }, { name: 'Marrom' },
   ];
 
   const getVestColorClass = (colorName: string) => {
     const map: Record<string, string> = {
-      'Branco':   'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]',
-      'Preto':    'text-zinc-800 drop-shadow-[0_0_8px_rgba(0,0,0,0.8)]',
-      'Azul':     'text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]',
-      'Amarelo':  'text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]',
-      'Verde':    'text-green-500 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]',
-      'Vermelho': 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]',
-      'Laranja':  'text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]',
+      'Branco':  'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]',
+      'Preto':   'text-zinc-700',
+      'Azul':    'text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]',
+      'Amarelo': 'text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]',
+      'Verde':   'text-green-500 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]',
+      'Vermelho':'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]',
+      'Laranja': 'text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]',
+      'Roxo':    'text-purple-500 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]',
+      'Rosa':    'text-pink-500 drop-shadow-[0_0_8px_rgba(236,72,153,0.6)]',
+      'Cinza':   'text-gray-400',
+      'Ciano':   'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]',
+      'Marrom':  'text-amber-900',
     };
-    return map[colorName] || 'text-white/10';
+    return map[colorName] || 'text-white/20';
   };
 
   return (
