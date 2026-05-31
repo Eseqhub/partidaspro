@@ -1,7 +1,6 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShuffle, faPlay, faUsers } from '@fortawesome/free-solid-svg-icons';
-import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import { GlassCard } from '@/presentation/components/ui/GlassCard';
 import { Button } from '@/presentation/components/ui/Button';
 import { TacticalBoardV2 } from '@/presentation/components/dashboard/TacticalBoardV2';
@@ -10,6 +9,8 @@ import { DraftResult } from '@/core/services/DraftService';
 import { SportType } from '@/core/entities/match';
 import { Formation } from '@/presentation/components/dashboard/TacticalBoardV2/formations';
 import { buildLineupMessage, openWhatsApp } from '@/core/services/ShareService';
+import { generateLineupImage, shareLineupImage } from '@/core/services/lineupImage';
+import { faFont, faImage } from '@fortawesome/free-solid-svg-icons';
 
 const CAMPO_MAP: Record<string, { sportType: SportType; playersPerTeam: number; label: string }> = {
   'Futsal 5x5':  { sportType: 'Futsal',  playersPerTeam: 5,  label: 'Futsal 5×5'  },
@@ -111,18 +112,43 @@ export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
         </div>
       </div>
 
-      {/* Compartilhar escalação no WhatsApp */}
-      <button
-        onClick={() => openWhatsApp(buildLineupMessage(
-          homeTeamName, awayTeamName, draftResult.homeTeam, draftResult.awayTeam,
-          { campo: campoCfg.label, local: config.location },
-        ))}
-        className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] transition-all"
-        style={{ background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.3)', color: '#25D366' }}
-      >
-        <FontAwesomeIcon icon={faWhatsapp} className="text-sm" />
-        Compartilhar Escalação
-      </button>
+      {/* Compartilhar escalação — Texto ou Imagem */}
+      <div>
+        <p className="text-[8px] font-black uppercase tracking-[0.25em] text-white/30 mb-2 text-center">Compartilhar Escalação</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => openWhatsApp(buildLineupMessage(
+              homeTeamName, awayTeamName, draftResult.homeTeam, draftResult.awayTeam,
+              { campo: campoCfg.label, local: config.location },
+            ))}
+            className="flex items-center justify-center gap-2 py-3 rounded-xl font-black uppercase tracking-[0.15em] text-[10px] transition-all"
+            style={{ background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.3)', color: '#25D366' }}
+          >
+            <FontAwesomeIcon icon={faFont} /> Texto
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                const blob = await generateLineupImage({
+                  homeTeam: draftResult.homeTeam, awayTeam: draftResult.awayTeam,
+                  homeName: homeTeamName, awayName: awayTeamName,
+                  homeColor: config.homeColor, awayColor: config.awayColor,
+                  sport: campoCfg.sportType, campoLabel: campoCfg.label,
+                  homeFormation, awayFormation,
+                  homeScore: score.home, awayScore: score.away,
+                });
+                await shareLineupImage(blob, `Escalação · ${homeTeamName} vs ${awayTeamName}`);
+              } catch (e: any) {
+                alert('Não foi possível gerar a imagem: ' + (e?.message ?? ''));
+              }
+            }}
+            className="flex items-center justify-center gap-2 py-3 rounded-xl font-black uppercase tracking-[0.15em] text-[10px] transition-all"
+            style={{ background: 'rgba(0,180,255,0.12)', border: '1px solid rgba(0,180,255,0.3)', color: '#00b4ff' }}
+          >
+            <FontAwesomeIcon icon={faImage} /> Imagem
+          </button>
+        </div>
+      </div>
 
       {/* Times — layout compacto lado a lado */}
       <div className="grid grid-cols-2 gap-3">
