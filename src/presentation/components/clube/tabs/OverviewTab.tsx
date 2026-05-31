@@ -81,7 +81,7 @@ export const OverviewTab: React.FC<Props> = ({ group, players, finances, summary
   const lastMatch      = matches[0];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, minWidth: 0, maxWidth: '100%' }}>
 
       {/* Sessões Recorrentes — reativar */}
       {recurringSessions.length > 0 && (
@@ -105,7 +105,7 @@ export const OverviewTab: React.FC<Props> = ({ group, players, finances, summary
       )}
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <KpiCard icon={faWallet}        label="Caixa Atual"    value={`R$${Math.abs(summary.balance).toFixed(2)}`}  sub={summary.balance >= 0 ? 'saldo positivo' : 'déficit'} color={summary.balance >= 0 ? green : red}  accent={summary.balance >= 0 ? green : red} />
         <KpiCard icon={faArrowTrendUp}   label="Total Receitas" value={`R$${summary.income.toFixed(2)}`}             sub={`R$${summary.pending.toFixed(2)} pendente`}           color="#fff" accent={green} />
         <KpiCard icon={faArrowTrendDown} label="Total Despesas" value={`R$${summary.expense.toFixed(2)}`}            sub="saídas registradas"                                   color="#fff" accent={red}   />

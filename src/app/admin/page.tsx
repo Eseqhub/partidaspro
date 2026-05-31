@@ -6,6 +6,7 @@ import { AdminRepository, MonthlyPoint } from '@/infra/repositories/AdminReposit
 import { exportToCsv } from '@/core/services/ExportService';
 import { ActivityChart } from '@/presentation/components/dashboard/ActivityChart';
 import { AdminPlayerEditModal } from '@/presentation/components/dashboard/AdminPlayerEditModal';
+import { AdminEditModal, EditField } from '@/presentation/components/dashboard/AdminEditModal';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -78,6 +79,8 @@ export default function AdminPage() {
   const [deleting, setDeleting]           = useState<string | null>(null);
   const [playerGroupBy, setPlayerGroupBy] = useState<'club' | 'flat'>('club');
   const [editingPlayer, setEditingPlayer] = useState<any | null>(null);
+  const [editingGroup, setEditingGroup]   = useState<any | null>(null);
+  const [editingMatch, setEditingMatch]   = useState<any | null>(null);
   const [newAdminEmail, setNewAdminEmail] = useState('');
 
   const groupNameById = new Map(groups.map(g => [g.id, g.name]));
@@ -134,6 +137,16 @@ export default function AdminPage() {
 
   const handleSavePlayer = async (id: string, updates: Record<string, any>) => {
     await adminRepo.updatePlayer(id, updates);
+    await loadAll();
+  };
+
+  const handleSaveGroup = async (updates: Record<string, any>) => {
+    await adminRepo.updateGroup(editingGroup.id, updates);
+    await loadAll();
+  };
+
+  const handleSaveMatch = async (updates: Record<string, any>) => {
+    await adminRepo.updateMatch(editingMatch.id, updates);
     await loadAll();
   };
 
@@ -339,10 +352,14 @@ export default function AdminPage() {
                       <p style={{ fontSize: 12, fontWeight: 900, textTransform: 'uppercase', color: '#fff' }}>{g.name}</p>
                       <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>/{g.slug} · {g.sport_type_default || 'Society'}</p>
                     </div>
+                    <button onClick={e => { e.stopPropagation(); setEditingGroup(g); }}
+                      style={{ padding: '4px 8px', fontSize: 9, background: 'rgba(204,255,0,0.08)', border: '1px solid rgba(204,255,0,0.2)', color: '#ccff00', borderRadius: 4, cursor: 'pointer' }}>
+                      <FontAwesomeIcon icon={faPen} />
+                    </button>
                     <Link href={`/dashboard/${g.slug}`} onClick={e => e.stopPropagation()}>
                       <button style={{ padding: '4px 10px', fontSize: 8, fontWeight: 900, textTransform: 'uppercase', background: 'rgba(0,180,255,0.1)',
                         border: '1px solid rgba(0,180,255,0.2)', color: '#00b4ff', borderRadius: 4, cursor: 'pointer' }}>
-                        <FontAwesomeIcon icon={faEye} style={{ marginRight: 4 }} />ACESSAR
+                        <FontAwesomeIcon icon={faEye} />
                       </button>
                     </Link>
                     <button disabled={deleting === g.id} onClick={e => { e.stopPropagation(); handleDelete('group', g.id, g.name); }}
@@ -407,6 +424,10 @@ export default function AdminPage() {
                     <p style={{ fontSize: 7, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>{groupNameById.get(m.group_id) ?? ''}{m.date ? ` · ${new Date(m.date).toLocaleDateString('pt-BR')}` : ''}</p>
                   </div>
                   <Chip label={m.status} color={STATUS_COLOR[m.status]} />
+                  <button onClick={() => setEditingMatch(m)}
+                    style={{ padding: '4px 8px', fontSize: 9, background: 'rgba(204,255,0,0.08)', border: '1px solid rgba(204,255,0,0.2)', color: '#ccff00', borderRadius: 4, cursor: 'pointer' }}>
+                    <FontAwesomeIcon icon={faPen} />
+                  </button>
                   <button disabled={deleting === m.id} onClick={() => handleDelete('match', m.id, `${m.home_team_name} vs ${m.away_team_name}`)}
                     style={{ padding: '4px 8px', fontSize: 9, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.12)', color: 'rgba(239,68,68,0.4)', borderRadius: 4, cursor: 'pointer' }}>
                     <FontAwesomeIcon icon={faTrash} />
@@ -530,6 +551,43 @@ export default function AdminPage() {
       {/* Modal de edição de jogador */}
       {editingPlayer && (
         <AdminPlayerEditModal player={editingPlayer} onClose={() => setEditingPlayer(null)} onSave={handleSavePlayer} />
+      )}
+
+      {/* Modal de edição de clube */}
+      {editingGroup && (
+        <AdminEditModal
+          title="Editar Clube" subtitle={editingGroup.name} accent="#ccff00"
+          onClose={() => setEditingGroup(null)} onSave={handleSaveGroup}
+          initial={{ name: editingGroup.name, slug: editingGroup.slug, description: editingGroup.description, founded_year: editingGroup.founded_year, sport_type_default: editingGroup.sport_type_default ?? 'Society' }}
+          fields={[
+            { key: 'name', label: 'Nome do clube' },
+            { key: 'slug', label: 'Slug (URL)' },
+            { key: 'sport_type_default', label: 'Esporte', type: 'select', options: [
+              { value: 'Society', label: 'Society' }, { value: 'Futsal', label: 'Futsal' }, { value: 'Campo', label: 'Campo' },
+            ] },
+            { key: 'founded_year', label: 'Fundação', type: 'number' },
+            { key: 'description', label: 'Descrição', span2: true },
+          ] as EditField[]}
+        />
+      )}
+
+      {/* Modal de edição de partida */}
+      {editingMatch && (
+        <AdminEditModal
+          title="Editar Partida" subtitle={`${editingMatch.home_team_name} vs ${editingMatch.away_team_name}`} accent="#00b4ff"
+          onClose={() => setEditingMatch(null)} onSave={handleSaveMatch}
+          initial={{ home_team_name: editingMatch.home_team_name, away_team_name: editingMatch.away_team_name, home_score: editingMatch.home_score, away_score: editingMatch.away_score, status: editingMatch.status }}
+          fields={[
+            { key: 'home_team_name', label: 'Time A' },
+            { key: 'away_team_name', label: 'Time B' },
+            { key: 'home_score', label: 'Gols A', type: 'number' },
+            { key: 'away_score', label: 'Gols B', type: 'number' },
+            { key: 'status', label: 'Status', type: 'select', span2: true, options: [
+              { value: 'Agendada', label: 'Agendada' }, { value: 'Em curso', label: 'Em curso' },
+              { value: 'Pausada', label: 'Pausada' }, { value: 'Finalizada', label: 'Finalizada' },
+            ] },
+          ] as EditField[]}
+        />
       )}
     </div>
   );
