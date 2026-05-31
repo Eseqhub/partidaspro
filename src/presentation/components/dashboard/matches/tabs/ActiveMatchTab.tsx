@@ -37,12 +37,13 @@ interface ActiveMatchTabProps {
   awayFormation?: Formation;
   events?: any[];
   liveUrl?: string;
+  arbitroUrl?: string;
 }
 
 export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
   draftResult, config, setConfig, score, timer, status,
   setActiveTab, matchType = 'rachao', onStartMatch,
-  homeFormation, awayFormation, events = [], liveUrl,
+  homeFormation, awayFormation, events = [], liveUrl, arbitroUrl,
 }) => {
   const campoCfg = CAMPO_MAP[config.tipo_campo ?? config.sport_type ?? 'Society 7x7']
     ?? { sportType: 'Society' as SportType, playersPerTeam: 7, label: 'Society 7×7' };
@@ -128,6 +129,22 @@ export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
         >
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#EF4444', display: 'inline-block' }} />
           Transmitir ao Vivo (link público)
+        </button>
+      )}
+
+      {/* Modo árbitro (link para registrar lances) */}
+      {arbitroUrl && status !== 'Agendada' && (
+        <button
+          onClick={() => {
+            const nav = navigator as any;
+            if (nav.share) nav.share({ title: 'Modo Árbitro', url: arbitroUrl }).catch(() => {});
+            else { navigator.clipboard.writeText(arbitroUrl); alert('Link do árbitro copiado!'); }
+          }}
+          className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] transition-all"
+          style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)', color: '#A855F7' }}
+        >
+          <FontAwesomeIcon icon={faShuffle} className="rotate-90" />
+          Compartilhar Modo Árbitro
         </button>
       )}
 

@@ -930,6 +930,7 @@ export default function MatchPage() {
                 awayFormation={awayFormation}
                 events={events}
                 liveUrl={typeof window !== 'undefined' && matchId ? `${window.location.origin}/${slug}/ao-vivo/${matchId}` : undefined}
+                arbitroUrl={typeof window !== 'undefined' && matchId ? `${window.location.origin}/${slug}/arbitro/${matchId}` : undefined}
               />
             )}
             {activeTab === 'stats' && (
