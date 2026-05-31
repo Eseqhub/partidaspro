@@ -1,18 +1,23 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCamera, faImages, faTimes, faCrop } from '@fortawesome/free-solid-svg-icons';
 import { ImageCropperModal } from './ImageCropperModal';
 
 interface PhotoUploaderProps {
   onPhotoSelected: (base64String: string | null) => void;
+  defaultImage?: string;
 }
 
-export const PhotoUploader: React.FC<PhotoUploaderProps> = ({ onPhotoSelected }) => {
-  const [preview, setPreview] = useState<string | null>(null);
+export const PhotoUploader: React.FC<PhotoUploaderProps> = ({ onPhotoSelected, defaultImage }) => {
+  const [preview, setPreview] = useState<string | null>(defaultImage || null);
   const [rawImage, setRawImage] = useState<string | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
+
+  useEffect(() => {
+    setPreview(defaultImage || null);
+  }, [defaultImage]);
   
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);

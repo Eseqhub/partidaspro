@@ -19,6 +19,8 @@ interface AttendanceTabProps {
   setGuestPlayers: (players: string[]) => void;
   handleDraft: () => void;
   userRole: string;
+  matchType?: 'rachao' | 'desafio';
+  setSelectedPlayerIds: (ids: string[]) => void;
 }
 
 export const AttendanceTab: React.FC<AttendanceTabProps> = ({
@@ -34,6 +36,8 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
   setGuestPlayers,
   handleDraft,
   userRole,
+  matchType = 'rachao',
+  setSelectedPlayerIds,
 }) => {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -79,6 +83,7 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
         allPlayers={allPlayers}
         selectedPlayerIds={selectedPlayerIds}
         onToggle={togglePlayerAttendance}
+        onReorder={setSelectedPlayerIds}
       />
 
       <div className="border-t border-white/5 pt-8">
@@ -127,14 +132,26 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
         </div>
       </div>
 
-      <Button 
-        onClick={handleDraft}
-        disabled={selectedPlayerIds.length < 2 && guestPlayers.length === 0}
-        className={`w-full py-8 font-black uppercase tracking-[0.4em] text-sm bg-gradient-to-r from-primary to-green-400 text-black hover:scale-[1.01] transition-all gap-4 border-none shadow-[0_0_40px_rgba(204,255,0,0.15)] group relative overflow-hidden rounded-xl ${userRole === 'viewer' ? 'hidden' : ''}`}
-      >
-        <FontAwesomeIcon icon={faShuffle} className="text-xl group-hover:rotate-180 transition-all duration-700" />
-        Realizar Sorteio PRO
-      </Button>
+      {/* Botão de Sorteio: apenas no Rachão */}
+      {matchType !== 'desafio' && (
+        <Button 
+          onClick={handleDraft}
+          disabled={selectedPlayerIds.length < 2 && guestPlayers.length === 0}
+          className={`w-full py-8 font-black uppercase tracking-[0.4em] text-sm bg-gradient-to-r from-primary to-green-400 text-black hover:scale-[1.01] transition-all gap-4 border-none shadow-[0_0_40px_rgba(204,255,0,0.15)] group relative overflow-hidden rounded-xl ${userRole === 'viewer' ? 'hidden' : ''}`}
+        >
+          <FontAwesomeIcon icon={faShuffle} className="text-xl group-hover:rotate-180 transition-all duration-700" />
+          Realizar Sorteio PRO
+        </Button>
+      )}
+
+      {/* Modo Desafio: times já definidos */}
+      {matchType === 'desafio' && userRole !== 'viewer' && (
+        <div className="p-6 border border-amber-500/20 bg-amber-500/5 rounded-xl text-center">
+          <p className="text-[11px] font-black uppercase tracking-widest text-amber-400 mb-1">🏆 Modo Desafio Ativo
+          </p>
+          <p className="text-[10px] text-white/40">Os times são gerenciados pelo responsável de cada clube. Não há sorteio automático.</p>
+        </div>
+      )}
     </div>
   );
 };

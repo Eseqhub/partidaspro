@@ -1,0 +1,304 @@
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { Group } from '@/core/entities/group';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faShieldHalved, faFileLines, faCalendarDays, faUsers,
+  faCamera, faTimes, faFloppyDisk, faCheckCircle, faSpinner,
+} from '@fortawesome/free-solid-svg-icons';
+import { supabase as sb } from '@/infra/supabase/client';
+
+const blue  = '#00b4ff';
+const gold  = '#d4a017';
+const green = '#22c55e';
+const neon  = '#ccff00';
+
+interface Props {
+  group: Group;
+  editors: any[];
+  isOwner: boolean;
+  groupId: string;
+  groupRepo: any;
+  supabase: any;
+  onSave: (updates: Partial<Group>) => Promise<void>;
+}
+
+function Section({ title, icon, children }: { title: string; icon: any; children: React.ReactNode }) {
+  return (
+    <div style={{ padding: 24, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderTop: `2px solid ${blue}22` }}>
+      <h3 style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.25em', color: 'rgba(255,255,255,0.5)', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <FontAwesomeIcon icon={icon} style={{ color: blue, fontSize: 9 }} />
+        {title}
+      </h3>
+      {children}
+    </div>
+  );
+}
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '12px 14px',
+  background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.08)',
+  color: '#fff', fontSize: 12, fontWeight: 600, outline: 'none', transition: 'border .2s',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block', fontSize: 8, fontWeight: 900, textTransform: 'uppercase',
+  letterSpacing: '0.25em', color: 'rgba(255,255,255,0.35)', marginBottom: 8,
+};
+
+export const ClubSettingsTab: React.FC<Props> = ({
+  group, editors, isOwner, groupId, groupRepo, supabase, onSave,
+}) => {
+  // Form fields
+  const [name,        setName]        = useState(group.name);
+  const [description, setDesc]        = useState(group.description ?? '');
+  const [estatuto,    setEstatuto]    = useState(group.estatuto_regras ?? '');
+  const [rules,       setRules]       = useState(group.rules_text ?? '');
+  const [foundedYear, setFounded]     = useState(String(group.founded_year ?? new Date().getFullYear()));
+  const [logoPreview, setLogoPreview] = useState<string | null>(group.logo_url ?? null);
+  const [logoFile,    setLogoFile]    = useState<File | null>(null);
+
+  // Editor management
+  const [editorInput, setEditorInput] = useState('');
+  const [localEditors, setLocalEditors] = useState<any[]>(editors);
+
+  // UI state
+  const [saving,    setSaving]    = useState(false);
+  const [saved,     setSaved]     = useState(false);
+  const [saveError, setSaveError] = useState('');
+
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setLocalEditors(editors); }, [editors]);
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) { setLogoFile(f); setLogoPreview(URL.createObjectURL(f)); }
+  };
+
+  const uploadLogo = async (file: File): Promise<string> => {
+    const ext  = file.name.split('.').pop();
+    const path = `${groupId}_${Date.now()}.${ext}`;
+    const { error } = await sb.storage.from('club-logos').upload(path, file, { upsert: true });
+    if (error) throw error;
+    return sb.storage.from('club-logos').getPublicUrl(path).data.publicUrl;
+  };
+
+  const handleSave = async () => {
+    setSaving(true); setSaveError('');
+    try {
+      let logo_url = group.logo_url ?? '';
+      if (logoFile) logo_url = await uploadLogo(logoFile);
+
+      await onSave({
+        name, description, estatuto_regras: estatuto,
+        rules_text: rules, founded_year: parseInt(foundedYear) || undefined, logo_url,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err: any) {
+      setSaveError(err.message ?? 'Erro ao salvar');
+    } finally { setSaving(false); }
+  };
+
+  const handleAddEditor = async () => {
+    if (!editorInput || !groupId) return;
+    await groupRepo.addEditor(groupId, editorInput.toLowerCase());
+    setEditorInput('');
+    const { data } = await supabase.from('group_roles').select('*').eq('group_id', groupId);
+    setLocalEditors(data ?? []);
+  };
+
+  const handleRemoveEditor = async (id: string) => {
+    await supabase.from('group_roles').delete().eq('id', id);
+    setLocalEditors(prev => prev.filter(e => e.id !== id));
+  };
+
+  if (!isOwner) return (
+    <div style={{ textAlign: 'center', padding: '64px 0' }}>
+      <FontAwesomeIcon icon={faShieldHalved} style={{ fontSize: 40, color: 'rgba(255,255,255,0.1)', marginBottom: 16 }} />
+      <p style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)' }}>
+        Apenas o dono do clube pode acessar as configurações.
+      </p>
+    </div>
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+      {/* ── IDENTIDADE DO CLUBE ── */}
+      <Section title="Identidade do Clube" icon={faShieldHalved}>
+        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+
+          {/* Upload de escudo */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            <div
+              onClick={() => fileRef.current?.click()}
+              style={{ width: 100, height: 100, cursor: 'pointer', position: 'relative', overflow: 'hidden',
+                border: `2px dashed ${blue}33`, background: 'rgba(0,20,50,0.4)' }}>
+              {logoPreview
+                ? <img src={logoPreview} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    <FontAwesomeIcon icon={faCamera} style={{ fontSize: 22, color: `${blue}66` }} />
+                    <span style={{ fontSize: 7, fontWeight: 900, textTransform: 'uppercase', color: `${blue}66` }}>ESCUDO</span>
+                  </div>
+              }
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity .2s' }}
+                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.opacity = '1')}
+                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.opacity = '0')}>
+                <span style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', color: '#fff' }}>ALTERAR</span>
+              </div>
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogoChange} />
+            <span style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>Clique para trocar</span>
+          </div>
+
+          {/* Campos de identidade */}
+          <div style={{ flex: 1, minWidth: 240, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label style={labelStyle}>Nome do Clube</label>
+              <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="Nome do clube..." />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: 12 }}>
+              <div>
+                <label style={labelStyle}>Breve Descrição / Bio</label>
+                <input style={inputStyle} value={description} onChange={e => setDesc(e.target.value)} placeholder="O melhor racha da região..." />
+              </div>
+              <div>
+                <label style={labelStyle}><FontAwesomeIcon icon={faCalendarDays} style={{ marginRight: 4 }} />Ano de Fundação</label>
+                <input style={inputStyle} type="number" value={foundedYear} onChange={e => setFounded(e.target.value)} placeholder="2024" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* ── ESTATUTO & REGULAMENTO ── */}
+      <Section title="Estatuto & Regulamento" icon={faFileLines}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div>
+            <label style={labelStyle}>Estatuto do Clube (documento oficial / visível para todos)</label>
+            <textarea
+              value={estatuto}
+              onChange={e => setEstatuto(e.target.value)}
+              rows={8}
+              placeholder="Ex: Art. 1º — O clube foi fundado em 2020 com o objetivo de promover o futebol amador...&#10;&#10;Art. 2º — São membros do clube todo atleta que...&#10;&#10;Art. 3º — O mensalismo é de R$ 50,00/mês..."
+              style={{ ...inputStyle, resize: 'vertical', fontFamily: 'monospace', lineHeight: 1.6, fontSize: 11 }}
+            />
+            <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              {estatuto.length} caracteres · Visível para todos os membros
+            </p>
+          </div>
+          <div>
+            <label style={labelStyle}>Regras da Pelada (resumo rápido das regras do jogo)</label>
+            <textarea
+              value={rules}
+              onChange={e => setRules(e.target.value)}
+              rows={4}
+              placeholder="Ex: Mensalistas R$50 · Avulsos R$20 · Proibido carrinho · Intervalo 10 min..."
+              style={{ ...inputStyle, resize: 'vertical', fontFamily: 'monospace', lineHeight: 1.6, fontSize: 11 }}
+            />
+          </div>
+        </div>
+      </Section>
+
+      {/* ── GESTÃO DE EDITORES ── */}
+      <Section title="Quem Gerencia o Clube" icon={faUsers}>
+        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 16, lineHeight: 1.5 }}>
+          Editores podem criar partidas, fazer chamada e gerenciar atletas. O dono retém controle total das configurações.
+        </p>
+
+        {/* Adicionar editor */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <input
+            type="email" value={editorInput} onChange={e => setEditorInput(e.target.value)}
+            placeholder="E-mail do colaborador..."
+            style={{ ...inputStyle, flex: 1 }}
+            onKeyDown={e => e.key === 'Enter' && handleAddEditor()}
+          />
+          <button
+            onClick={handleAddEditor}
+            disabled={!editorInput}
+            style={{ padding: '12px 20px', background: !editorInput ? 'rgba(0,180,255,0.1)' : `${blue}22`,
+              border: `1px solid ${blue}33`, color: blue, fontWeight: 900, fontSize: 10,
+              textTransform: 'uppercase', letterSpacing: '0.15em', cursor: 'pointer', flexShrink: 0 }}>
+            + ADD
+          </button>
+        </div>
+
+        {/* Lista de gestores */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {/* Dono */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '12px 14px', background: `${gold}08`, border: `1px solid ${gold}20` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 32, height: 32, background: `${gold}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FontAwesomeIcon icon={faShieldHalved} style={{ color: gold, fontSize: 13 }} />
+              </div>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 900, color: '#fff' }}>Você (Owner)</p>
+                <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Controle total</p>
+              </div>
+            </div>
+            <span style={{ fontSize: 7, fontWeight: 900, padding: '3px 8px', background: `${gold}18`, border: `1px solid ${gold}33`, color: gold, textTransform: 'uppercase' }}>OWNER</span>
+          </div>
+
+          {/* Editores */}
+          {localEditors.length === 0
+            ? <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '16px 0', fontWeight: 700, textTransform: 'uppercase' }}>
+                Nenhum editor adicionado
+              </p>
+            : localEditors.map((ed: any) => (
+                <div key={ed.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '10px 14px', background: `${blue}06`, border: `1px solid rgba(255,255,255,0.05)` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 32, height: 32, background: `${blue}12`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <FontAwesomeIcon icon={faUsers} style={{ color: blue, fontSize: 11 }} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{ed.user_email}</p>
+                      <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Editor</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveEditor(ed.id)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(239,68,68,0.4)', fontSize: 14, padding: 6, transition: 'color .2s' }}
+                    onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#ef4444')}
+                    onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'rgba(239,68,68,0.4)')}>
+                    <FontAwesomeIcon icon={faTimes} />
+                  </button>
+                </div>
+              ))
+          }
+        </div>
+      </Section>
+
+      {/* ── BOTÃO SALVAR ── */}
+      {saveError && (
+        <p style={{ fontSize: 11, color: '#ef4444', textAlign: 'center', fontWeight: 700 }}>{saveError}</p>
+      )}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={{
+            padding: '14px 32px', fontWeight: 900, fontSize: 11,
+            textTransform: 'uppercase', letterSpacing: '0.3em', border: 'none', cursor: saving ? 'wait' : 'pointer',
+            background: saved ? `linear-gradient(135deg,${green},#16a34a)` : `linear-gradient(135deg,${neon},#aadd00)`,
+            color: '#000', transition: 'all .3s',
+            boxShadow: saved ? `0 0 24px ${green}33` : `0 0 24px ${neon}22`,
+          }}
+        >
+          {saving
+            ? <><FontAwesomeIcon icon={faSpinner} spin style={{ marginRight: 8 }} />SALVANDO...</>
+            : saved
+            ? <><FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: 8 }} />SALVO!</>
+            : <><FontAwesomeIcon icon={faFloppyDisk} style={{ marginRight: 8 }} />SALVAR ALTERAÇÕES</>
+          }
+        </button>
+      </div>
+    </div>
+  );
+};

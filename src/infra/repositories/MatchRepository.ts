@@ -74,7 +74,12 @@ export class MatchRepository {
   async acceptChallenge(token: string, awayGroupName: string): Promise<Match | null> {
     const { data, error } = await supabase
       .from(this.table)
-      .update({ challenge_status: 'aceito', away_group_name: awayGroupName, status: 'Agendada' })
+      .update({ 
+        challenge_status: 'aceito', 
+        away_group_name: awayGroupName, 
+        away_team_name: awayGroupName, // Para exibir no placar/campo
+        status: 'Agendada' 
+      })
       .eq('challenge_token', token)
       .select()
       .single();
@@ -138,12 +143,15 @@ export class MatchRepository {
 
   async savePresenceBatch(matchId: string, playerTeams: { player_id: string; team: string }[]): Promise<void> {
     for (const item of playerTeams) {
-      await supabase.from('match_presence').upsert({
-        match_id: matchId,
-        player_id: item.player_id,
-        team: item.team,
-        status: 'Confirmado',
-      });
+      await supabase.from('match_presence').upsert(
+        {
+          match_id: matchId,
+          player_id: item.player_id,
+          team: item.team,
+          status: 'Confirmado',
+        },
+        { onConflict: 'match_id,player_id' }
+      );
     }
   }
 

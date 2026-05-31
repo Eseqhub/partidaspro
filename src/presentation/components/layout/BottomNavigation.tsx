@@ -15,12 +15,19 @@ import {
 export function BottomNavigation() {
   const pathname = usePathname();
 
-  const navItems = [
-    { label: 'Início', icon: faGaugeHigh, href: '/dashboard' },
-    { label: 'Jogos', icon: faFutbol, href: '/dashboard/matches' },
-    { label: 'Atletas', icon: faUsers, href: '/dashboard/players' },
-    { label: 'Finanças', icon: faWallet, href: '/dashboard/finances' },
-    { label: 'Stats', icon: faChartSimple, href: '/dashboard/stats' },
+  // Extrair o slug da URL: /dashboard/[slug]/...
+  const pathParts = pathname.split('/');
+  const isInsideGroup = pathParts[1] === 'dashboard' && pathParts[2] && pathParts[2] !== 'finances' && pathParts[2] !== 'matches' && pathParts[2] !== 'players' && pathParts[2] !== 'stats';
+  const slug = isInsideGroup ? pathParts[2] : '';
+
+  const navItems = isInsideGroup ? [
+    { label: 'Início', icon: faGaugeHigh, href: `/dashboard/${slug}` },
+    { label: 'Jogos', icon: faFutbol, href: `/dashboard/${slug}/matches` },
+    { label: 'Atletas', icon: faUsers, href: `/dashboard/${slug}/players` },
+    { label: 'Finanças', icon: faWallet, href: `/dashboard/${slug}/finances` },
+    { label: 'Stats', icon: faChartSimple, href: `/dashboard/${slug}/stats` },
+  ] : [
+    { label: 'Clubes', icon: faGaugeHigh, href: '/dashboard' },
   ];
 
   return (

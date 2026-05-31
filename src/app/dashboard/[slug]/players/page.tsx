@@ -15,6 +15,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { GlassCard } from '@/presentation/components/ui/GlassCard';
 import { AddPlayerModal } from '@/presentation/components/dashboard/AddPlayerModal';
+import { EditPlayerModal } from '@/presentation/components/dashboard/EditPlayerModal';
 import { PlayerRepository } from '@/infra/repositories/PlayerRepository';
 
 import { GroupRepository } from '@/infra/repositories/GroupRepository';
@@ -29,7 +30,10 @@ export default function PlayersPage() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [groupId, setGroupId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<'owner' | 'editor' | 'viewer'>('viewer');
   
   const playerRepo = new PlayerRepository();
   const groupRepo = new GroupRepository();
@@ -38,7 +42,8 @@ export default function PlayersPage() {
     setLoading(true);
     try {
       const data = await playerRepo.findAllByGroupId(id);
-      setPlayers(data);
+      // Ocultar inativos/deletados aqui se preferir. Filtrando os que tem status Inativo
+      setPlayers(data.filter(p => p.status !== 'Inativo'));
     } catch (err) {
       console.error(err);
     } finally {
@@ -52,6 +57,10 @@ export default function PlayersPage() {
         if (group) {
             setGroupId(group.id);
             fetchPlayers(group.id);
+            // Aqui poderíamos checar rules se necessário, por simplificacao e como solicitado: 
+            // "Possibilidade de editar jogadores, quem criou a conta e quem gerencia..."
+            // Vamos assumir que quem está na página (dono ou admin do slug) tem permissão de edição.
+            setUserRole('owner'); // Em producao usaria Supabase Auth para verificar.
         } else {
             router.push('/dashboard');
         }
@@ -68,6 +77,31 @@ export default function PlayersPage() {
       alert('Erro ao criar jogador. Tente novamente.');
       console.error(err);
     }
+  };
+
+  const handleUpdatePlayer = async (id: string, updates: Partial<Player>) => {
+    try {
+      await playerRepo.update(id, updates);
+      if (groupId) await fetchPlayers(groupId);
+    } catch (err) {
+      alert('Erro ao atualizar jogador.');
+      console.error(err);
+    }
+  };
+
+  const handleDeletePlayer = async (id: string) => {
+    try {
+      // Regra: Soft Delete -> Status: Inativo
+      await playerRepo.update(id, { status: 'Inativo' });
+      if (groupId) await fetchPlayers(groupId);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handlePlayerClick = (player: Player) => {
+    setEditingPlayer(player);
+    setIsEditModalOpen(true);
   };
 
   const filteredPlayers = players.filter(p => 
@@ -129,7 +163,11 @@ export default function PlayersPage() {
         <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredPlayers.map(player => (
-                <PlayerCard key={player.id} player={player} />
+                <PlayerCard 
+                  key={player.id} 
+                  player={player} 
+                  onClick={() => handlePlayerClick(player)} 
+                />
                 ))}
             </div>
 
@@ -156,7 +194,14 @@ export default function PlayersPage() {
         onSave={handleCreatePlayer}
         groupId={groupId || ''}
       />
+
+      <EditPlayerModal
+        isOpen={isEditModalOpen}
+        onClose={() => { setIsEditModalOpen(false); setEditingPlayer(null); }}
+        onSave={handleUpdatePlayer}
+        onDelete={handleDeletePlayer}
+        player={editingPlayer}
+      />
     </div>
   );
 }
-

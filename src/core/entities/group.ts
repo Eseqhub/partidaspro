@@ -7,10 +7,12 @@ export interface Group {
   invite_password?: string;
   is_paid_model?: boolean;
   rules_text?: string;
+  estatuto_regras?: string;  // Estatuto/regras longo do grupo (visível a todos)
   description?: string;
   founded_year?: number;
   recurrence_day?: string;
   sport_type_default?: 'Futsal' | 'Society' | 'Campo';
+  recruitment_link_hash?: string;
   created_at: string;
 }
 

@@ -13,7 +13,9 @@ export interface Player {
   height?: number;
   weight?: number;
   photo_url?: string;
-  rating: number; // 1.0 a 5.0
+  rating: number; // 1.0 a 5.0 (legado)
+  skill_level?: number;       // 1 a 10 (escala de habilidade para sorteio)
+  posicao_principal?: string; // Posição preferida (G, ZAG, VOL, etc.)
   positions: PlayerPositionV2[]; // Array de posições conforme fotos
   status: PlayerStatus;
   is_mensalista: boolean;

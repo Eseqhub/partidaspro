@@ -1,8 +1,8 @@
 export type MatchStatus = 'Agendada' | 'Em curso' | 'Pausada' | 'Finalizada';
 
-export type GameMode = 'Rachão' | 'Revezamento' | 'Dois ou Dez' | 'Vira-Acaba';
+export type GameMode = 'Rachão' | 'Bolão' | 'Revezamento' | 'Dois ou Dez' | 'Vira-Acaba' | 'Dez ou 2 Gols';
 export type SportType = 'Futsal' | 'Society' | 'Campo';
-export type MatchType = 'rachao' | 'desafio';
+export type MatchType = 'rachao' | 'desafio' | 'manual';
 export type ChallengeStatus = 'pendente' | 'aceito' | 'recusado';
 
 export interface Match {
@@ -25,6 +25,11 @@ export interface Match {
   away_color?: string;
   sport_type?: SportType;
   game_mode?: GameMode;
+  // Novos campos de configuração (mais descritivos)
+  field_type?: 'Futsal 5x5' | 'Society 6x6' | 'Society 7x7' | 'Campo 11x11';
+  modality?: 'Rachão' | 'Bolão' | 'Revezamento' | 'Dez ou 2 Gols';
+  start_time?: string; // HH:MM
+  end_time?: string;   // HH:MM
   max_players?: number;
   max_goalkeepers?: number;
   // Modo Desafio

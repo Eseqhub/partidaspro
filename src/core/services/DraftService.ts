@@ -3,30 +3,45 @@ import { Player } from '../entities/player';
 export interface DraftResult {
   homeTeam: Player[];
   awayTeam: Player[];
-  waitingList: Player[]; // Sobras individuais
-  allTeams?: Player[][]; // Para Revezamento (Lista de times prontos)
+  waitingList: Player[];
+  allTeams?: Player[][];
   homeRating: number;
   awayRating: number;
 }
 
 export class DraftService {
-  // ... existing calculatePowerLevel and calculateAge methods ...
-  private calculatePowerLevel(player: Player): number {
-    let score = player.rating * 10; 
+  /**
+   * Força do jogador: 0–120
+   * Prioridade: skill_level (1-10) > rating (1-5)
+   * Fatores secundários: idade e IMC.
+   */
+  calculatePowerLevel(player: Player): number {
+    // Base: skill_level 1-10 → 10-100 | rating 1-5 → 10-50 (fallback)
+    const skill = player.skill_level != null
+      ? player.skill_level
+      : Math.round((player.rating || 3) * 2);
+    let score = skill * 10;
+
+    // Fator Idade
     if (player.birth_date) {
       const age = this.calculateAge(player.birth_date);
-      if (age >= 20 && age <= 35) score += 5;
-      else if (age > 35 && age < 45) score += 2;
-      else if (age >= 45) score -= 2;
+      if (age >= 18 && age <= 32)      score += 10;
+      else if (age > 32 && age <= 40)  score += 5;
+      else if (age > 40 && age <= 48)  score += 0;
+      else if (age > 48)               score -= 5;
+      // Abaixo de 18: sem bônus (em desenvolvimento)
     }
+
+    // Fator Físico (IMC)
     if (player.height && player.weight) {
-        const heightInMeters = player.height;
-        const imc = player.weight / (heightInMeters * heightInMeters);
-        if (imc >= 20 && imc <= 26) score += 5;
-        else if (imc > 26 && imc < 30) score += 2;
-        else score -= 1;
+      const imc = player.weight / (player.height * player.height);
+      if (imc >= 20 && imc <= 25)       score += 10;
+      else if (imc > 25 && imc < 30)    score += 5;
+      else if (imc >= 17 && imc < 20)   score += 3;
+      else                               score -= 5;
     }
-    return score;
+
+    return Math.max(0, score);
   }
 
   private calculateAge(birthDate: string): number {
@@ -34,106 +49,110 @@ export class DraftService {
     const birth = new Date(birthDate);
     let age = today.getFullYear() - birth.getFullYear();
     const m = today.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-        age--;
-    }
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
     return age;
   }
 
   /**
-   * Realiza o sorteio de dois times balanceados por múltiplos fatores.
-   * Respeita o limite de jogadores por time.
+   * Sorteio Inteligente para Rachão.
+   * Snake draft: goleiros separados, linha ordenada por força.
+   * Padrão de distribuição: H A A H H A A H ...
    */
-  balanceTeams(players: Player[], playersPerTeam: number = 20): DraftResult {
-    // 1. Separar goleiros dos demais
+  balanceTeams(players: Player[], playersPerTeam = 7): DraftResult {
     const goalkeepers = players.filter(p => p.positions.includes('G'));
     const fieldPlayers = players.filter(p => !p.positions.includes('G'));
 
-    // 2. Ordenar jogadores de linha por Power Level (descendente)
-    const sortedField = [...fieldPlayers].sort((a, b) => 
-        this.calculatePowerLevel(b) - this.calculatePowerLevel(a)
+    const sortedField = [...fieldPlayers].sort(
+      (a, b) => this.calculatePowerLevel(b) - this.calculatePowerLevel(a)
     );
 
     const homeTeam: Player[] = [];
     const awayTeam: Player[] = [];
-    let waitingList: Player[] = [];
+    const waitingList: Player[] = [];
 
-    // 3. Distribuir goleiros
-    goalkeepers.forEach((gk, index) => {
-      if (index % 2 === 0) {
-        if (homeTeam.length < playersPerTeam) homeTeam.push(gk);
-        else waitingList.push(gk);
-      } else {
-        if (awayTeam.length < playersPerTeam) awayTeam.push(gk);
-        else waitingList.push(gk);
-      }
+    // 1. Distribui goleiros alternadamente
+    goalkeepers.forEach((gk, idx) => {
+      const target = idx % 2 === 0 ? homeTeam : awayTeam;
+      if (target.length < playersPerTeam) target.push(gk);
+      else waitingList.push(gk);
     });
 
-    // 4. Snake Draft Pro
+    // 2. Snake draft para jogadores de linha
+    // Padrão: H A A H H A A H (índice 0→H, 1→A, 2→A, 3→H, 4→H, 5→A...)
     sortedField.forEach((player, index) => {
-      const isSecondOfPair = Math.floor(index / 2) % 2 === 1;
-      const isEven = index % 2 === 0;
+      const round = Math.floor(index / 2);
+      const posInRound = index % 2;
+      const goToHome = round % 2 === 0 ? posInRound === 0 : posInRound === 1;
 
-      if (isSecondOfPair) {
-        if (isEven) {
-            if (awayTeam.length < playersPerTeam) awayTeam.push(player);
-            else waitingList.push(player);
-        } else {
-            if (homeTeam.length < playersPerTeam) homeTeam.push(player);
-            else waitingList.push(player);
-        }
+      if (goToHome) {
+        if (homeTeam.length < playersPerTeam) homeTeam.push(player);
+        else if (awayTeam.length < playersPerTeam) awayTeam.push(player);
+        else waitingList.push(player);
       } else {
-        if (isEven) {
-            if (homeTeam.length < playersPerTeam) homeTeam.push(player);
-            else waitingList.push(player);
-        } else {
-            if (awayTeam.length < playersPerTeam) awayTeam.push(player);
-            else waitingList.push(player);
-        }
+        if (awayTeam.length < playersPerTeam) awayTeam.push(player);
+        else if (homeTeam.length < playersPerTeam) homeTeam.push(player);
+        else waitingList.push(player);
       }
     });
 
-    const homeRating = homeTeam.reduce((acc, p) => acc + this.calculatePowerLevel(p), 0) / (homeTeam.length || 1);
-    const awayRating = awayTeam.reduce((acc, p) => acc + this.calculatePowerLevel(p), 0) / (awayTeam.length || 1);
+    const calcRating = (team: Player[]) =>
+      team.length ? team.reduce((acc, p) => acc + this.calculatePowerLevel(p), 0) / team.length : 0;
 
     return {
       homeTeam,
       awayTeam,
       waitingList,
       allTeams: [homeTeam, awayTeam],
-      homeRating,
-      awayRating
+      homeRating: calcRating(homeTeam),
+      awayRating: calcRating(awayTeam),
     };
   }
 
   /**
-   * Divide todos os jogadores em N times de tamanho fixo.
+   * Modalidade Bolão: múltiplos times, snake draft N-times.
    */
-  balanceMultipleTeams(players: Player[], playersPerTeam: number): Player[][] {
-    const teamsCount = Math.floor(players.length / playersPerTeam);
-    if (teamsCount < 2) {
-        const result = this.balanceTeams(players, playersPerTeam);
-        return [result.homeTeam, result.awayTeam];
-    }
+  generateBolao(players: Player[], targetPlayersPerTeam = 7): DraftResult {
+    const numberOfTeams = Math.max(2, Math.floor(players.length / targetPlayersPerTeam));
+    const goalkeepers = players.filter(p => p.positions.includes('G'));
+    const fieldPlayers = players.filter(p => !p.positions.includes('G'));
 
-    // Ordenar por nível
-    const sorted = [...players].sort((a, b) => this.calculatePowerLevel(b) - this.calculatePowerLevel(a));
-    const teams: Player[][] = Array.from({ length: teamsCount }, () => []);
+    const sortedField = [...fieldPlayers].sort(
+      (a, b) => this.calculatePowerLevel(b) - this.calculatePowerLevel(a)
+    );
 
-    // Distribuição Snake Draft para N times
+    const teams: Player[][] = Array.from({ length: numberOfTeams }, () => []);
+
+    // Goleiros: um por time se disponível (sem clonar IDs)
+    goalkeepers.forEach((gk, i) => {
+      if (i < numberOfTeams) teams[i].push(gk);
+    });
+
+    // Snake draft para linha
     let reverse = false;
-    for (let i = 0; i < sorted.length; i += teamsCount) {
-        const chunk = sorted.slice(i, i + teamsCount);
-        if (reverse) chunk.reverse();
-        
-        chunk.forEach((p, idx) => {
-            if (teams[idx].length < playersPerTeam) {
-                teams[idx].push(p);
-            }
-        });
-        reverse = !reverse;
+    for (let i = 0; i < sortedField.length; i += numberOfTeams) {
+      const chunk = sortedField.slice(i, i + numberOfTeams);
+      if (reverse) chunk.reverse();
+      chunk.forEach((p, idx) => {
+        if (idx < numberOfTeams && teams[idx].length < targetPlayersPerTeam + 1) {
+          teams[idx].push(p);
+        }
+      });
+      reverse = !reverse;
     }
 
-    return teams;
+    const draftedIds = new Set(teams.flat().map(p => p.id));
+    const waitingList = players.filter(p => !draftedIds.has(p.id));
+
+    const calcRating = (team: Player[]) =>
+      team.length ? team.reduce((acc, p) => acc + this.calculatePowerLevel(p), 0) / team.length : 0;
+
+    return {
+      homeTeam: teams[0] || [],
+      awayTeam: teams[1] || [],
+      allTeams: teams,
+      waitingList,
+      homeRating: calcRating(teams[0] || []),
+      awayRating: calcRating(teams[1] || []),
+    };
   }
 }

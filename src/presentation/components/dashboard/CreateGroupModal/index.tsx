@@ -1,0 +1,164 @@
+'use client';
+
+import React, { useState } from 'react';
+import { GlassCard } from '../../ui/GlassCard';
+import { Button } from '../../ui/Button';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faXmark, faShieldHalved, faLink } from '@fortawesome/free-solid-svg-icons';
+import { GroupRepository } from '@/infra/repositories/GroupRepository';
+import { supabase } from '@/infra/supabase/client';
+import { LogoUploader } from './LogoUploader';
+
+interface CreateGroupModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  ownerId: string;
+}
+
+const toSlug = (val: string) =>
+  val.toLowerCase().trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+export function CreateGroupModal({ isOpen, onClose, onSuccess, ownerId }: CreateGroupModalProps) {
+  const [name, setName]                     = useState('');
+  const [slug, setSlug]                     = useState('');
+  const [requirePassword, setRequirePassword] = useState(false);
+  const [invitePassword, setInvitePassword] = useState('');
+  const [loading, setLoading]               = useState(false);
+  const [logoFile, setLogoFile]             = useState<File | null>(null);
+  const [logoPreview, setLogoPreview]       = useState<string | null>(null);
+  const [description, setDescription]       = useState('');
+  const [foundedYear, setFoundedYear]       = useState(new Date().getFullYear().toString());
+
+  const groupRepo = new GroupRepository();
+
+  const handleNameChange = (val: string) => { setName(val); setSlug(toSlug(val)); };
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) { setLogoFile(file); setLogoPreview(URL.createObjectURL(file)); }
+  };
+
+  const uploadLogo = async (file: File): Promise<string> => {
+    const ext      = file.name.split('.').pop();
+    const filePath = `${ownerId}_${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('club-logos').upload(filePath, file);
+    if (error) throw error;
+    const { data } = supabase.storage.from('club-logos').getPublicUrl(filePath);
+    return data.publicUrl;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const logoUrl = logoFile ? await uploadLogo(logoFile) : '';
+      await groupRepo.create({
+        name, slug, owner_id: ownerId, logo_url: logoUrl,
+        invite_password: requirePassword ? invitePassword : '',
+        is_paid_model: false, description,
+        founded_year: parseInt(foundedYear) || new Date().getFullYear(),
+      });
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      alert('Erro ao criar clube. Nome ou URL podem já estar em uso.');
+      console.error(err);
+    } finally { setLoading(false); }
+  };
+
+  if (!isOpen) return null;
+
+  const inputCls = 'w-full bg-black/40 border border-white/10 p-4 text-white text-xs focus:border-primary/50 outline-none';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <GlassCard className="max-w-md w-full p-8 relative border-primary/20 bg-slate-950">
+        <button onClick={onClose} className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors">
+          <FontAwesomeIcon icon={faXmark} />
+        </button>
+
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Fundar Novo Clube</h2>
+          <p className="text-white/40 text-[10px] uppercase font-bold tracking-widest mt-1">Inicie sua jornada organizacional</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Upload de logo — componente isolado */}
+          <LogoUploader preview={logoPreview} onFileChange={handleLogoChange} />
+
+          {/* Nome */}
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-primary mb-2">Nome do Clube</label>
+            <div className="relative">
+              <FontAwesomeIcon icon={faShieldHalved} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" />
+              <input type="text" value={name} onChange={e => handleNameChange(e.target.value)}
+                placeholder="EX: TAPA DE QUALIDADE"
+                className="w-full bg-black/40 border border-white/10 p-4 pl-12 text-white uppercase font-bold focus:border-primary/50 outline-none"
+                required />
+            </div>
+          </div>
+
+          {/* Slug */}
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Endereço (URL)</label>
+            <div className="relative">
+              <FontAwesomeIcon icon={faLink} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" />
+              <input type="text" value={slug}
+                onChange={e => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
+                placeholder="slug-do-clube"
+                className="w-full bg-black/40 border border-white/10 p-4 pl-12 text-white font-mono text-xs focus:border-primary/50 outline-none"
+                required />
+            </div>
+          </div>
+
+          {/* Descrição + Ano */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Breve Descrição / Bio</label>
+              <input type="text" value={description} onChange={e => setDescription(e.target.value)}
+                placeholder="O melhor racha da região..." className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Ano Fundação</label>
+              <input type="number" value={foundedYear} onChange={e => setFoundedYear(e.target.value)}
+                placeholder="2024" className={inputCls} required />
+            </div>
+          </div>
+
+          {/* Privacidade */}
+          <div className="pt-4 border-t border-white/5">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Privacidade</span>
+              <button type="button" onClick={() => setRequirePassword(!requirePassword)}
+                className={`relative w-10 h-5 transition-colors duration-200 rounded-none ${requirePassword ? 'bg-primary' : 'bg-white/10'}`}>
+                <div className={`absolute top-1 w-3 h-3 transition-transform duration-200 bg-slate-950 ${requirePassword ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+            {requirePassword && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                <label className="block text-[8px] font-black uppercase tracking-widest text-primary mb-2 italic">Definir Senha de Convite</label>
+                <input type="password" value={invitePassword} onChange={e => setInvitePassword(e.target.value)}
+                  placeholder="SENHA PARA JOGADORES..."
+                  className="w-full bg-black/40 border border-primary/20 p-3 text-white font-bold focus:border-primary/50 outline-none text-xs"
+                  required />
+              </div>
+            )}
+            <p className="text-[8px] text-white/20 mt-2 font-bold uppercase">
+              {requirePassword ? 'Apenas quem tiver a senha poderá se inscrever.' : 'Qualquer pessoa com o link poderá se inscrever.'}
+            </p>
+          </div>
+
+          <Button type="submit" variant="primary"
+            className="w-full py-4 text-slate-950 font-black uppercase tracking-widest text-sm"
+            disabled={loading}>
+            {loading ? 'FUNDANDO CLUBE...' : 'FUNDAR CLUBE'}
+          </Button>
+        </form>
+      </GlassCard>
+    </div>
+  );
+}
