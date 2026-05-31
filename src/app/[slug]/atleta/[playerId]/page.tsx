@@ -15,6 +15,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { Group } from '@/core/entities/group';
 import { Player, PlayerPositionV2 } from '@/core/entities/player';
+import { PlayerStatsPanel } from '@/presentation/components/dashboard/PlayerStatsPanel';
 
 const blue  = '#00b4ff';
 const gold  = '#d4a017';
@@ -401,6 +402,11 @@ export default function PlayerSelfEditPage() {
             </div>
           </GlassCard>
         </form>
+
+        {/* Estatísticas e Conquistas */}
+        <GlassCard className="p-6 md:p-10 mt-6 border-white/10">
+          <PlayerStatsPanel playerId={player.id} groupId={group.id} />
+        </GlassCard>
       </div>
     </div>
   );

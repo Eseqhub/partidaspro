@@ -11,6 +11,7 @@ import { PlayerRepository } from '@/infra/repositories/PlayerRepository';
 import { GroupRepository } from '@/infra/repositories/GroupRepository';
 import { supabase } from '@/infra/supabase/client';
 import { Player, PlayerPositionV2 } from '@/core/entities/player';
+import { PlayerStatsPanel } from '@/presentation/components/dashboard/PlayerStatsPanel';
 
 // Rótulos legíveis das posições
 const POSITION_LABELS: Record<string, string> = {
@@ -319,6 +320,13 @@ export default function AthleteProfilePage() {
             </div>
           )}
         </div>
+
+        {/* Estatísticas e Conquistas */}
+        {player && (
+          <div className="mt-6 p-6 md:p-8 border border-white/10 bg-white/[0.02] rounded-xl">
+            <PlayerStatsPanel playerId={player.id} groupId={groupId} />
+          </div>
+        )}
 
         <p className="text-center mt-10 text-[9px] text-white/10 font-bold uppercase tracking-[0.5em]">
           PARTIDAS PRO © 2026

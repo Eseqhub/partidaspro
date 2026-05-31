@@ -9,6 +9,7 @@ import {
   faTrophy, faUsers, faLayerGroup,
 } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '@/infra/supabase/client';
+import { parseDias, serializeDias, labelDias, WEEKDAY_NAMES } from '@/core/services/RecurrenceService';
 
 export type TipoCampo = 'Futsal 5x5' | 'Society 6x6' | 'Society 7x7' | 'Campo 11x11';
 export type Modalidade = 'Rachão' | 'Bolão' | 'Manual' | 'Desafio';
@@ -460,31 +461,50 @@ export function NovaPartidaModal({ isOpen, groupId, groupSlug, onClose, onSucces
                     </button>
                   ))}
                 </div>
-                {draft.recorrencia !== 'nao' && (
-                  <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <label style={{ ...lbl }}>Dia da semana</label>
-                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                      {['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado','Domingo'].map(d => (
-                        <button key={d} onClick={() => set('recorrencia_dia', d)}
-                          style={{
-                            padding: '5px 10px', fontSize: 9, fontWeight: 900, cursor: 'pointer',
-                            background: draft.recorrencia_dia === d ? `${blue}22` : 'rgba(255,255,255,0.03)',
-                            border: `1px solid ${draft.recorrencia_dia === d ? blue : 'rgba(255,255,255,0.1)'}`,
-                            color: draft.recorrencia_dia === d ? blue : 'rgba(255,255,255,0.4)',
-                            borderRadius: 5, transition: 'all .15s',
-                          }}>
-                          {d.substring(0, 3).toUpperCase()}
-                        </button>
-                      ))}
+                {draft.recorrencia !== 'nao' && (() => {
+                  const selectedDias = parseDias(draft.recorrencia_dia);
+                  const toggleDia = (d: string) => {
+                    const next = selectedDias.includes(d)
+                      ? selectedDias.filter(x => x !== d)
+                      : [...selectedDias, d];
+                    // Mantém a ordem natural da semana
+                    const ordered = WEEKDAY_NAMES.filter(w => next.includes(w));
+                    set('recorrencia_dia', serializeDias(ordered));
+                  };
+                  return (
+                    <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <label style={{ ...lbl }}>Dias da semana (pode marcar vários)</label>
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                        {['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado','Domingo'].map(d => {
+                          const active = selectedDias.includes(d);
+                          return (
+                            <button key={d} onClick={() => toggleDia(d)}
+                              style={{
+                                padding: '5px 10px', fontSize: 9, fontWeight: 900, cursor: 'pointer',
+                                background: active ? `${blue}22` : 'rgba(255,255,255,0.03)',
+                                border: `1px solid ${active ? blue : 'rgba(255,255,255,0.1)'}`,
+                                color: active ? blue : 'rgba(255,255,255,0.4)',
+                                borderRadius: 5, transition: 'all .15s',
+                              }}>
+                              {d.substring(0, 3).toUpperCase()}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {selectedDias.length > 0 ? (
+                        <p style={{ fontSize: 8, color: `${blue}77`, fontWeight: 700 }}>
+                          📅 <strong style={{ color: blue }}>{labelDias(draft.recorrencia_dia)}</strong>
+                          {' · '}{draft.recorrencia}{' · '}{draft.hora_inicio || '—'}
+                          {' '}— {selectedDias.length === 1 ? '1 dia' : `${selectedDias.length} dias`} por semana · elenco pré-selecionado.
+                        </p>
+                      ) : (
+                        <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>
+                          Selecione ao menos um dia da semana.
+                        </p>
+                      )}
                     </div>
-                    <p style={{ fontSize: 8, color: `${blue}77`, fontWeight: 700 }}>
-                      📅 Todo{draft.recorrencia_dia === 'Sábado' || draft.recorrencia_dia === 'Domingo' ? '' : 'a'}{' '}
-                      <strong style={{ color: blue }}>{draft.recorrencia_dia}</strong> · {draft.recorrencia} ·{' '}
-                      {draft.hora_inicio || '—'}
-                      {' '}— Jogadores do elenco serão pré-selecionados automaticamente.
-                    </p>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
 
               {/* Resumo */}

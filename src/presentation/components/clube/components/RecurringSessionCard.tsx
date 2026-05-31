@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRotate, faCalendarCheck, faUserGroup, faChevronRight, faPlus, faMinus } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '@/infra/supabase/client';
-import { calcNextDate, fmtDate, toInputDate } from '@/core/services/RecurrenceService';
+import { calcNextDate, fmtDate, toInputDate, labelDias } from '@/core/services/RecurrenceService';
 
 interface Player { id: string; name: string; positions: string[] }
 
@@ -135,7 +135,7 @@ export const RecurringSessionCard: React.FC<Props> = ({ match, groupId, groupSlu
           <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', fontWeight: 700, marginTop: 2 }}>
             <FontAwesomeIcon icon={faCalendarCheck} style={{ marginRight: 4, color: neon }} />
             Próxima: <strong style={{ color: '#fff' }}>{nextDateDisplay}</strong>
-            {match.recorrencia_dia && <span style={{ color: 'rgba(255,255,255,0.3)' }}> · toda {match.recorrencia_dia}</span>}
+            {match.recorrencia_dia && <span style={{ color: 'rgba(255,255,255,0.3)' }}> · {labelDias(match.recorrencia_dia)}</span>}
           </p>
         </div>
         <FontAwesomeIcon icon={faChevronRight}
