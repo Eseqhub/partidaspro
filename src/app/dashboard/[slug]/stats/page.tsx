@@ -5,10 +5,12 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/infra/supabase/client';
 import { GroupRepository } from '@/infra/repositories/GroupRepository';
+import { aggregateAllPlayers, SeasonStanding } from '@/core/services/PlayerStatsService';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faFutbol, faHandshake, faTrophy,
   faArrowLeft, faChartBar, faMedal, faShieldHalved,
+  faCrown, faChevronLeft, faChevronRight,
 } from '@fortawesome/free-solid-svg-icons';
 
 interface PlayerStat {
@@ -100,8 +102,15 @@ export default function StatsPage() {
   const [loading, setLoading]         = useState(true);
   const [playerStats, setPlayerStats] = useState<PlayerStat[]>([]);
   const [matchHistory, setMatchHistory] = useState<MatchRecord[]>([]);
-  const [view, setView] = useState<'artilheiros' | 'assistencias' | 'geral' | 'partidas'>('artilheiros');
+  const [view, setView] = useState<'temporada' | 'artilheiros' | 'assistencias' | 'geral' | 'partidas'>('temporada');
   const [groupName, setGroupName]     = useState('');
+
+  // Dados crus para a Temporada (reagregação por mês)
+  const [rawEvents, setRawEvents]       = useState<any[]>([]);
+  const [rawPresences, setRawPresences] = useState<any[]>([]);
+  const [rawMatches, setRawMatches]     = useState<any[]>([]);
+  const [playerMeta, setPlayerMeta]     = useState<Map<string, { name: string; photo_url?: string }>>(new Map());
+  const [seasonMonth, setSeasonMonth]   = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
 
   useEffect(() => {
     async function load() {
@@ -167,17 +176,44 @@ export default function StatsPage() {
       });
 
       setPlayerStats(Array.from(statsMap.values()).filter(s => s.matches > 0));
+
+      // Guarda dados crus para a Temporada (reagregação por mês no cliente)
+      const meta = new Map<string, { name: string; photo_url?: string }>();
+      (presences ?? []).forEach((p: any) => {
+        if (p.player) meta.set(p.player.id, { name: p.player.name, photo_url: p.player.photo_url });
+      });
+      setPlayerMeta(meta);
+      setRawEvents(events ?? []);
+      setRawPresences((presences ?? []).map((p: any) => ({ player_id: p.player_id, team: p.team, match_id: p.match_id })));
+      setRawMatches(allMatches);
       setLoading(false);
     }
     load();
   }, [slug]);
+
+  // Standings da temporada (mês selecionado)
+  const monthMatches = rawMatches.filter(m => {
+    if (m.status !== 'Finalizada' || !m.date) return false;
+    const d = new Date(m.date + 'T12:00:00');
+    return d.getFullYear() === seasonMonth.getFullYear() && d.getMonth() === seasonMonth.getMonth();
+  });
+  const monthMatchIds = new Set(monthMatches.map(m => m.id));
+  const seasonStandings: SeasonStanding[] = aggregateAllPlayers(
+    rawEvents.filter(e => monthMatchIds.has(e.match_id)),
+    rawPresences.filter(p => monthMatchIds.has(p.match_id)),
+    monthMatches,
+    playerMeta,
+  );
+  const champion = seasonStandings[0];
+  const monthLabel = seasonMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
 
   const byGoals   = [...playerStats].sort((a, b) => b.goals - a.goals   || b.assists - a.assists);
   const byAssists = [...playerStats].sort((a, b) => b.assists - a.assists || b.goals - a.goals);
   const byScore   = [...playerStats].sort((a, b) => b.score - a.score);
 
   const VIEWS = [
-    { id: 'artilheiros',  label: 'Artilheiros',   icon: faFutbol    },
+    { id: 'temporada',    label: 'Temporada',      icon: faCrown     },
+    { id: 'artilheiros',  label: 'Artilheiros',    icon: faFutbol    },
     { id: 'assistencias', label: 'Assistências',   icon: faHandshake },
     { id: 'geral',        label: 'Ranking',        icon: faTrophy    },
     { id: 'partidas',     label: 'Partidas',       icon: faChartBar  },
@@ -240,6 +276,104 @@ export default function StatsPage() {
 
             {/* Conteúdo */}
             <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+
+              {view === 'temporada' && (
+                <div className="space-y-4">
+                  {/* Navegação de mês */}
+                  <div className="flex items-center justify-between">
+                    <button onClick={() => setSeasonMonth(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
+                      className="w-8 h-8 flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/10 rounded-lg">
+                      <FontAwesomeIcon icon={faChevronLeft} className="text-white/40 text-[10px]" />
+                    </button>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white">{monthLabel}</span>
+                    <button onClick={() => setSeasonMonth(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
+                      className="w-8 h-8 flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/10 rounded-lg">
+                      <FontAwesomeIcon icon={faChevronRight} className="text-white/40 text-[10px]" />
+                    </button>
+                  </div>
+
+                  {seasonStandings.length === 0 ? (
+                    <p className="text-center py-16 text-[9px] font-black uppercase tracking-widest text-white/20">
+                      Nenhuma partida finalizada neste mês
+                    </p>
+                  ) : (
+                    <>
+                      {/* Campeão */}
+                      {champion && (
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px',
+                          background: 'linear-gradient(135deg,rgba(255,215,0,0.1),transparent)',
+                          border: '1px solid rgba(255,215,0,0.3)', borderRadius: 12,
+                        }}>
+                          <div style={{ position: 'relative', width: 52, height: 52, flexShrink: 0 }}>
+                            <div style={{ width: 52, height: 52, borderRadius: '50%', overflow: 'hidden',
+                              border: '2px solid #FFD700', background: 'rgba(255,255,255,0.06)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {champion.photo_url
+                                ? <img src={champion.photo_url} alt={champion.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                : <span style={{ fontSize: 16, fontWeight: 900, color: '#FFD700' }}>{champion.name.charAt(0)}</span>}
+                            </div>
+                            <span style={{ position: 'absolute', top: -8, right: -6, fontSize: 18 }}>👑</span>
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: '#FFD700' }}>
+                              Líder da Temporada
+                            </p>
+                            <p style={{ fontSize: 18, fontWeight: 900, textTransform: 'uppercase', color: '#fff', lineHeight: 1.1 }}>
+                              {champion.name}
+                            </p>
+                            <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', fontWeight: 700, marginTop: 2 }}>
+                              {champion.points} pts · {champion.wins}V {champion.draws}E {champion.losses}D · {champion.goals}⚽ · {champion.mvpCount}🏆
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Legenda */}
+                      <p className="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">
+                        Pontos: Vitória=3 · Empate=1 · 🏆Craque=2 (bônus)
+                      </p>
+
+                      {/* Tabela */}
+                      <div>
+                        {seasonStandings.map((p, i) => {
+                          const medal = ['#FFD700', '#C0C0C0', '#CD7F32'][i];
+                          return (
+                            <div key={p.playerId} style={{
+                              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                              background: i === 0 ? 'rgba(255,215,0,0.05)' : i % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent',
+                              borderRadius: 6,
+                            }}>
+                              <span style={{ width: 18, textAlign: 'center', flexShrink: 0, fontSize: 10, fontWeight: 900,
+                                color: medal ?? 'rgba(255,255,255,0.25)' }}>
+                                {i + 1}
+                              </span>
+                              <div style={{ width: 28, height: 28, borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
+                                background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                border: medal ? `1.5px solid ${medal}` : '1px solid rgba(255,255,255,0.08)' }}>
+                                {p.photo_url
+                                  ? <img src={p.photo_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  : <span style={{ fontSize: 9, fontWeight: 900, color: 'rgba(255,255,255,0.4)' }}>{p.name.charAt(0)}</span>}
+                              </div>
+                              <span style={{ flex: 1, fontSize: 10, fontWeight: 900, textTransform: 'uppercase', color: '#fff',
+                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {p.name}
+                              </span>
+                              <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.3)', fontWeight: 700, flexShrink: 0 }}>
+                                {p.matches}J · {p.goals}⚽
+                              </span>
+                              <span style={{ fontSize: 14, fontWeight: 900, color: i === 0 ? '#FFD700' : '#fff', minWidth: 28, textAlign: 'right', flexShrink: 0 }}>
+                                {p.points}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
               {view === 'artilheiros'  && <StatTable players={byGoals}   statKey="goals"   />}
               {view === 'assistencias' && <StatTable players={byAssists}  statKey="assists" />}
               {view === 'geral' && (

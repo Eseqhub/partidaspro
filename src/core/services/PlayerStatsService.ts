@@ -4,6 +4,48 @@ interface EventRow   { player_id: string; type: string; match_id: string }
 interface PresenceRow { player_id: string; team: string | null; match_id: string }
 interface MatchRow   { id: string; status: string; home_score: number; away_score: number; date?: string; created_at?: string }
 
+export interface SeasonStanding extends PlayerAggStats {
+  playerId:  string;
+  name:      string;
+  photo_url?: string;
+  points:    number;  // pontos de campeonato (V*3 + E + craque*2)
+}
+
+/**
+ * Agrega estatísticas de TODOS os jogadores de uma vez (para rankings/temporada).
+ * Recebe metadados dos jogadores para montar nome/foto.
+ */
+export function aggregateAllPlayers(
+  events: EventRow[],
+  presences: PresenceRow[],
+  matches: MatchRow[],
+  playerMeta: Map<string, { name: string; photo_url?: string }>,
+): SeasonStanding[] {
+  // Conjunto de jogadores que participaram
+  const ids = new Set<string>();
+  presences.forEach(p => { if (p.player_id) ids.add(p.player_id); });
+
+  const standings: SeasonStanding[] = [];
+  ids.forEach(pid => {
+    const s = aggregatePlayerStats(pid, events, presences, matches);
+    if (s.matches === 0) return; // só quem jogou no período
+    const meta = playerMeta.get(pid);
+    standings.push({
+      ...s,
+      playerId: pid,
+      name: meta?.name ?? '—',
+      photo_url: meta?.photo_url,
+      points: s.wins * 3 + s.draws + s.mvpCount * 2,
+    });
+  });
+
+  // Ordena: pontos → vitórias → gols → assistências
+  standings.sort((a, b) =>
+    b.points - a.points || b.wins - a.wins || b.goals - a.goals || b.assists - a.assists);
+
+  return standings;
+}
+
 /**
  * Agrega as estatísticas de um jogador a partir de linhas cruas do banco.
  * Função PURA — facilita reuso e teste.
