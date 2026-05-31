@@ -15,13 +15,13 @@ export default function DashboardLayout({
       <Sidebar />
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col pb-20 md:pb-0 relative">
+      <main className="flex-1 min-w-0 flex flex-col pb-20 md:pb-0 relative">
         {/* Subtle Background HUD Grid Overlay */}
         <div className="fixed inset-0 pointer-events-none opacity-20 z-0">
             <div className="absolute inset-0 bg-[linear-gradient(rgba(204,255,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(204,255,0,0.05)_1px,transparent_1px)] bg-[size:30px_30px]" />
         </div>
-        
-        <div className="relative z-10 flex-1 overflow-y-auto">
+
+        <div className="relative z-10 flex-1 min-w-0 overflow-x-hidden overflow-y-auto">
             {children}
         </div>
 

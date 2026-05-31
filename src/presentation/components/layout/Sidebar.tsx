@@ -4,14 +4,15 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faGaugeHigh, 
-  faFutbol, 
-  faUsers, 
-  faWallet, 
+import {
+  faGaugeHigh,
+  faFutbol,
+  faUsers,
+  faWallet,
   faChartSimple,
   faGear
 } from '@fortawesome/free-solid-svg-icons';
+import { Logo } from '../ui/Logo';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -32,10 +33,8 @@ export function Sidebar() {
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-[#0A0A0A] border-r border-[#222222] min-h-screen sticky top-0">
-      <div className="p-8 border-b border-[#222222]">
-        <h1 className="text-xl font-black tracking-tighter text-white uppercase">
-          PARTIDAS<span className="text-primary italic">.PRO</span>
-        </h1>
+      <div className="p-6 border-b border-[#222222]">
+        <Logo size={28} />
       </div>
 
       <nav className="flex-1 py-10 px-4 space-y-2">
