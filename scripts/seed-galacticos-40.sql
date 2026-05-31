@@ -6,7 +6,7 @@
 -- ============================================================
 
 INSERT INTO players (group_id, name, full_name, rating, skill_level, weight, height, birth_date, positions, status, is_mensalista)
-SELECT g.id, v.name, v.full_name, v.rating, v.skill, v.weight, v.height, v.birth::date, v.positions::text[], 'Ativo', v.mensalista
+SELECT g.id, v.name, v.full_name, v.rating, v.skill, v.weight, v.height, v.birth::date, v.positions::player_position_v2[], 'Ativo', v.mensalista
 FROM groups g
 CROSS JOIN (VALUES
   -- Goleiros (6)
