@@ -1,24 +1,22 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faShuffle, faPlay } from '@fortawesome/free-solid-svg-icons';
+import { faShuffle, faPlay, faUsers } from '@fortawesome/free-solid-svg-icons';
 import { GlassCard } from '@/presentation/components/ui/GlassCard';
 import { Button } from '@/presentation/components/ui/Button';
 import { TacticalBoardV2 } from '@/presentation/components/dashboard/TacticalBoardV2';
-import { PlayerCard } from '@/presentation/components/dashboard/PlayerCard';
+import { PlayerRow } from '@/presentation/components/dashboard/PlayerRow';
 import { DraftResult } from '@/core/services/DraftService';
 import { SportType } from '@/core/entities/match';
 import { Formation } from '@/presentation/components/dashboard/TacticalBoardV2/formations';
 
-// Mapa: tipo_campo (do wizard / banco) → SportKey + playersPerTeam esperado pelo TacticalBoardV2
 const CAMPO_MAP: Record<string, { sportType: SportType; playersPerTeam: number; label: string }> = {
-  'Futsal 5x5':  { sportType: 'Futsal',   playersPerTeam: 5,  label: 'Futsal 5×5'   },
-  'Society 6x6': { sportType: 'Society',  playersPerTeam: 6,  label: 'Society 6×6'  },
-  'Society 7x7': { sportType: 'Society',  playersPerTeam: 7,  label: 'Society 7×7'  },
-  'Campo 11x11': { sportType: 'Campo',    playersPerTeam: 11, label: 'Campo 11×11'  },
-  // fallbacks dos valores antigos
-  'Futsal':      { sportType: 'Futsal',   playersPerTeam: 5,  label: 'Futsal 5×5'   },
-  'Society':     { sportType: 'Society',  playersPerTeam: 7,  label: 'Society 7×7'  },
-  'Campo':       { sportType: 'Campo',    playersPerTeam: 11, label: 'Campo 11×11'  },
+  'Futsal 5x5':  { sportType: 'Futsal',  playersPerTeam: 5,  label: 'Futsal 5×5'  },
+  'Society 6x6': { sportType: 'Society', playersPerTeam: 6,  label: 'Society 6×6' },
+  'Society 7x7': { sportType: 'Society', playersPerTeam: 7,  label: 'Society 7×7' },
+  'Campo 11x11': { sportType: 'Campo',   playersPerTeam: 11, label: 'Campo 11×11' },
+  'Futsal':      { sportType: 'Futsal',  playersPerTeam: 5,  label: 'Futsal 5×5'  },
+  'Society':     { sportType: 'Society', playersPerTeam: 7,  label: 'Society 7×7' },
+  'Campo':       { sportType: 'Campo',   playersPerTeam: 11, label: 'Campo 11×11' },
 };
 
 interface ActiveMatchTabProps {
@@ -36,151 +34,172 @@ interface ActiveMatchTabProps {
 }
 
 export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
-  draftResult,
-  config,
-  setConfig,
-  score,
-  timer,
-  status,
-  setActiveTab,
-  matchType = 'rachao',
-  onStartMatch,
-  homeFormation,
-  awayFormation,
+  draftResult, config, setConfig, score, timer, status,
+  setActiveTab, matchType = 'rachao', onStartMatch,
+  homeFormation, awayFormation,
 }) => {
-  // Resolve as configurações do campo com base no tipo_campo real da partida
   const campoCfg = CAMPO_MAP[config.tipo_campo ?? config.sport_type ?? 'Society 7x7']
     ?? { sportType: 'Society' as SportType, playersPerTeam: 7, label: 'Society 7×7' };
 
   if (!draftResult) {
-    const emptyMsg = matchType === 'desafio'
+    const msg = matchType === 'desafio'
       ? 'Aguardando o adversário aceitar o desafio'
       : 'Aguardando sorteio das equipes';
-    const emptyBtn = matchType === 'desafio'
-      ? null
-      : (
-        <Button
-          onClick={() => setActiveTab('attendance')}
-          className="mx-auto py-3 px-8 bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-black transition-all text-[10px] font-black uppercase tracking-[0.3em] rounded-lg"
-        >
-          IR PARA CHAMADA
-        </Button>
-      );
-
     return (
-      <GlassCard className="py-24 text-center border-dashed border-white/10 animate-in fade-in zoom-in duration-500 rounded-2xl">
-        <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
-          <FontAwesomeIcon icon={faShuffle} className="text-white/20 text-3xl" />
+      <GlassCard className="py-20 text-center border-dashed border-white/10 rounded-2xl">
+        <div className="w-14 h-14 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+          <FontAwesomeIcon icon={faShuffle} className="text-white/20 text-2xl" />
         </div>
-        <p className="text-[10px] uppercase font-black tracking-[0.2em] text-white/40 mb-6">{emptyMsg}</p>
-        {emptyBtn}
+        <p className="text-[9px] uppercase font-black tracking-[0.25em] text-white/30 mb-5">{msg}</p>
+        {matchType !== 'desafio' && (
+          <Button onClick={() => setActiveTab('attendance')}
+            className="mx-auto py-2.5 px-6 bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-black transition-all text-[9px] font-black uppercase tracking-[0.3em] rounded-lg">
+            IR PARA CHAMADA
+          </Button>
+        )}
       </GlassCard>
     );
   }
 
-  return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+  const homeTeamName = config.homeTeamName || 'TIME A';
+  const awayTeamName = config.awayTeamName || 'TIME B';
 
-      {/* ── BOTÃO INICIAR PARTIDA (só aparece quando ainda não iniciou) ── */}
+  return (
+    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+      {/* Botão INICIAR (só quando Agendada) */}
       {status === 'Agendada' && onStartMatch && (
-        <div className="flex flex-col items-center gap-3 py-6 border border-dashed border-primary/20 rounded-2xl bg-primary/[0.03]">
-          <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30">
-            Times sorteados · Pronto para começar
-          </p>
-          <button
-            onClick={onStartMatch}
-            className="flex items-center gap-3 px-10 py-4 bg-primary text-black font-black uppercase tracking-[0.3em] text-sm rounded-xl shadow-[0_0_40px_rgba(204,255,0,0.25)] hover:scale-105 transition-all active:scale-95"
-          >
+        <div className="flex items-center justify-between px-4 py-3 border border-primary/20 bg-primary/[0.04] rounded-xl">
+          <div>
+            <p className="text-[8px] font-black uppercase tracking-[0.25em] text-white/30">Sorteio concluído</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/60 mt-0.5">Pronto para iniciar</p>
+          </div>
+          <button onClick={onStartMatch}
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-black font-black uppercase tracking-[0.25em] text-[10px] rounded-lg shadow-[0_0_20px_rgba(204,255,0,0.2)] hover:scale-105 transition-all active:scale-95">
             <FontAwesomeIcon icon={faPlay} />
-            INICIAR PARTIDA
+            INICIAR
           </button>
         </div>
       )}
 
-      {/* Badge do tipo de campo (read-only — vem da partida criada) */}
-      <div className="flex justify-center">
-        <div className="flex items-center gap-3 px-5 py-2 bg-black/40 border border-white/5 rounded-xl">
-          <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Campo:</span>
-          <span className="text-[10px] font-black uppercase tracking-widest text-primary">
-            {campoCfg.label}
-          </span>
-          {matchType === 'desafio' && (
-            <span className="text-[9px] font-black uppercase tracking-wider text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">
-              DESAFIO
-            </span>
-          )}
+      {/* Badge campo + prancheta */}
+      <div className="flex flex-col items-center">
+        {/* Campo label */}
+        <div className="flex items-center gap-2 mb-3 px-3 py-1 bg-black/40 border border-white/5 rounded-lg">
+          <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Campo:</span>
+          <span className="text-[9px] font-black uppercase tracking-widest text-primary">{campoCfg.label}</span>
+        </div>
+
+        {/* Prancheta tática — tamanho reduzido */}
+        <div style={{ width: '100%', maxWidth: 280 }}>
+          <TacticalBoardV2
+            homeTeam={draftResult.homeTeam}
+            awayTeam={draftResult.awayTeam}
+            homeTeamName={homeTeamName}
+            awayTeamName={awayTeamName}
+            homeScore={score.home}
+            awayScore={score.away}
+            timer={timer}
+            matchStatus={status as any}
+            sportType={campoCfg.sportType}
+            playersPerTeam={campoCfg.playersPerTeam}
+            homeFormation={homeFormation}
+            awayFormation={awayFormation}
+          />
         </div>
       </div>
 
-      {/* Prancheta Tática */}
-      <div className="relative group">
-        <div className="absolute -inset-4 bg-primary/5 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-        <div className="mb-12 flex justify-center w-full relative">
-          <div className="w-full flex justify-center" style={{ maxWidth: 320 }}>
-            <TacticalBoardV2
-              homeTeam={draftResult.homeTeam}
-              awayTeam={draftResult.awayTeam}
-              homeTeamName={config.homeTeamName || 'TIME A'}
-              awayTeamName={config.awayTeamName || 'TIME B'}
-              homeScore={score.home}
-              awayScore={score.away}
-              timer={timer}
-              matchStatus={status as any}
-              sportType={campoCfg.sportType}
-              playersPerTeam={campoCfg.playersPerTeam}
-              homeFormation={homeFormation}
-              awayFormation={awayFormation}
-            />
-          </div>
-        </div>
-      </div>
+      {/* Times — layout compacto lado a lado */}
+      <div className="grid grid-cols-2 gap-3">
 
-      {/* Grid de Times */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Time A */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-6 bg-primary rounded-full shadow-[0_0_10px_rgba(204,255,0,0.5)]" />
-              <h3 className="text-sm font-black text-white uppercase tracking-[0.2em] italic">
-                {config.homeTeamName || 'TIME MANDANTE'}
-              </h3>
-            </div>
-            <div className="px-3 py-1 bg-white/5 border border-white/5 rounded-md">
-              <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">
-                RANKG: {draftResult.homeRating.toFixed(1)}
+        <div className="border border-white/5 rounded-xl overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-3 py-2 bg-primary/[0.06] border-b border-primary/10">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-4 bg-primary rounded-full shadow-[0_0_8px_rgba(204,255,0,0.5)]" />
+              <span className="text-[9px] font-black uppercase tracking-widest text-white truncate max-w-[80px]">
+                {homeTeamName}
               </span>
             </div>
+            <div className="flex items-center gap-1">
+              <FontAwesomeIcon icon={faUsers} className="text-white/20" style={{ fontSize: 7 }} />
+              <span className="text-[8px] font-bold text-white/30">{draftResult.homeTeam.length}</span>
+            </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {draftResult.homeTeam.map(player => (
-              <PlayerCard key={player.id} player={player} />
+          {/* Formação badge */}
+          {homeFormation && (
+            <div className="px-3 py-1 border-b border-white/[0.04] bg-black/20">
+              <span className="text-[7px] font-black uppercase tracking-widest text-primary/60">
+                {homeFormation.label} — {homeFormation.name}
+              </span>
+            </div>
+          )}
+          {/* Lista jogadores */}
+          <div>
+            {draftResult.homeTeam.map((p, i) => (
+              <PlayerRow key={p.id} player={p} index={i} accentColor="#ccff00" />
             ))}
+          </div>
+          {/* Rating */}
+          <div className="px-3 py-1.5 bg-black/20 border-t border-white/[0.04] flex items-center justify-between">
+            <span className="text-[7px] font-black uppercase tracking-widest text-white/20">Força média</span>
+            <span className="text-[9px] font-black text-primary">{draftResult.homeRating.toFixed(0)}</span>
           </div>
         </div>
 
         {/* Time B */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-6 bg-white/20 rounded-full" />
-              <h3 className="text-sm font-black text-white/60 uppercase tracking-[0.2em] italic">
-                {config.awayTeamName || 'TIME VISITANTE'}
-              </h3>
-            </div>
-            <div className="px-3 py-1 bg-white/5 border border-white/5 rounded-md">
-              <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">
-                RANKG: {draftResult.awayRating.toFixed(1)}
+        <div className="border border-white/5 rounded-xl overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-3 py-2 bg-white/[0.03] border-b border-white/5">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-4 bg-white/30 rounded-full" />
+              <span className="text-[9px] font-black uppercase tracking-widest text-white/60 truncate max-w-[80px]">
+                {awayTeamName}
               </span>
             </div>
+            <div className="flex items-center gap-1">
+              <FontAwesomeIcon icon={faUsers} className="text-white/20" style={{ fontSize: 7 }} />
+              <span className="text-[8px] font-bold text-white/30">{draftResult.awayTeam.length}</span>
+            </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {draftResult.awayTeam.map(player => (
-              <PlayerCard key={player.id} player={player} />
+          {/* Formação badge */}
+          {awayFormation && (
+            <div className="px-3 py-1 border-b border-white/[0.04] bg-black/20">
+              <span className="text-[7px] font-black uppercase tracking-widest text-blue-400/60">
+                {awayFormation.label} — {awayFormation.name}
+              </span>
+            </div>
+          )}
+          {/* Lista jogadores */}
+          <div>
+            {draftResult.awayTeam.map((p, i) => (
+              <PlayerRow key={p.id} player={p} index={i} accentColor="#00b4ff" />
             ))}
+          </div>
+          {/* Rating */}
+          <div className="px-3 py-1.5 bg-black/20 border-t border-white/[0.04] flex items-center justify-between">
+            <span className="text-[7px] font-black uppercase tracking-widest text-white/20">Força média</span>
+            <span className="text-[9px] font-black text-blue-400">{draftResult.awayRating.toFixed(0)}</span>
           </div>
         </div>
       </div>
+
+      {/* Lista de espera (se houver) */}
+      {draftResult.waitingList.length > 0 && (
+        <div className="border border-white/5 rounded-xl overflow-hidden">
+          <div className="px-3 py-2 border-b border-white/5 bg-black/20">
+            <span className="text-[8px] font-black uppercase tracking-widest text-white/30">
+              Aguardando ({draftResult.waitingList.length})
+            </span>
+          </div>
+          <div className="grid grid-cols-2">
+            {draftResult.waitingList.map((p, i) => (
+              <PlayerRow key={p.id} player={p} index={i} accentColor="#6B7280" />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
