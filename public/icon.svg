@@ -4,28 +4,25 @@
       <stop offset="0" stop-color="#0a1428"/>
       <stop offset="1" stop-color="#020810"/>
     </linearGradient>
-    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.6">
-      <stop offset="0" stop-color="#ccff00" stop-opacity="0.18"/>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0" stop-color="#ccff00" stop-opacity="0.14"/>
       <stop offset="1" stop-color="#ccff00" stop-opacity="0"/>
     </radialGradient>
   </defs>
 
-  <!-- Fundo maskable (preenche tudo) -->
+  <!-- Fundo maskable -->
   <rect width="512" height="512" fill="url(#bg)"/>
   <rect width="512" height="512" fill="url(#glow)"/>
 
-  <!-- Bola de futebol estilizada -->
-  <g transform="translate(256 230)">
-    <circle r="120" fill="none" stroke="#ccff00" stroke-width="14"/>
-    <!-- Pentágono central -->
-    <path d="M0 -52 L49 -16 L30 42 L-30 42 L-49 -16 Z" fill="#ccff00"/>
-    <!-- Costuras -->
-    <path d="M0 -52 L0 -120 M49 -16 L108 -40 M30 42 L66 96 M-30 42 L-66 96 M-49 -16 L-108 -40"
-          stroke="#ccff00" stroke-width="11" stroke-linecap="round"/>
+  <!-- Campo minimalista + time posicionado -->
+  <g fill="none" stroke="#ccff00">
+    <rect x="146" y="96" width="220" height="320" rx="46" stroke-width="16" opacity="0.9"/>
+    <line x1="146" y1="256" x2="366" y2="256" stroke-width="11" opacity="0.5"/>
+    <circle cx="256" cy="256" r="44" stroke-width="11" opacity="0.5"/>
   </g>
-
-  <!-- Wordmark -->
-  <text x="256" y="430" text-anchor="middle"
-        font-family="Arial, sans-serif" font-size="64" font-weight="900"
-        letter-spacing="2" fill="#ffffff">PRO</text>
+  <g fill="#ccff00">
+    <circle cx="206" cy="330" r="20"/>
+    <circle cx="306" cy="330" r="20"/>
+    <circle cx="256" cy="378" r="20"/>
+  </g>
 </svg>

@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { Button } from '../ui/Button';
 import { supabase } from '@/infra/supabase/client';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faSignOutAlt, faShieldHalved, faFutbol } from '@fortawesome/free-solid-svg-icons';
+import { faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import { Logo } from '../ui/Logo';
 import { useRouter } from 'next/navigation';
 
 export function GlobalHeader() {
@@ -40,13 +41,8 @@ export function GlobalHeader() {
     <header className="fixed top-0 w-full z-50 glass border-b border-white/5 bg-slate-950/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-10 h-10 bg-primary/10 border border-primary/20 flex items-center justify-center font-black text-primary group-hover:bg-primary group-hover:text-black transition-all">
-            <FontAwesomeIcon icon={faFutbol} className="text-xl" />
-          </div>
-          <span className="text-xl font-black tracking-tight text-white uppercase italic">
-            Partidas<span className="text-primary group-hover:text-white transition-colors">.Pro</span>
-          </span>
+        <Link href="/" className="flex items-center group">
+          <Logo size={34} />
         </Link>
 
         {/* Navigation */}
