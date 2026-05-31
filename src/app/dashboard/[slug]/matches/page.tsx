@@ -709,8 +709,57 @@ export default function MatchPage() {
         </div>
       )}
 
-      {/* ── FASE 3: Partida ativa ────────────────────────────────────────── */}
-      {sessionPhase === 'active' && matchId && (
+      {/* ── FASE 3a: Partida criada mas SEM sorteio → chamada sem scoreboard ── */}
+      {sessionPhase === 'active' && matchId && !draftResult && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span className="text-[9px] font-black uppercase tracking-widest text-primary">
+                {matchType === 'manual' ? 'ESCALANDO TIMES' : 'SELECIONANDO JOGADORES'}
+              </span>
+            </div>
+            <button onClick={handleNewMatch}
+              className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors">
+              CANCELAR
+            </button>
+          </div>
+
+          {matchType !== 'manual' && (
+            <AttendanceTab
+              allPlayers={allPlayers} selectedPlayerIds={selectedPlayerIds}
+              togglePlayerAttendance={togglePlayerAttendance} setIsAddModalOpen={setIsAddModalOpen}
+              slug={slug} matchId={matchId} guestInput={guestInput} setGuestInput={setGuestInput}
+              guestPlayers={guestPlayers} setGuestPlayers={setGuestPlayers}
+              handleDraft={handleDraft} userRole={userRole} matchType="rachao"
+              setSelectedPlayerIds={setSelectedPlayerIds}
+              homeFormations={availableFormations}
+              awayFormations={availableFormations}
+              homeFormationId={homeFormation.id}
+              awayFormationId={awayFormation.id}
+              homeTeamName={config.homeTeamName || 'Time A'}
+              awayTeamName={config.awayTeamName || 'Time B'}
+              onSelectHomeFormation={id => { const f = availableFormations.find(x => x.id === id); if (f) setHomeFormation(f); }}
+              onSelectAwayFormation={id => { const f = availableFormations.find(x => x.id === id); if (f) setAwayFormation(f); }}
+            />
+          )}
+
+          {matchType === 'manual' && (
+            <TeamAssignmentTab
+              allPlayers={allPlayers}
+              homeTeamName={config.homeTeamName || 'Time A'}
+              awayTeamName={config.awayTeamName || 'Time B'}
+              assignments={teamAssignments}
+              onAssign={handleAssignPlayer}
+              onConfirm={handleConfirmTeams}
+              userRole={userRole}
+            />
+          )}
+        </div>
+      )}
+
+      {/* ── FASE 3b: Sorteio feito → scoreboard + tabs completos ────────── */}
+      {sessionPhase === 'active' && matchId && draftResult && (
         <>
           <ScoreboardV2
             homeScore={score.home} awayScore={score.away}
@@ -752,6 +801,14 @@ export default function MatchPage() {
                 guestPlayers={guestPlayers} setGuestPlayers={setGuestPlayers}
                 handleDraft={handleDraft} userRole={userRole} matchType={matchType === 'desafio' ? 'desafio' : 'rachao'}
                 setSelectedPlayerIds={setSelectedPlayerIds}
+                homeFormations={availableFormations}
+                awayFormations={availableFormations}
+                homeFormationId={homeFormation.id}
+                awayFormationId={awayFormation.id}
+                homeTeamName={config.homeTeamName || 'Time A'}
+                awayTeamName={config.awayTeamName || 'Time B'}
+                onSelectHomeFormation={id => { const f = availableFormations.find(x => x.id === id); if (f) setHomeFormation(f); }}
+                onSelectAwayFormation={id => { const f = availableFormations.find(x => x.id === id); if (f) setAwayFormation(f); }}
               />
             )}
             {activeTab === 'match' && (
