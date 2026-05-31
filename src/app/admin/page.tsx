@@ -9,6 +9,7 @@ import {
   faCrown, faUsers, faShieldHalved, faFutbol,
   faArrowLeft, faChartPie, faTrash, faEye,
   faSearch, faTimes, faChevronRight, faCircle,
+  faLayerGroup, faTag,
 } from '@fortawesome/free-solid-svg-icons';
 import Link from 'next/link';
 
@@ -62,6 +63,7 @@ export default function AdminPage() {
   const [expandedGroup,setExpandedGroup]= useState<string | null>(null);
   const [groupDetails, setGroupDetails] = useState<Record<string, any>>({});
   const [deleting,     setDeleting]     = useState<string | null>(null);
+  const [playerGroupBy, setPlayerGroupBy] = useState<'club' | 'flat'>('club');
 
   const loadAll = useCallback(async () => {
     const [s, g, m, p] = await Promise.all([
@@ -422,47 +424,160 @@ export default function AdminPage() {
         )}
 
         {/* ── PLAYERS ───────────────────────────────────────────────────────── */}
-        {tab === 'players' && (
-          <div className="border border-white/5 rounded-xl overflow-hidden">
-            {filteredPlayers.length === 0 && (
-              <p className="text-center py-16 text-[9px] font-black uppercase text-white/20 tracking-widest">Nenhum jogador encontrado</p>
-            )}
-            {filteredPlayers.map((p, i) => {
-              const lvl = p.skill_level ?? Math.round((p.rating ?? 3) * 2);
-              const initials = p.name?.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase();
-              return (
-                <div key={p.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px',
-                  background: i % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent',
-                  borderBottom: '1px solid rgba(255,255,255,0.04)',
-                }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, overflow: 'hidden',
-                    background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: '1px solid rgba(255,255,255,0.08)' }}>
-                    {p.photo_url
-                      ? <img src={p.photo_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      : <span style={{ fontSize: 8, fontWeight: 900, color: 'rgba(255,255,255,0.4)' }}>{initials}</span>
-                    }
-                  </div>
-                  <span style={{ flex: 1, fontSize: 10, fontWeight: 900, textTransform: 'uppercase', color: '#fff' }}>{p.name}</span>
-                  <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', fontWeight: 700, marginRight: 4 }}>{p.positions?.[0] ?? '—'}</span>
-                  <span style={{ fontSize: 12, fontWeight: 900, color: lvl >= 8 ? '#ccff00' : lvl >= 6 ? '#00b4ff' : 'rgba(255,255,255,0.3)', minWidth: 20, textAlign: 'right' }}>
-                    {lvl}
-                  </span>
-                  <Chip label={p.status ?? 'Ativo'} color={p.status === 'Ativo' ? '#22C55E' : '#6B7280'} />
-                  <button
-                    disabled={deleting === p.id}
-                    onClick={() => handleDelete('player', p.id, p.name)}
-                    style={{ padding: '4px 8px', fontSize: 9, background: 'rgba(239,68,68,0.08)',
-                      border: '1px solid rgba(239,68,68,0.12)', color: 'rgba(239,68,68,0.4)',
-                      borderRadius: 4, cursor: 'pointer', marginLeft: 4 }}>
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
+        {tab === 'players' && (() => {
+          // Mapa posição → cor de tag
+          const POS_CLR: Record<string, string> = {
+            G:'#EAB308', ZAG:'#16A34A', ZGD:'#16A34A', ZGE:'#16A34A',
+            LD:'#22C55E', LE:'#22C55E', VOL:'#2563EB', MC:'#3B82F6',
+            MD:'#3B82F6', ME:'#3B82F6', MO:'#8B5CF6',
+            PD:'#F97316', PE:'#F97316', SA:'#ccff00', CA:'#EF4444',
+          };
+
+          function PlayerRow({ p, i }: { p: any; i: number }) {
+            const lvl = p.skill_level ?? Math.round((p.rating ?? 3) * 2);
+            const initials = p.name?.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase();
+            return (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '7px 16px',
+                background: i % 2 === 0 ? 'rgba(255,255,255,0.012)' : 'transparent',
+                borderBottom: '1px solid rgba(255,255,255,0.04)',
+              }}>
+                {/* Avatar */}
+                <div style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, overflow: 'hidden',
+                  background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: '1px solid rgba(255,255,255,0.07)' }}>
+                  {p.photo_url
+                    ? <img src={p.photo_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <span style={{ fontSize: 8, fontWeight: 900, color: 'rgba(255,255,255,0.35)' }}>{initials}</span>
+                  }
                 </div>
-              );
-            })}
-          </div>
-        )}
+                {/* Nome */}
+                <span style={{ flex: 1, fontSize: 10, fontWeight: 900, textTransform: 'uppercase', color: '#fff',
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
+                {/* Tags de posição */}
+                <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+                  {(p.positions ?? []).slice(0, 2).map((pos: string) => (
+                    <span key={pos} style={{
+                      fontSize: 6, fontWeight: 900, padding: '1px 4px', borderRadius: 3,
+                      background: `${POS_CLR[pos] ?? '#6B7280'}18`,
+                      border: `1px solid ${POS_CLR[pos] ?? '#6B7280'}35`,
+                      color: POS_CLR[pos] ?? '#6B7280', textTransform: 'uppercase',
+                    }}>{pos}</span>
+                  ))}
+                </div>
+                {/* Nível */}
+                <span style={{ fontSize: 12, fontWeight: 900, minWidth: 18, textAlign: 'right', flexShrink: 0,
+                  color: lvl >= 8 ? '#ccff00' : lvl >= 6 ? '#00b4ff' : 'rgba(255,255,255,0.3)' }}>{lvl}</span>
+                {/* Status */}
+                <Chip label={p.status ?? 'Ativo'} color={p.status !== 'Inativo' ? '#22C55E' : '#6B7280'} />
+                {/* Delete */}
+                <button disabled={deleting === p.id}
+                  onClick={() => handleDelete('player', p.id, p.name)}
+                  style={{ padding: '3px 7px', fontSize: 9, background: 'rgba(239,68,68,0.08)',
+                    border: '1px solid rgba(239,68,68,0.12)', color: 'rgba(239,68,68,0.4)',
+                    borderRadius: 4, cursor: 'pointer', flexShrink: 0 }}>
+                  <FontAwesomeIcon icon={faTrash} />
+                </button>
+              </div>
+            );
+          }
+
+          return (
+            <div className="space-y-3">
+              {/* Controles de agrupamento */}
+              <div className="flex items-center justify-between">
+                <div className="flex gap-1 bg-white/[0.03] p-1 rounded-lg border border-white/5">
+                  {[
+                    { id: 'club', label: 'Por Clube', icon: faLayerGroup },
+                    { id: 'flat', label: 'Lista',     icon: faTag        },
+                  ].map(v => (
+                    <button key={v.id} onClick={() => setPlayerGroupBy(v.id as any)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-[8px] font-black uppercase tracking-wider rounded transition-all ${
+                        playerGroupBy === v.id ? 'bg-primary text-black' : 'text-white/30 hover:text-white/60'
+                      }`}>
+                      <FontAwesomeIcon icon={v.icon} />
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[8px] font-black text-white/25 uppercase tracking-widest">
+                  {filteredPlayers.length} jogadores
+                </span>
+              </div>
+
+              {filteredPlayers.length === 0 && (
+                <p className="text-center py-12 text-[9px] font-black uppercase text-white/20 tracking-widest">Nenhum jogador encontrado</p>
+              )}
+
+              {/* Agrupado por clube */}
+              {playerGroupBy === 'club' && (() => {
+                const byClub = new Map<string, { group: any; players: any[] }>();
+                filteredPlayers.forEach(p => {
+                  const gid = p.group_id ?? '__sem_clube__';
+                  if (!byClub.has(gid)) {
+                    const grp = groups.find(g => g.id === gid);
+                    byClub.set(gid, { group: grp, players: [] });
+                  }
+                  byClub.get(gid)!.players.push(p);
+                });
+
+                return (
+                  <div className="space-y-3">
+                    {Array.from(byClub.entries()).map(([gid, { group: grp, players: grpPlayers }]) => (
+                      <div key={gid} className="border border-white/5 rounded-xl overflow-hidden">
+                        {/* Club header */}
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px',
+                          background: 'rgba(204,255,0,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)',
+                        }}>
+                          <div style={{ width: 28, height: 28, borderRadius: 5, overflow: 'hidden', flexShrink: 0,
+                            background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            border: '1px solid rgba(204,255,0,0.2)' }}>
+                            {grp?.logo_url
+                              ? <img src={grp.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              : <FontAwesomeIcon icon={faShieldHalved} style={{ color: '#ccff00', fontSize: 11 }} />
+                            }
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', color: '#ccff00' }}>
+                              {grp?.name ?? 'Sem clube'}
+                            </p>
+                            <p style={{ fontSize: 7, color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>
+                              {grp?.slug ? `/${grp.slug}` : ''} · {grp?.sport_type_default ?? ''}
+                            </p>
+                          </div>
+                          <span style={{ fontSize: 9, fontWeight: 900, color: 'rgba(204,255,0,0.6)',
+                            background: 'rgba(204,255,0,0.1)', border: '1px solid rgba(204,255,0,0.2)',
+                            padding: '2px 8px', borderRadius: 20 }}>
+                            {grpPlayers.length} craques
+                          </span>
+                          {grp && (
+                            <Link href={`/dashboard/${grp.slug}`}>
+                              <button style={{ padding: '3px 8px', fontSize: 7, fontWeight: 900, textTransform: 'uppercase',
+                                background: 'rgba(0,180,255,0.1)', border: '1px solid rgba(0,180,255,0.2)',
+                                color: '#00b4ff', borderRadius: 4, cursor: 'pointer', letterSpacing: '0.1em' }}>
+                                <FontAwesomeIcon icon={faEye} style={{ marginRight: 3 }} />ACESSAR
+                              </button>
+                            </Link>
+                          )}
+                        </div>
+                        {/* Players list */}
+                        {grpPlayers.map((p, i) => <PlayerRow key={p.id} p={p} i={i} />)}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {/* Lista plana */}
+              {playerGroupBy === 'flat' && (
+                <div className="border border-white/5 rounded-xl overflow-hidden">
+                  {filteredPlayers.map((p, i) => <PlayerRow key={p.id} p={p} i={i} />)}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
       </div>
     </div>

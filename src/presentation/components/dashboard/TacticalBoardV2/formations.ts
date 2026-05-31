@@ -1,4 +1,4 @@
-import { SportKey } from './fieldConfig';
+import type { SportKey } from './fieldConfig';
 
 export interface FormRow { y: number; count: number }
 

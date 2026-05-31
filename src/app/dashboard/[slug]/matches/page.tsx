@@ -23,6 +23,7 @@ import { SettingsTab } from '@/presentation/components/dashboard/matches/tabs/Se
 import { WaitingListTab } from '@/presentation/components/dashboard/matches/tabs/WaitingListTab';
 import { TeamAssignmentTab, PlayerRole } from '@/presentation/components/dashboard/matches/tabs/TeamAssignmentTab';
 import { BolaoTab } from '@/presentation/components/dashboard/matches/tabs/BolaoTab';
+import { NextTeamModal } from '@/presentation/components/dashboard/matches/NextTeamModal';
 import { faTableList } from '@fortawesome/free-solid-svg-icons';
 
 import { AddPlayerModal } from '@/presentation/components/dashboard/AddPlayerModal';
@@ -101,6 +102,13 @@ export default function MatchPage() {
 
   // Bolão tournament state
   const [bolaoState, setBolaoState] = useState<BolaoState | null>(null);
+
+  // Modal de próximo time (Rachão)
+  const [nextTeamCtx, setNextTeamCtx] = useState<{
+    outgoingName: string;
+    incomingTeam: Player[];
+    winnerResult: 'home' | 'away' | 'draw';
+  } | null>(null);
 
   // Formações selecionadas
   const availableFormations = getFormations(config.sport_type, config.playersPerTeam);
@@ -518,25 +526,68 @@ export default function MatchPage() {
     setTimer(0); setAccumulatedTime(0); setStartTime(null); setStatus('Pausada');
   };
 
-  // Próxima partida — Rachão (revezamento)
+  // Próxima partida — Rachão (revezamento) — com seleção do próximo time
   const handleNextMatch = async (winner: 'home' | 'away' | 'draw') => {
     if (bolaoState) { handleBolaoNext(winner); return; }
     if (!draftResult) return;
-    const newQueue = [...teamsQueue];
-    let nextHome = draftResult.homeTeam;
-    let nextAway = draftResult.awayTeam;
+
+    // Determina quem sai: o perdedor (ou se 2 vitórias consecutivas, o vencedor)
+    const loserTeam  = winner === 'home' ? draftResult.awayTeam : draftResult.homeTeam;
+    const loserName  = winner === 'home'
+      ? (config.awayTeamName || 'Time B')
+      : (config.homeTeamName || 'Time A');
+
+    // Próximo time da fila (se houver)
+    const nextFromQueue = teamsQueue[0] ?? [];
+
+    // Mostra modal de seleção do próximo time
+    setNextTeamCtx({
+      outgoingName: loserName,
+      incomingTeam: nextFromQueue,
+      winnerResult: winner,
+    });
+  };
+
+  // Executa a troca após o admin confirmar o próximo time no modal
+  const confirmNextTeam = async (incomingTeam: Player[]) => {
+    if (!draftResult || !nextTeamCtx) return;
+    const winner = nextTeamCtx.winnerResult;
+    setNextTeamCtx(null);
+
+    // A fila já teve o primeiro time "mostrado" no modal — removemos ele
+    const newQueue = teamsQueue.slice(1);
+
     let newConsecutive = winner === lastWinnerId ? consecutiveWins + 1 : 1;
+    let nextHome: Player[];
+    let nextAway: Player[];
 
     if (winner === 'home') {
-      newQueue.push(draftResult.awayTeam);
-      if (newQueue.length > 0) nextAway = newQueue.shift()!;
-      if (newConsecutive >= 2) { newQueue.push(nextHome); if (newQueue.length > 0) nextHome = newQueue.shift()!; newConsecutive = 0; }
+      // Vencedor (home) permanece; perdedor (away) vai pro fim da fila
+      nextHome = draftResult.homeTeam;
+      nextAway = incomingTeam; // time confirmado no modal
+      if (newConsecutive >= 2) {
+        // Vencedor também sai após 2 vitórias seguidas
+        newQueue.push(nextHome);
+        nextHome = newQueue.shift() ?? [];
+        newConsecutive = 0;
+      }
+      newQueue.push(draftResult.awayTeam); // perdedor ao fim da fila
       setLastWinnerId('home');
     } else if (winner === 'away') {
+      nextAway = draftResult.awayTeam;
+      nextHome = incomingTeam;
+      if (newConsecutive >= 2) {
+        newQueue.push(nextAway);
+        nextAway = newQueue.shift() ?? [];
+        newConsecutive = 0;
+      }
       newQueue.push(draftResult.homeTeam);
-      if (newQueue.length > 0) nextHome = newQueue.shift()!;
-      if (newConsecutive >= 2) { newQueue.push(nextAway); if (newQueue.length > 0) nextAway = newQueue.shift()!; newConsecutive = 0; }
       setLastWinnerId('away');
+    } else {
+      // Empate: mantém os times, traz próximo da fila para a fila
+      nextHome = draftResult.homeTeam;
+      nextAway = incomingTeam.length > 0 ? incomingTeam : draftResult.awayTeam;
+      newConsecutive = 0;
     }
 
     const calcRating = (team: Player[]) =>
@@ -545,29 +596,30 @@ export default function MatchPage() {
     const newDraft: DraftResult = {
       homeTeam: nextHome,
       awayTeam: nextAway,
-      waitingList: draftResult.waitingList,
+      waitingList: newQueue.flat(),
       homeRating: calcRating(nextHome),
       awayRating: calcRating(nextAway),
     };
+
     setDraftResult(newDraft);
     setTeamsQueue(newQueue);
     setConsecutiveWins(newConsecutive);
     setScore({ home: 0, away: 0 });
-    setTimer(0);
-    setAccumulatedTime(0);
-    setStartTime(null);
-    setStatus('Pausada');
+    setTimer(0); setAccumulatedTime(0); setStartTime(null);
+    setStatus('Agendada'); // volta para "Agendada" → mostrará botão INICIAR PARTIDA
 
     const nextMatch = await createMatchRecord({ match_type: matchType });
     if (nextMatch) {
       setMatchId(nextMatch.id);
+      const isReal = (p: Player) => !p.id.startsWith('guest-');
       const presencePayload = [
-        ...newDraft.homeTeam.map(p => ({ player_id: p.id, team: 'home' })),
-        ...newDraft.awayTeam.map(p => ({ player_id: p.id, team: 'away' })),
-        ...newDraft.waitingList.map(p => ({ player_id: p.id, team: 'waiting' })),
+        ...nextHome.filter(isReal).map(p => ({ player_id: p.id, team: 'home' })),
+        ...nextAway.filter(isReal).map(p => ({ player_id: p.id, team: 'away' })),
+        ...newQueue.flat().filter(isReal).map(p => ({ player_id: p.id, team: 'waiting' })),
       ];
       await matchRepo.savePresenceBatch(nextMatch.id, presencePayload);
     }
+    setActiveTab('match');
   };
 
   const handleNewMatch = () => {
@@ -585,6 +637,7 @@ export default function MatchPage() {
     setSessionPhase('idle');
     setTeamAssignments({});
     setBolaoState(null);
+    setNextTeamCtx(null);
     setActiveTab('attendance');
   };
 
@@ -840,8 +893,22 @@ export default function MatchPage() {
         </>
       )}
 
+      {/* Modal de seleção do próximo time */}
+      {nextTeamCtx && draftResult && (
+        <NextTeamModal
+          outgoingTeamName={nextTeamCtx.outgoingName}
+          incomingTeam={nextTeamCtx.incomingTeam}
+          winnerTeam={nextTeamCtx.winnerResult === 'home' ? draftResult.homeTeam : draftResult.awayTeam}
+          winnerTeamName={nextTeamCtx.winnerResult === 'home' ? (config.homeTeamName || 'Time A') : (config.awayTeamName || 'Time B')}
+          availablePlayers={allPlayers.filter(p => selectedPlayerIds.includes(p.id))}
+          playersPerTeam={SPORT_PLAYERS[config.sport_type] ?? config.playersPerTeam}
+          onConfirm={confirmNextTeam}
+          onCancel={() => setNextTeamCtx(null)}
+        />
+      )}
+
       {/* Overlay de fim de partida */}
-      {status === 'Finalizada' && draftResult && sessionPhase === 'active' && bolaoState?.phase !== 'done' && (
+      {status === 'Finalizada' && draftResult && sessionPhase === 'active' && bolaoState?.phase !== 'done' && !nextTeamCtx && (
         <div className="fixed inset-0 z-[150] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
           <GlassCard className="w-full max-w-lg p-8 rounded-3xl border-primary/20 text-center">
             <h2 className="text-xl font-black text-white uppercase tracking-widest mb-8 italic">

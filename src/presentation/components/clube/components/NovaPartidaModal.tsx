@@ -12,10 +12,12 @@ import { supabase } from '@/infra/supabase/client';
 
 export type TipoCampo = 'Futsal 5x5' | 'Society 6x6' | 'Society 7x7' | 'Campo 11x11';
 export type Modalidade = 'Rachão' | 'Bolão' | 'Manual' | 'Desafio';
+export type Recorrencia = 'nao' | 'semanal' | 'quinzenal' | 'mensal';
 
 interface MatchDraft {
   tipo_campo:          TipoCampo;
   modalidade:          Modalidade;
+  recorrencia:         Recorrencia;
   data:                string;
   hora_inicio:         string;
   hora_fim:            string;
@@ -122,6 +124,7 @@ export function NovaPartidaModal({ isOpen, groupId, groupSlug, onClose, onSucces
   const [draft, setDraft] = useState<MatchDraft>({
     tipo_campo:      'Society 7x7',
     modalidade:      'Rachão',
+    recorrencia:     'nao',
     data:            new Date().toISOString().split('T')[0],
     hora_inicio:     '08:00',
     hora_fim:        '10:00',
@@ -177,6 +180,7 @@ export function NovaPartidaModal({ isOpen, groupId, groupSlug, onClose, onSucces
           timer_seconds:   0,
           stoppage_minutes: 0,
           match_fee:       0,
+          recorrencia:     draft.recorrencia !== 'nao' ? draft.recorrencia : null,
         })
         .select('id')
         .single();
@@ -228,7 +232,7 @@ export function NovaPartidaModal({ isOpen, groupId, groupSlug, onClose, onSucces
     setChallengeLink('');
     setCopied(false);
     setDraft({
-      tipo_campo: 'Society 7x7', modalidade: 'Rachão',
+      tipo_campo: 'Society 7x7', modalidade: 'Rachão', recorrencia: 'nao',
       data: new Date().toISOString().split('T')[0],
       hora_inicio: '08:00', hora_fim: '10:00', local: '',
       duracao_minutos: 10, nome_time_a: 'Time Casa', nome_time_b: 'Visitante',
@@ -410,6 +414,35 @@ export function NovaPartidaModal({ isOpen, groupId, groupSlug, onClose, onSucces
                   </div>
                 </div>
               )}
+
+              {/* Recorrência */}
+              <div>
+                <label style={{ ...lbl, marginBottom: 10 }}>🔄 Partida Recorrente</label>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {([
+                    { id: 'nao',       label: 'Única' },
+                    { id: 'semanal',   label: 'Semanal' },
+                    { id: 'quinzenal', label: 'Quinzenal' },
+                    { id: 'mensal',    label: 'Mensal' },
+                  ] as { id: Recorrencia; label: string }[]).map(r => (
+                    <button key={r.id} onClick={() => set('recorrencia', r.id)}
+                      style={{
+                        padding: '6px 12px', fontSize: 10, fontWeight: 900, cursor: 'pointer',
+                        background: draft.recorrencia === r.id ? `${blue}18` : 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${draft.recorrencia === r.id ? blue : 'rgba(255,255,255,0.1)'}`,
+                        color: draft.recorrencia === r.id ? blue : 'rgba(255,255,255,0.4)',
+                        borderRadius: 6, transition: 'all .15s',
+                      }}>
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+                {draft.recorrencia !== 'nao' && (
+                  <p style={{ fontSize: 8, color: `${blue}88`, marginTop: 6, fontWeight: 700 }}>
+                    ✓ Após finalizar, o app sugerirá criar a próxima sessão automaticamente.
+                  </p>
+                )}
+              </div>
 
               {/* Resumo */}
               <div style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
