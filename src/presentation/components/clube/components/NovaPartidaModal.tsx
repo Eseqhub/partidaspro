@@ -18,6 +18,7 @@ interface MatchDraft {
   tipo_campo:          TipoCampo;
   modalidade:          Modalidade;
   recorrencia:         Recorrencia;
+  recorrencia_dia:     string; // 'Segunda-feira' | 'Terça-feira' | ...
   data:                string;
   hora_inicio:         string;
   hora_fim:            string;
@@ -125,6 +126,7 @@ export function NovaPartidaModal({ isOpen, groupId, groupSlug, onClose, onSucces
     tipo_campo:      'Society 7x7',
     modalidade:      'Rachão',
     recorrencia:     'nao',
+    recorrencia_dia: 'Terça-feira',
     data:            new Date().toISOString().split('T')[0],
     hora_inicio:     '08:00',
     hora_fim:        '10:00',
@@ -181,6 +183,7 @@ export function NovaPartidaModal({ isOpen, groupId, groupSlug, onClose, onSucces
           stoppage_minutes: 0,
           match_fee:       0,
           recorrencia:     draft.recorrencia !== 'nao' ? draft.recorrencia : null,
+          recorrencia_dia: draft.recorrencia !== 'nao' ? draft.recorrencia_dia : null,
         })
         .select('id')
         .single();
@@ -200,6 +203,26 @@ export function NovaPartidaModal({ isOpen, groupId, groupSlug, onClose, onSucces
           duracao_minutos:  draft.duracao_minutos,
         });
       } catch { /* tabela pode não existir */ }
+
+      // Partida recorrente: pré-salva todos os jogadores ativos do grupo na presence
+      if (draft.recorrencia !== 'nao') {
+        try {
+          const { data: players } = await supabase
+            .from('players')
+            .select('id')
+            .eq('group_id', groupId)
+            .eq('status', 'Ativo');
+
+          if (players && players.length > 0) {
+            for (const p of players) {
+              await supabase.from('match_presence').upsert(
+                { match_id: match.id, player_id: p.id, status: 'Confirmado', team: null },
+                { onConflict: 'match_id,player_id' }
+              );
+            }
+          }
+        } catch { /* ignorar se falhar */ }
+      }
 
       if (draft.modalidade === 'Desafio') {
         const token = Math.random().toString(36).substring(2, 18);
@@ -232,7 +255,7 @@ export function NovaPartidaModal({ isOpen, groupId, groupSlug, onClose, onSucces
     setChallengeLink('');
     setCopied(false);
     setDraft({
-      tipo_campo: 'Society 7x7', modalidade: 'Rachão', recorrencia: 'nao',
+      tipo_campo: 'Society 7x7', modalidade: 'Rachão', recorrencia: 'nao', recorrencia_dia: 'Terça-feira',
       data: new Date().toISOString().split('T')[0],
       hora_inicio: '08:00', hora_fim: '10:00', local: '',
       duracao_minutos: 10, nome_time_a: 'Time Casa', nome_time_b: 'Visitante',
@@ -438,9 +461,29 @@ export function NovaPartidaModal({ isOpen, groupId, groupSlug, onClose, onSucces
                   ))}
                 </div>
                 {draft.recorrencia !== 'nao' && (
-                  <p style={{ fontSize: 8, color: `${blue}88`, marginTop: 6, fontWeight: 700 }}>
-                    ✓ Após finalizar, o app sugerirá criar a próxima sessão automaticamente.
-                  </p>
+                  <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <label style={{ ...lbl }}>Dia da semana</label>
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                      {['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado','Domingo'].map(d => (
+                        <button key={d} onClick={() => set('recorrencia_dia', d)}
+                          style={{
+                            padding: '5px 10px', fontSize: 9, fontWeight: 900, cursor: 'pointer',
+                            background: draft.recorrencia_dia === d ? `${blue}22` : 'rgba(255,255,255,0.03)',
+                            border: `1px solid ${draft.recorrencia_dia === d ? blue : 'rgba(255,255,255,0.1)'}`,
+                            color: draft.recorrencia_dia === d ? blue : 'rgba(255,255,255,0.4)',
+                            borderRadius: 5, transition: 'all .15s',
+                          }}>
+                          {d.substring(0, 3).toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                    <p style={{ fontSize: 8, color: `${blue}77`, fontWeight: 700 }}>
+                      📅 Todo{draft.recorrencia_dia === 'Sábado' || draft.recorrencia_dia === 'Domingo' ? '' : 'a'}{' '}
+                      <strong style={{ color: blue }}>{draft.recorrencia_dia}</strong> · {draft.recorrencia} ·{' '}
+                      {draft.hora_inicio || '—'}
+                      {' '}— Jogadores do elenco serão pré-selecionados automaticamente.
+                    </p>
+                  </div>
                 )}
               </div>
 

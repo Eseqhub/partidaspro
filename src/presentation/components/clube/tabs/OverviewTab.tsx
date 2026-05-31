@@ -6,6 +6,7 @@ import {
   faWallet, faUsers, faFutbol, faArrowTrendUp, faArrowTrendDown,
   faChartLine, faCopy, faDice,
 } from '@fortawesome/free-solid-svg-icons';
+import { RecurringSessionCard } from '../components/RecurringSessionCard';
 
 const blue  = '#00b4ff';
 const gold  = '#d4a017';
@@ -21,6 +22,7 @@ interface Props {
   matches: any[];
   onCopyLink: () => void;
   onNavigate: (path: string) => void;
+  onReactivated?: (newMatchId: string) => void;
 }
 
 function KpiCard({ icon, label, value, sub, color = '#fff', accent = '' }: {
@@ -64,7 +66,12 @@ function FinanceRow({ desc, amount, date, player }: { desc: string; amount: numb
   );
 }
 
-export const OverviewTab: React.FC<Props> = ({ group, players, finances, summary, matches, onCopyLink, onNavigate }) => {
+export const OverviewTab: React.FC<Props> = ({ group, players, finances, summary, matches, onCopyLink, onNavigate, onReactivated }) => {
+  // Sessões recorrentes finalizadas — candidatas para reativação
+  const recurringSessions = matches.filter(m =>
+    m.recorrencia && m.recorrencia !== 'nao' && m.status === 'Finalizada'
+  ).slice(0, 3); // mostra as 3 mais recentes
+
   const activeCount   = players.filter(p => p.status === 'Ativo').length;
   const mensalistas   = players.filter(p => p.is_mensalista).length;
   const avgSkill      = players.length > 0
@@ -75,6 +82,28 @@ export const OverviewTab: React.FC<Props> = ({ group, players, finances, summary
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+      {/* Sessões Recorrentes — reativar */}
+      {recurringSessions.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <h2 style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.25em', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            🔄 Próximas Sessões
+          </h2>
+          {recurringSessions.map(m => (
+            <RecurringSessionCard
+              key={m.id}
+              match={m}
+              groupId={group.id}
+              groupSlug={group.slug}
+              onReactivated={id => {
+                if (onReactivated) onReactivated(id);
+                onNavigate(`/dashboard/${group.slug}/matches`);
+              }}
+            />
+          ))}
+        </div>
+      )}
+
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
         <KpiCard icon={faWallet}        label="Caixa Atual"    value={`R$${Math.abs(summary.balance).toFixed(2)}`}  sub={summary.balance >= 0 ? 'saldo positivo' : 'déficit'} color={summary.balance >= 0 ? green : red}  accent={summary.balance >= 0 ? green : red} />
