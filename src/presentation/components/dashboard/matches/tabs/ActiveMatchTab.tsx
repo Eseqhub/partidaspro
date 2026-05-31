@@ -36,12 +36,13 @@ interface ActiveMatchTabProps {
   homeFormation?: Formation;
   awayFormation?: Formation;
   events?: any[];
+  liveUrl?: string;
 }
 
 export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
   draftResult, config, setConfig, score, timer, status,
   setActiveTab, matchType = 'rachao', onStartMatch,
-  homeFormation, awayFormation, events = [],
+  homeFormation, awayFormation, events = [], liveUrl,
 }) => {
   const campoCfg = CAMPO_MAP[config.tipo_campo ?? config.sport_type ?? 'Society 7x7']
     ?? { sportType: 'Society' as SportType, playersPerTeam: 7, label: 'Society 7×7' };
@@ -113,6 +114,22 @@ export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
           />
         </div>
       </div>
+
+      {/* Transmissão ao vivo (link público) */}
+      {liveUrl && (
+        <button
+          onClick={() => {
+            const nav = navigator as any;
+            if (nav.share) nav.share({ title: 'Acompanhe ao vivo', url: liveUrl }).catch(() => {});
+            else { navigator.clipboard.writeText(liveUrl); alert('Link da transmissão copiado!'); }
+          }}
+          className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] transition-all"
+          style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444' }}
+        >
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#EF4444', display: 'inline-block' }} />
+          Transmitir ao Vivo (link público)
+        </button>
+      )}
 
       {/* Feed de eventos ao vivo */}
       {status !== 'Agendada' && (
