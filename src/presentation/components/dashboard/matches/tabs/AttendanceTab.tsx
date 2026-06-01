@@ -6,6 +6,8 @@ import { Button } from '@/presentation/components/ui/Button';
 import { AttendanceSelector } from '@/presentation/components/dashboard/AttendanceSelector';
 import { FormationSelector } from '@/presentation/components/dashboard/FormationSelector';
 import { GameStatusBanner } from '@/presentation/components/dashboard/matches/GameStatusBanner';
+import { openWhatsApp } from '@/core/services/ShareService';
+import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import { Player } from '@/core/entities/player';
 import { Formation } from '@/presentation/components/dashboard/TacticalBoardV2/formations';
 

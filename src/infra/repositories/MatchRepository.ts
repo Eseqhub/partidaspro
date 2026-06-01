@@ -121,6 +121,32 @@ export class MatchRepository {
       .subscribe();
   }
 
+  /** Realtime: INSERT ou UPDATE de qualquer partida do grupo (para outros dispositivos verem a partida criada). */
+  subscribeToGroupMatches(groupId: string, callback: (match: any) => void) {
+    return supabase
+      .channel(`group-matches:${groupId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: this.table,
+        filter: `group_id=eq.${groupId}`,
+      }, (payload) => callback(payload.new))
+      .subscribe();
+  }
+
+  /** Realtime: INSERT em match_presence (para outros dispositivos reconstruírem os times após o sorteio). */
+  subscribeToPresence(matchId: string, callback: () => void) {
+    return supabase
+      .channel(`presence-changes:${matchId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'match_presence',
+        filter: `match_id=eq.${matchId}`,
+      }, callback)
+      .subscribe();
+  }
+
   // ── EVENTS ───────────────────────────────────────────────────────────────
 
   async getEvents(matchId: string): Promise<any[]> {
