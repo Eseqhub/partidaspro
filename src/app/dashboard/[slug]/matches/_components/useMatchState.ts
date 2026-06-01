@@ -134,7 +134,8 @@ export function useMatchState(slug: string) {
 
       if (group && user) {
         setGroupId(group.id);
-        fetchPlayers(group.id);
+        const playersLocal = await playerRepo.findAllByGroupId(group.id).catch(() => [] as Player[]);
+        setAllPlayers(playersLocal);
 
         if (group.owner_id === user.id) {
           setUserRole('owner');
@@ -161,6 +162,9 @@ export function useMatchState(slug: string) {
           setAccumulatedTime(liveMatch.timer_seconds);
           setTimer(liveMatch.timer_seconds);
           setStatus(liveMatch.status);
+          if (liveMatch.status === 'Em curso') {
+            setStartTime(Date.now());
+          }
 
           const resolvedType: MatchType =
             liveMatch.match_type === 'manual'  ? 'manual'
@@ -191,9 +195,11 @@ export function useMatchState(slug: string) {
 
           const presence = await matchRepo.getPresence(liveMatch.id);
           if (presence.length > 0) {
-            const homePlayers    = presence.filter((p: any) => p.team === 'home' && p.player).map((p: any) => p.player);
-            const awayPlayers    = presence.filter((p: any) => p.team === 'away' && p.player).map((p: any) => p.player);
-            const waitingPlayers = presence.filter((p: any) => (!p.team || p.team === 'waiting') && p.player).map((p: any) => p.player);
+            const resolvePlayer = (p: any): Player | null =>
+              p.player ?? playersLocal.find((pl: Player) => pl.id === p.player_id) ?? null;
+            const homePlayers    = presence.filter((p: any) => p.team === 'home').map(resolvePlayer).filter(Boolean) as Player[];
+            const awayPlayers    = presence.filter((p: any) => p.team === 'away').map(resolvePlayer).filter(Boolean) as Player[];
+            const waitingPlayers = presence.filter((p: any) => !p.team || p.team === 'waiting').map(resolvePlayer).filter(Boolean) as Player[];
             const allPresenceIds = presence.map((p: any) => p.player_id).filter(Boolean);
             setSelectedPlayerIds(allPresenceIds);
 
