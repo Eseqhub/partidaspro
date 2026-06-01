@@ -12,6 +12,7 @@ import { FinanceRepository } from '@/infra/repositories/FinanceRepository';
 import { Player } from '@/core/entities/player';
 import { PixRateioPanel } from '@/presentation/components/clube/components/PixRateioPanel';
 import { PendenciasPanel } from '@/presentation/components/clube/components/PendenciasPanel';
+import { CashFlowChart } from '@/presentation/components/clube/components/CashFlowChart';
 
 const blue  = '#00b4ff';
 const gold  = '#d4a017';
@@ -150,12 +151,15 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
 
       {subTab === 'geral' && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12 }}>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
             <FinanceCard label="Saldo Atual"   value={`R$${Math.abs(summary.balance).toFixed(2)}`}  sub={summary.balance >= 0 ? 'saldo positivo' : 'déficit'}  color={summary.balance >= 0 ? green : red}  icon={faWallet}         />
             <FinanceCard label="Recebido"      value={`R$${summary.received.toFixed(2)}`}            sub="total confirmado"                                        color={green}                                icon={faCircleCheck}    />
             <FinanceCard label="Pendente"      value={`R$${summary.pending.toFixed(2)}`}             sub="aguardando pagamento"                                    color={gold}                                 icon={faHourglassHalf}  />
             <FinanceCard label="Total Despesas" value={`R$${summary.expense.toFixed(2)}`}            sub="total de saídas"                                         color={red}                                  icon={faArrowTrendDown} />
           </div>
+
+          <CashFlowChart finances={finances} />
+
 
           <div style={{ padding: '16px 20px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
