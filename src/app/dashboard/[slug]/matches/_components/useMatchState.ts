@@ -95,6 +95,30 @@ export function useMatchState(slug: string) {
   const matchIdRef = useRef<string | null>(null);
   useEffect(() => { matchIdRef.current = matchId; }, [matchId]);
 
+  // Offset entre o relógio local e o relógio do servidor (ms).
+  // Garante que celular e PC contem o tempo pelo MESMO relógio (o do servidor).
+  const clockOffsetRef = useRef<number>(0);
+  // "Agora" corrigido para o horário do servidor.
+  const serverNow = () => Date.now() + clockOffsetRef.current;
+
+  // Mede o offset do relógio uma vez ao montar (degrada para 0 se a função não existir).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const t0 = Date.now();
+        const { data, error } = await supabase.rpc('get_server_time');
+        const t1 = Date.now();
+        if (error || !data || cancelled) return;
+        const serverMs = new Date(data as string).getTime();
+        // Compensa metade do round-trip para estimar o "agora" do servidor.
+        const localMid = t0 + (t1 - t0) / 2;
+        clockOffsetRef.current = serverMs - localMid;
+      } catch { /* mantém offset 0 */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const availableFormations = getFormations(config.sport_type, config.playersPerTeam);
 
   const fetchPlayers = async (id: string) => {
@@ -165,15 +189,15 @@ export function useMatchState(slug: string) {
           setStatus(liveMatch.status);
           if (liveMatch.status === 'Em curso') {
             if (liveMatch.timer_started_at) {
-              // Tempo exato: reconstrói a partir do timestamp salvo
+              // Tempo exato: reconstrói a partir do timestamp salvo (relógio do servidor)
               const startedAt = new Date(liveMatch.timer_started_at).getTime();
-              const currentTotal = liveMatch.timer_seconds + Math.floor((Date.now() - startedAt) / 1000);
+              const currentTotal = liveMatch.timer_seconds + Math.floor((serverNow() - startedAt) / 1000);
               setTimer(currentTotal);
               setStartTime(startedAt);
             } else {
               // Auto-repair: match rodando sem timer_started_at (deploy antigo)
               // Salva agora para que próximos reloads sejam precisos
-              const now = Date.now();
+              const now = serverNow();
               setTimer(liveMatch.timer_seconds);
               setStartTime(now);
               matchRepo.update(liveMatch.id, {
@@ -401,7 +425,7 @@ export function useMatchState(slug: string) {
     let interval: any;
     if (status === 'Em curso' && startTime) {
       interval = setInterval(() => {
-        const now = Date.now();
+        const now = serverNow();
         const elapsed = Math.floor((now - startTime) / 1000);
         const currentTotal = accumulatedTime + elapsed;
         const limitSeconds = (config.duration + config.stoppage) * 60;
@@ -421,7 +445,7 @@ export function useMatchState(slug: string) {
   // ── Actions ───────────────────────────────────────────────────────────────
 
   const toggleTimer = async () => {
-    const now = Date.now();
+    const now = serverNow();
     const newStatus: MatchStatus = status === 'Em curso' ? 'Pausada' : 'Em curso';
     let newAccumulated = accumulatedTime;
     if (status === 'Em curso') {
