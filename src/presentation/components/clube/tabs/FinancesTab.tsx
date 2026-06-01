@@ -49,6 +49,8 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<string>('50.00');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [monthlyFee, setMonthlyFee] = useState<string>('50.00');
+  const [generating, setGenerating] = useState(false);
 
   const transactions = finances.slice(0, 50);
   const mensalistas = players.filter(p => p.is_mensalista && p.status === 'Ativo');
@@ -91,6 +93,28 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
   const openPaymentModal = (player: Player) => {
     setSelectedPlayer(player);
     setPaymentModalOpen(true);
+  };
+
+  // Gera cobrança de mensalidade (pendente) para todos os mensalistas do mês de uma vez
+  const monthDesc = `Mensalidade ${currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`;
+  const handleGenerateMonthly = async () => {
+    const amount = parseFloat(monthlyFee.replace(',', '.'));
+    if (isNaN(amount) || amount <= 0) { alert('Informe um valor válido.'); return; }
+    const pending = mensalistas.filter(p => !finances.some((f: any) => f.player_id === p.id && f.description === monthDesc));
+    if (pending.length === 0) { alert('Todos os mensalistas já têm cobrança neste mês.'); return; }
+    if (!confirm(`Gerar cobrança de R$${amount.toFixed(2)} para ${pending.length} mensalista(s) em ${monthName}?`)) return;
+    setGenerating(true);
+    try {
+      for (const p of pending) {
+        await financeRepo.create({
+          group_id: groupId, player_id: p.id, type: 'Receita', category: 'Mensalidade',
+          description: monthDesc, amount, status: 'Pendente',
+          date: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString(),
+        });
+      }
+      onRefresh();
+    } catch (e: any) { alert('Erro ao gerar cobranças: ' + (e?.message ?? '')); }
+    finally { setGenerating(false); }
   };
 
   return (
@@ -219,6 +243,23 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
               </button>
             </div>
           </div>
+
+          {/* Geração automática de cobranças */}
+          {mensalistas.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, padding: '12px 14px', background: `${gold}08`, border: `1px solid ${gold}25`, borderRadius: 10, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(255,255,255,0.5)' }}>Valor mensal</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 900, color: gold }}>R$</span>
+                <input value={monthlyFee} onChange={e => setMonthlyFee(e.target.value)} inputMode="decimal"
+                  style={{ width: 70, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: 13, fontWeight: 900, padding: '6px 8px', borderRadius: 6, outline: 'none' }} />
+              </div>
+              <button onClick={handleGenerateMonthly} disabled={generating}
+                style={{ marginLeft: 'auto', padding: '8px 14px', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em',
+                  background: `linear-gradient(135deg,${gold},#f5d060)`, color: '#000', border: 'none', borderRadius: 7, cursor: generating ? 'wait' : 'pointer' }}>
+                {generating ? 'Gerando...' : `Gerar cobranças do mês (${mensalistas.length})`}
+              </button>
+            </div>
+          )}
 
           {/* Lista de Mensalistas */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
