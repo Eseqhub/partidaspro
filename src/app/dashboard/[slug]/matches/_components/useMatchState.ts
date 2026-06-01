@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/infra/supabase/client';
 import { Player } from '@/core/entities/player';
-import { SportType, GameMode, MatchStatus, MatchType } from '@/core/entities/match';
+import { Match, SportType, GameMode, MatchStatus, MatchType } from '@/core/entities/match';
 import { PlayerRepository } from '@/infra/repositories/PlayerRepository';
 import { MatchRepository } from '@/infra/repositories/MatchRepository';
 import { GroupRepository } from '@/infra/repositories/GroupRepository';
@@ -65,6 +65,7 @@ export function useMatchState(slug: string) {
     awayTeamName: '',
     sport_type: 'Society' as SportType,
     game_mode: 'Rachão' as GameMode,
+    tipo_campo: '' as string,
     max_players: 14,
     max_goalkeepers: 2,
     rules_text: '',
@@ -129,7 +130,8 @@ export function useMatchState(slug: string) {
   // ── Init ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
       const group = await groupRepo.findBySlug(slug);
 
       if (group && user) {
@@ -181,16 +183,21 @@ export function useMatchState(slug: string) {
           const matchEvents = await matchRepo.getEvents(liveMatch.id);
           setEvents(matchEvents);
 
+          const fieldTypePPT: Record<string, number> = {
+            'Futsal 5x5': 5, 'Society 6x6': 6, 'Society 7x7': 7, 'Campo 11x11': 11,
+          };
           setConfig(prev => ({
             ...prev,
-            homeTeamName:   liveMatch.home_team_name   || prev.homeTeamName,
-            awayTeamName:   liveMatch.away_team_name   || prev.awayTeamName,
-            homeColor:      liveMatch.home_color       || prev.homeColor,
-            awayColor:      liveMatch.away_color       || prev.awayColor,
-            duration:       liveMatch.duration_minutes || prev.duration,
-            stoppage:       liveMatch.stoppage_minutes ?? prev.stoppage,
-            goalLimit:      liveMatch.goal_limit       ?? prev.goalLimit,
-            sport_type:    (liveMatch.sport_type as any) || prev.sport_type,
+            homeTeamName:    liveMatch.home_team_name   || prev.homeTeamName,
+            awayTeamName:    liveMatch.away_team_name   || prev.awayTeamName,
+            homeColor:       liveMatch.home_color       || prev.homeColor,
+            awayColor:       liveMatch.away_color       || prev.awayColor,
+            duration:        liveMatch.duration_minutes || prev.duration,
+            stoppage:        liveMatch.stoppage_minutes ?? prev.stoppage,
+            goalLimit:       liveMatch.goal_limit       ?? prev.goalLimit,
+            sport_type:     (liveMatch.sport_type as any) || prev.sport_type,
+            playersPerTeam:  fieldTypePPT[liveMatch.field_type || ''] ?? prev.playersPerTeam,
+            tipo_campo:      liveMatch.field_type || prev.tipo_campo,
           }));
 
           const presence = await matchRepo.getPresence(liveMatch.id);
@@ -479,6 +486,11 @@ export function useMatchState(slug: string) {
         away_color: config.awayColor,
         sport_type: config.sport_type,
         game_mode: config.game_mode,
+        field_type: (
+          config.sport_type === 'Futsal' ? 'Futsal 5x5' :
+          config.sport_type === 'Campo'  ? 'Campo 11x11' :
+          config.playersPerTeam <= 6     ? 'Society 6x6' : 'Society 7x7'
+        ) as Match['field_type'],
         max_players: config.max_players,
         max_goalkeepers: config.max_goalkeepers,
         match_fee: 0,

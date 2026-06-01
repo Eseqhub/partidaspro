@@ -17,8 +17,12 @@ export function BottomNavigation() {
 
   // Extrair o slug da URL: /dashboard/[slug]/...
   const pathParts = pathname.split('/');
-  const isInsideGroup = pathParts[1] === 'dashboard' && pathParts[2] && pathParts[2] !== 'finances' && pathParts[2] !== 'matches' && pathParts[2] !== 'players' && pathParts[2] !== 'stats';
-  const slug = isInsideGroup ? pathParts[2] : '';
+  // pathParts: ['', 'dashboard', '<slug>', '<subRoute?>']
+  const slug     = pathParts[1] === 'dashboard' && pathParts[2] ? pathParts[2] : '';
+  const subRoute = pathParts[3]; // 'matches' | 'finances' | 'players' | 'stats' | undefined
+  // Matches page has its own MatchBottomNav — skip rendering global nav there
+  if (subRoute === 'matches') return null;
+  const isInsideGroup = !!slug;
 
   const navItems = isInsideGroup ? [
     { label: 'Início', icon: faGaugeHigh, href: `/dashboard/${slug}` },
