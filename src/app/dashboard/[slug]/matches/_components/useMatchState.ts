@@ -163,14 +163,25 @@ export function useMatchState(slug: string) {
           setScore({ home: liveMatch.home_score, away: liveMatch.away_score });
           setAccumulatedTime(liveMatch.timer_seconds);
           setStatus(liveMatch.status);
-          if (liveMatch.status === 'Em curso' && liveMatch.timer_started_at) {
-            const startedAt = new Date(liveMatch.timer_started_at).getTime();
-            const currentTotal = liveMatch.timer_seconds + Math.floor((Date.now() - startedAt) / 1000);
-            setTimer(currentTotal);
-            setStartTime(startedAt);
+          if (liveMatch.status === 'Em curso') {
+            if (liveMatch.timer_started_at) {
+              // Tempo exato: reconstrói a partir do timestamp salvo
+              const startedAt = new Date(liveMatch.timer_started_at).getTime();
+              const currentTotal = liveMatch.timer_seconds + Math.floor((Date.now() - startedAt) / 1000);
+              setTimer(currentTotal);
+              setStartTime(startedAt);
+            } else {
+              // Auto-repair: match rodando sem timer_started_at (deploy antigo)
+              // Salva agora para que próximos reloads sejam precisos
+              const now = Date.now();
+              setTimer(liveMatch.timer_seconds);
+              setStartTime(now);
+              matchRepo.update(liveMatch.id, {
+                timer_started_at: new Date(now).toISOString(),
+              }).catch(console.error);
+            }
           } else {
             setTimer(liveMatch.timer_seconds);
-            if (liveMatch.status === 'Em curso') setStartTime(Date.now());
           }
 
           const resolvedType: MatchType =
