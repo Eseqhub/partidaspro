@@ -160,7 +160,7 @@ export default function ClubDashboardPage() {
         {/* Conteúdo das tabs */}
         {tab === 'overview'      && <OverviewTab      group={group} players={players} finances={finances} summary={summary} matches={matches} onCopyLink={handleCopyLink} onNavigate={router.push} />}
         {tab === 'elenco'        && <ElencoTab        players={players} groupId={groupId} onNavigate={router.push} onRefresh={load} />}
-        {tab === 'financeiro'    && <FinancesTab      finances={finances} summary={summary} groupId={groupId} onRefresh={load} />}
+        {tab === 'financeiro'    && <FinancesTab      finances={finances} summary={summary} groupId={groupId} groupName={group.name} players={players} onRefresh={load} />}
         {tab === 'configuracoes' && <ClubSettingsTab  group={group} editors={editors} isOwner={isOwner} groupId={groupId} groupRepo={groupRepo} supabase={supabase} onSave={handleSaveGroup} />}
 
         <p className="text-center mt-16 text-[9px] text-white/10 font-bold uppercase tracking-[0.5em]">

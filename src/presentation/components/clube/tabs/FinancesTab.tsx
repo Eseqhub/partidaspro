@@ -11,6 +11,7 @@ import {
 import { FinanceRepository } from '@/infra/repositories/FinanceRepository';
 import { Player } from '@/core/entities/player';
 import { PixRateioPanel } from '@/presentation/components/clube/components/PixRateioPanel';
+import { PendenciasPanel } from '@/presentation/components/clube/components/PendenciasPanel';
 
 const blue  = '#00b4ff';
 const gold  = '#d4a017';
@@ -40,7 +41,7 @@ function FinanceCard({ label, value, sub, color, icon }: { label: string; value:
 }
 
 export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, groupName = 'Pelada', players = [], onRefresh }) => {
-  const [subTab, setSubTab] = useState<'geral' | 'mensalistas' | 'cobrancas'>('geral');
+  const [subTab, setSubTab] = useState<'geral' | 'mensalistas' | 'cobrancas' | 'pendencias'>('geral');
   const [currentDate, setCurrentDate] = useState(new Date());
   
   // Payment Modal State
@@ -109,10 +110,18 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
           style={{ padding: '8px 16px', background: subTab === 'cobrancas' ? `${green}20` : 'transparent', border: 'none', borderRadius: 4, color: subTab === 'cobrancas' ? green : 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', cursor: 'pointer', transition: 'all .2s' }}>
           <FontAwesomeIcon icon={faQrcode} style={{ marginRight: 6 }} /> PIX & Rateio
         </button>
+        <button onClick={() => setSubTab('pendencias')}
+          style={{ padding: '8px 16px', background: subTab === 'pendencias' ? `${red}20` : 'transparent', border: 'none', borderRadius: 4, color: subTab === 'pendencias' ? red : 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', cursor: 'pointer', transition: 'all .2s' }}>
+          <FontAwesomeIcon icon={faHourglassHalf} style={{ marginRight: 6 }} /> Pendências
+        </button>
       </div>
 
       {subTab === 'cobrancas' && (
         <PixRateioPanel groupId={groupId} groupName={groupName} players={players} onRefresh={onRefresh} />
+      )}
+
+      {subTab === 'pendencias' && (
+        <PendenciasPanel finances={finances} players={players} groupId={groupId} groupName={groupName} onRefresh={onRefresh} />
       )}
 
       {subTab === 'geral' && (
