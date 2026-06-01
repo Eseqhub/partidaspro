@@ -162,10 +162,15 @@ export function useMatchState(slug: string) {
           setMatchId(liveMatch.id);
           setScore({ home: liveMatch.home_score, away: liveMatch.away_score });
           setAccumulatedTime(liveMatch.timer_seconds);
-          setTimer(liveMatch.timer_seconds);
           setStatus(liveMatch.status);
-          if (liveMatch.status === 'Em curso') {
-            setStartTime(Date.now());
+          if (liveMatch.status === 'Em curso' && liveMatch.timer_started_at) {
+            const startedAt = new Date(liveMatch.timer_started_at).getTime();
+            const currentTotal = liveMatch.timer_seconds + Math.floor((Date.now() - startedAt) / 1000);
+            setTimer(currentTotal);
+            setStartTime(startedAt);
+          } else {
+            setTimer(liveMatch.timer_seconds);
+            if (liveMatch.status === 'Em curso') setStartTime(Date.now());
           }
 
           const resolvedType: MatchType =
@@ -249,7 +254,11 @@ export function useMatchState(slug: string) {
     const sub = matchRepo.subscribeToMatch(matchId, updated => {
       setScore({ home: updated.home_score, away: updated.away_score });
       setStatus(updated.status);
-      if (updated.status !== 'Em curso') {
+      if (updated.status === 'Em curso' && updated.timer_started_at) {
+        const startedAt = new Date(updated.timer_started_at).getTime();
+        setAccumulatedTime(updated.timer_seconds);
+        setStartTime(startedAt);
+      } else {
         setAccumulatedTime(updated.timer_seconds);
         setTimer(updated.timer_seconds);
         setStartTime(null);
@@ -409,12 +418,24 @@ export function useMatchState(slug: string) {
       newAccumulated = accumulatedTime + elapsed;
       setAccumulatedTime(newAccumulated);
       setStartTime(null);
+      setStatus(newStatus);
+      if (matchId) {
+        await matchRepo.update(matchId, {
+          status: newStatus,
+          timer_seconds: newAccumulated,
+          timer_started_at: null,
+        }).catch(console.error);
+      }
     } else {
       setStartTime(now);
-    }
-    setStatus(newStatus);
-    if (matchId) {
-      await matchRepo.update(matchId, { status: newStatus, timer_seconds: newAccumulated }).catch(console.error);
+      setStatus(newStatus);
+      if (matchId) {
+        await matchRepo.update(matchId, {
+          status: newStatus,
+          timer_seconds: newAccumulated,
+          timer_started_at: new Date(now).toISOString(),
+        }).catch(console.error);
+      }
     }
   };
 

@@ -16,6 +16,7 @@ export interface Match {
   home_team_name?: string;
   away_team_name?: string;
   timer_seconds: number;
+  timer_started_at?: string | null;
   match_fee: number;
   duration_minutes: number;
   stoppage_minutes: number;

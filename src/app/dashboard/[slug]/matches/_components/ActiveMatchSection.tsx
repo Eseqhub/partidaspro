@@ -112,7 +112,7 @@ export function ActiveMatchSection({
           setAccumulatedTime(0);
           setTimer(0);
           setStatus('Pausada');
-          if (matchId) await matchRepo.update(matchId, { status: 'Finalizada', timer_seconds: 0 });
+          if (matchId) await matchRepo.update(matchId, { status: 'Finalizada', timer_seconds: 0, timer_started_at: null });
         }}
         onUpdateConfig={updates => {
           if (updates.homeScore !== undefined || updates.awayScore !== undefined) {
