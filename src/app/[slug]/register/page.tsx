@@ -52,7 +52,6 @@ export default function PlayerRegistrationPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
-  const [acceptedRules, setAcceptedRules] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -102,10 +101,6 @@ export default function PlayerRegistrationPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!group) return;
-    if (group.rules_text && !acceptedRules) {
-        alert('Você precisa aceitar as regras do clube para continuar.');
-        return;
-    }
     setLoading(true);
 
     try {
@@ -384,28 +379,6 @@ export default function PlayerRegistrationPage() {
                     </div>
                 </div>
             </div>
-
-            {group?.rules_text && (
-              <div className="pt-6 border-t border-white/5 space-y-4">
-                  <div className="bg-black/40 border border-white/10 p-4 rounded text-left">
-                      <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-2 flex items-center gap-2">
-                        <FontAwesomeIcon icon={faShieldHalved}/> Estatuto e Regras do Clube
-                      </h3>
-                      <div className="text-white/60 text-xs h-24 overflow-y-auto pr-2 mb-4 whitespace-pre-wrap font-mono leading-relaxed">
-                          {group.rules_text}
-                      </div>
-                      <label className="flex items-center gap-3 cursor-pointer group/rules">
-                          <input 
-                              type="checkbox" 
-                              checked={acceptedRules} 
-                              onChange={(e) => setAcceptedRules(e.target.checked)}
-                              className="w-4 h-4 bg-black/40 border border-white/20 checked:bg-primary outline-none"
-                          />
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-white/50 group-hover/rules:text-white transition-colors">Li e aceito as regras e multas do grupo</span>
-                      </label>
-                  </div>
-              </div>
-            )}
 
             <div className="pt-10 border-t border-white/5">
                 <Button 
