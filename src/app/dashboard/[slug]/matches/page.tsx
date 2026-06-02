@@ -5,7 +5,7 @@ import { supabase } from '@/infra/supabase/client';
 import React from 'react';
 import { MatchType } from '@/core/entities/match';
 import { faTableList } from '@fortawesome/free-solid-svg-icons';
-import { faPlus, faListCheck, faStopwatch, faFutbol, faGear } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faListCheck, faStopwatch, faFutbol, faGear, faBell, faBellSlash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Tab } from '@/presentation/components/dashboard/matches/MatchBottomNav';
 import { AddPlayerModal } from '@/presentation/components/dashboard/AddPlayerModal';
@@ -75,7 +75,23 @@ export default function MatchPage() {
 
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <div />
+        {/* Ativar notificações (push com app fechado) */}
+        {m.pushStatus !== 'unsupported' ? (
+          m.pushStatus === 'granted' ? (
+            <span className="flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-primary/70">
+              <FontAwesomeIcon icon={faBell} /> Avisos ativos
+            </span>
+          ) : (
+            <button
+              onClick={m.handleEnablePush}
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-white/60 hover:text-primary hover:border-primary/30 font-black uppercase text-[9px] tracking-widest rounded-full transition-all"
+            >
+              <FontAwesomeIcon icon={m.pushStatus === 'denied' ? faBellSlash : faBell} />
+              {m.pushStatus === 'denied' ? 'Avisos bloqueados' : 'Ativar avisos'}
+            </button>
+          )
+        ) : <div />}
+
         {m.sessionPhase === 'idle' && m.userRole !== 'viewer' && (
           <button
             onClick={() => m.setIsCreateMatchModalOpen(true)}

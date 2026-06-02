@@ -1,5 +1,43 @@
-// Service Worker mínimo — Partidas Pro PWA
-const CACHE = 'partidas-pro-v1';
+// Service Worker — Partidas Pro PWA
+const CACHE = 'partidas-pro-v2';
+
+// ── WEB PUSH ────────────────────────────────────────────────────────────────
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try { payload = event.data ? event.data.json() : {}; } catch { payload = { title: 'Partidas Pro', body: event.data ? event.data.text() : '' }; }
+
+  const title = payload.title || 'Partidas Pro';
+  const options = {
+    body: payload.body || '',
+    icon: '/icon.svg',
+    badge: '/icon.svg',
+    tag: payload.tag || 'match-update',
+    renotify: true,
+    data: { url: payload.url || '/dashboard' },
+    vibrate: [80, 40, 80],
+  };
+
+  event.waitUntil((async () => {
+    // Se já existe uma aba aberta e visível, deixa o popup in-app cuidar (evita duplicar)
+    const clientsArr = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const visible = clientsArr.some((c) => c.visibilityState === 'visible');
+    if (visible) return;
+    await self.registration.showNotification(title, options);
+  })());
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/dashboard';
+  event.waitUntil((async () => {
+    const clientsArr = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const existing = clientsArr.find((c) => c.url.includes(url));
+    if (existing) { existing.focus(); return; }
+    if (clientsArr[0]) { clientsArr[0].focus(); clientsArr[0].navigate(url); return; }
+    await self.clients.openWindow(url);
+  })());
+});
+
 const APP_SHELL = ['/', '/dashboard', '/icon.svg'];
 
 self.addEventListener('install', (event) => {

@@ -9,6 +9,7 @@ import { MatchRepository } from '@/infra/repositories/MatchRepository';
 import { Player } from '@/core/entities/player';
 import { EventType } from '@/core/entities/match';
 import { LogoMark } from '@/presentation/components/ui/Logo';
+import { sendPush } from '@/infra/services/pushClient';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFutbol, faHandshake, faSquare, faStar, faSpinner, faCheck } from '@fortawesome/free-solid-svg-icons';
 
@@ -85,6 +86,20 @@ export default function ArbitroPage() {
         const ns = { home: picked.team === 'home' ? score.home + 1 : score.home, away: picked.team === 'away' ? score.away + 1 : score.away };
         setScore(ns);
         await matchRepo.update(matchId, { home_score: ns.home, away_score: ns.away });
+      }
+      // Push para o grupo (app fechado)
+      if (match?.group_id) {
+        const titles: Record<string, string> = {
+          'Gol': '⚽ GOL!', 'Assistência': '🎯 Assistência',
+          'Cartão Amarelo': '🟨 Cartão Amarelo', 'Cartão Vermelho': '🟥 Cartão Vermelho',
+          'Craque': '🏆 Craque da Partida',
+        };
+        sendPush({
+          groupId: match.group_id,
+          title: titles[type] ?? type,
+          body: `${picked.player.name} · ${match.home_team_name || 'Time A'} ${score.home} x ${score.away} ${match.away_team_name || 'Time B'}`,
+          url: `/${slug}/ao-vivo/${matchId}`,
+        });
       }
       setToast(`${type} · ${picked.player.name.split(' ')[0]}`);
       setTimeout(() => setToast(null), 2000);

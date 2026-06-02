@@ -13,6 +13,7 @@ import { Formation, getFormations, defaultFormation } from '@/presentation/compo
 import { AudioService } from '@/infra/services/AudioService';
 import { PlayerRole } from '@/presentation/components/dashboard/matches/tabs/TeamAssignmentTab';
 import { EventType as CoreEventType } from '@/core/entities/match';
+import { enablePush, getPushPermission, sendPush } from '@/infra/services/pushClient';
 
 const SPORT_PLAYERS: Record<string, number> = {
   Futsal: 5,
@@ -42,6 +43,7 @@ export function useMatchState(slug: string) {
   const [events, setEvents] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [currentUserName, setCurrentUserName] = useState<string>('Torcedor');
+  const [pushStatus, setPushStatus] = useState<'default' | 'granted' | 'denied' | 'unsupported'>('default');
   // Notificação popup in-app (toast) para eventos/comentários ao vivo
   const [notification, setNotification] = useState<{
     id: string; kind: 'event' | 'comment'; title: string; subtitle: string; color: string;
@@ -137,6 +139,18 @@ export function useMatchState(slug: string) {
   const dismissNotification = () => {
     if (notifTimerRef.current) clearTimeout(notifTimerRef.current);
     setNotification(null);
+  };
+
+  // Estado inicial da permissão de push
+  useEffect(() => { setPushStatus(getPushPermission() as any); }, []);
+
+  const handleEnablePush = async () => {
+    const res = await enablePush(groupId);
+    if (res.ok) { setPushStatus('granted'); return; }
+    if (res.reason === 'denied') { setPushStatus('denied'); alert('Permissão de notificação negada. Ative nas configurações do navegador.'); }
+    else if (res.reason === 'unsupported') { setPushStatus('unsupported'); alert('Seu navegador não suporta notificações push.'); }
+    else if (res.reason === 'vapid-missing') { alert('Notificações ainda não configuradas no servidor.'); }
+    else alert('Não foi possível ativar as notificações.');
   };
 
   const EVENT_NOTIF: Record<string, { title: string; color: string }> = {
@@ -540,6 +554,18 @@ export function useMatchState(slug: string) {
         await matchRepo.update(matchId, { home_score: ns.home, away_score: ns.away });
       }
       setIsEventModalOpen(false);
+
+      // Push para dispositivos com o app fechado (best-effort)
+      if (groupId) {
+        const playerName = allPlayers.find(p => p.id === playerId)?.name ?? 'Jogador';
+        const meta = EVENT_NOTIF[type];
+        if (meta) sendPush({
+          groupId,
+          title: meta.title,
+          body: `${playerName} · ${config.homeTeamName || 'Time A'} ${score.home + (type === 'Gol' && team === 'home' ? 1 : 0)} x ${score.away + (type === 'Gol' && team === 'away' ? 1 : 0)} ${config.awayTeamName || 'Time B'}`,
+          url: matchId ? `/${slug}/ao-vivo/${matchId}` : `/dashboard/${slug}/matches`,
+        });
+      }
     } catch (error: any) {
       console.error('[handleAddEvent]', error);
       alert(`Erro ao registrar ${type}: ${error?.message ?? 'verifique o console'}`);
@@ -565,6 +591,13 @@ export function useMatchState(slug: string) {
         match_id: matchId, author_name: currentUserName, message: text,
       });
       setComments(prev => [newComment, ...prev]);
+
+      if (groupId) sendPush({
+        groupId,
+        title: `💬 ${currentUserName}`,
+        body: text,
+        url: matchId ? `/${slug}/ao-vivo/${matchId}` : `/dashboard/${slug}/matches`,
+      });
     } catch (error: any) {
       console.error('[handleAddComment]', error);
       alert(`Erro ao comentar: ${error?.message ?? 'verifique o console'}`);
@@ -923,6 +956,7 @@ export function useMatchState(slug: string) {
     comments,
     currentUserName,
     notification, dismissNotification,
+    pushStatus, handleEnablePush,
     isEventModalOpen, setIsEventModalOpen,
     selectedEventType, setSelectedEventType,
     guestPlayers, setGuestPlayers,
