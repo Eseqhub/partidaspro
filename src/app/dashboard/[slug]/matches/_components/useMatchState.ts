@@ -480,7 +480,8 @@ export function useMatchState(slug: string) {
       return;
     }
     try {
-      const newEvent = await matchRepo.addEvent({ match_id: matchId, player_id: playerId, type, team, minute: Math.floor(timer / 60) });
+      // minute guarda o tempo EXATO do evento em segundos (formatado mm:ss na exibição)
+      const newEvent = await matchRepo.addEvent({ match_id: matchId, player_id: playerId, type, team, minute: timer });
       setEvents(prev => [newEvent, ...prev]);
       if (type === 'Gol') {
         const ns = { home: team === 'home' ? score.home + 1 : score.home, away: team === 'away' ? score.away + 1 : score.away };
@@ -498,7 +499,7 @@ export function useMatchState(slug: string) {
     if (!matchId) return;
     try {
       const newEvent = await matchRepo.addEvent({
-        match_id: matchId, player_id: playerId, type: 'Craque', team, minute: Math.floor(timer / 60),
+        match_id: matchId, player_id: playerId, type: 'Craque', team, minute: timer,
       });
       setEvents(prev => [newEvent, ...prev.filter(e => e.type !== 'Craque')]);
       setMvpPlayerId(playerId);

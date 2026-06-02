@@ -10,6 +10,12 @@ interface Props {
   awayTeamName: string;
 }
 
+// minute armazena o tempo do evento em SEGUNDOS → exibe mm:ss
+const fmtEventTime = (s?: number | null) => {
+  const total = Math.max(0, Math.floor(s ?? 0));
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+};
+
 const META: Record<string, { icon: any; color: string; verb: string }> = {
   'Gol':             { icon: faFutbol,    color: '#ccff00', verb: 'marcou um GOL' },
   'Assistência':     { icon: faHandshake, color: '#00b4ff', verb: 'deu assistência' },
@@ -65,7 +71,7 @@ export const LiveFeed: React.FC<Props> = ({ events, homeTeamName, awayTeamName }
               </div>
               {ev.minute != null && (
                 <span style={{ fontSize: 11, fontWeight: 900, fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>
-                  {ev.minute}&apos;
+                  {fmtEventTime(ev.minute)}
                 </span>
               )}
             </div>

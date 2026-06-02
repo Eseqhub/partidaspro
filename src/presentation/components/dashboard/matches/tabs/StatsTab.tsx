@@ -26,6 +26,12 @@ const EVENT_ICON: Record<string, any> = {
   'Saída':          faChartBar,
   'Craque':         faStar,
 };
+// minute armazena o tempo do evento em SEGUNDOS → exibe mm:ss
+const fmtEventTime = (s?: number | null) => {
+  const total = Math.max(0, Math.floor(s ?? 0));
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+};
+
 const EVENT_COLOR: Record<string, string> = {
   'Gol':             '#ccff00',
   'Assistência':     '#00b4ff',
@@ -237,8 +243,8 @@ export const StatsTab: React.FC<StatsTabProps> = ({
                       </span>
                     </div>
                   </div>
-                  <span style={{ fontSize: 9, fontWeight: 900, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>
-                    {ev.minute}&apos;
+                  <span style={{ fontSize: 9, fontWeight: 900, fontFamily: 'monospace', color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>
+                    {fmtEventTime(ev.minute)}
                   </span>
                 </div>
               );

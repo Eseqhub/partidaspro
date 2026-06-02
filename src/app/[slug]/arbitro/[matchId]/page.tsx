@@ -65,7 +65,10 @@ export default function ArbitroPage() {
   // Realtime do placar
   useEffect(() => {
     if (!matchId) return;
-    const sub = matchRepo.subscribeToMatch(matchId, (u: any) => setScore({ home: u.home_score, away: u.away_score }));
+    const sub = matchRepo.subscribeToMatch(matchId, (u: any) => {
+      setScore({ home: u.home_score, away: u.away_score });
+      setMatch((prev: any) => ({ ...prev, ...u }));
+    });
     return () => { supabase.removeChannel(sub); };
   }, [matchId]);
 
@@ -73,7 +76,11 @@ export default function ArbitroPage() {
     if (!picked || saving) return;
     setSaving(true);
     try {
-      await matchRepo.addEvent({ match_id: matchId, player_id: picked.player.id, type, team: picked.team, minute: 0 });
+      // Tempo exato do evento em segundos (formatado mm:ss na exibição)
+      const elapsedSeconds = match?.status === 'Em curso' && match?.timer_started_at
+        ? Math.floor((match.timer_seconds ?? 0) + (Date.now() - new Date(match.timer_started_at).getTime()) / 1000)
+        : (match?.timer_seconds ?? 0);
+      await matchRepo.addEvent({ match_id: matchId, player_id: picked.player.id, type, team: picked.team, minute: elapsedSeconds });
       if (type === 'Gol') {
         const ns = { home: picked.team === 'home' ? score.home + 1 : score.home, away: picked.team === 'away' ? score.away + 1 : score.away };
         setScore(ns);
