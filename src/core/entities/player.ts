@@ -1,5 +1,6 @@
 export type PlayerPositionV2 = 'G' | 'LD' | 'LE' | 'ZGD' | 'ZGE' | 'ZAG' | 'VOL' | 'MC' | 'MD' | 'ME' | 'MO' | 'PE' | 'PD' | 'SA' | 'CA';
 export type PlayerStatus = 'Ativo' | 'Inativo';
+export type PlayerRoleType = 'jogador' | 'tecnico' | 'tecnico_jogador';
 
 export interface Player {
   id: string;
@@ -10,6 +11,7 @@ export interface Player {
   birth_date?: string;
   phone?: string;
   email?: string;
+  role?: PlayerRoleType; // jogador | tecnico | tecnico_jogador
   preferred_foot?: 'L' | 'R' | 'Ambidestro';
   height?: number;
   weight?: number;

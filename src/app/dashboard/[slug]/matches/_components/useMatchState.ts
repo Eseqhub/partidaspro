@@ -688,7 +688,8 @@ export function useMatchState(slug: string) {
 
   const handleDraft = async () => {
     try {
-      const realPlayers = allPlayers.filter(p => selectedPlayerIds.includes(p.id));
+      // Técnicos puros não entram no sorteio (técnico-jogador entra normal)
+      const realPlayers = allPlayers.filter(p => selectedPlayerIds.includes(p.id) && p.role !== 'tecnico');
       const guests: Player[] = guestPlayers.map((name, i) => ({
         id: `guest-${i}-${Date.now()}`,
         name: `${name} (Avulso)`,

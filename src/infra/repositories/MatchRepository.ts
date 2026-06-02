@@ -71,15 +71,17 @@ export class MatchRepository {
     return data as Match | null;
   }
 
-  async acceptChallenge(token: string, awayGroupName: string): Promise<Match | null> {
+  async acceptChallenge(token: string, awayGroupName: string, awayGroupId?: string): Promise<Match | null> {
+    const updates: Partial<Match> = {
+      challenge_status: 'aceito',
+      away_group_name: awayGroupName,
+      away_team_name: awayGroupName, // Para exibir no placar/campo
+      status: 'Agendada',
+    };
+    if (awayGroupId) updates.away_group_id = awayGroupId;
     const { data, error } = await supabase
       .from(this.table)
-      .update({ 
-        challenge_status: 'aceito', 
-        away_group_name: awayGroupName, 
-        away_team_name: awayGroupName, // Para exibir no placar/campo
-        status: 'Agendada' 
-      })
+      .update(updates)
       .eq('challenge_token', token)
       .select()
       .single();

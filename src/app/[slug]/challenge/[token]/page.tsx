@@ -10,6 +10,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { MatchRepository } from '@/infra/repositories/MatchRepository';
 import { GroupRepository } from '@/infra/repositories/GroupRepository';
+import { supabase } from '@/infra/supabase/client';
 import { Match } from '@/core/entities/match';
 import { Group } from '@/core/entities/group';
 import { GlassCard } from '@/presentation/components/ui/GlassCard';
@@ -32,9 +33,16 @@ export default function ChallengeAcceptPage() {
   const [awayTeamName, setAwayTeamName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorObj, setErrorObj] = useState<string | null>(null);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const matchRepo = new MatchRepository();
   const groupRepo = new GroupRepository();
+
+  const slugify = (s: string) =>
+    s.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
 
   useEffect(() => {
     async function loadChallenge() {
@@ -62,22 +70,59 @@ export default function ChallengeAcceptPage() {
     loadChallenge();
   }, [slug, token]);
 
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setLoggedIn(!!session?.user));
+  }, []);
+
   const handleAccept = async () => {
-    if (!awayTeamName.trim()) {
-      alert('Por favor, informe o nome do seu time!');
-      return;
-    }
+    if (!awayTeamName.trim()) { alert('Informe o nome do seu time!'); return; }
     setSubmitting(true);
     try {
-      const updatedMatch = await matchRepo.acceptChallenge(token, awayTeamName);
-      if (updatedMatch) {
-        setMatch(updatedMatch);
-      } else {
-        alert('Falha ao confirmar o desafio. Pode já ter sico preenchido.');
+      // 1. Garante autenticação (cria conta ou faz login) — o aceitante vira dono do time
+      let { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        if (!email.trim() || !password.trim()) {
+          alert('Crie sua conta (e-mail e senha) para gerenciar seu time.');
+          setSubmitting(false); return;
+        }
+        if (authMode === 'signup') {
+          const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
+          if (error) throw error;
+          user = data.user;
+        } else {
+          const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+          if (error) throw error;
+          user = data.user;
+        }
       }
-    } catch (err) {
-      alert('Erro inesperado ao aceitar o jogo.');
-    } finally {
+      if (!user) {
+        alert('Sua conta foi criada, mas precisa confirmar o e-mail. Confirme e volte a este link para finalizar.');
+        setSubmitting(false); return;
+      }
+
+      // 2. Cria o clube do time visitante (aceitante = dono)
+      const baseSlug = slugify(awayTeamName) || 'time';
+      let slug = baseSlug;
+      let group = null;
+      for (let attempt = 0; attempt < 4 && !group; attempt++) {
+        try {
+          group = await groupRepo.create({
+            name: awayTeamName.trim(), slug, owner_id: user.id,
+            invite_password: '', is_paid_model: false,
+          } as any);
+        } catch {
+          slug = `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`;
+        }
+      }
+      if (!group) { alert('Não foi possível criar o clube (nome/URL em uso). Tente outro nome.'); setSubmitting(false); return; }
+
+      // 3. Liga o desafio ao clube criado
+      await matchRepo.acceptChallenge(token, awayTeamName.trim(), group.id);
+
+      // 4. Leva o organizador ao painel do time dele
+      router.push(`/dashboard/${slug}`);
+    } catch (err: any) {
+      alert('Erro ao aceitar: ' + (err?.message ?? 'tente novamente'));
       setSubmitting(false);
     }
   };
@@ -187,7 +232,7 @@ export default function ChallengeAcceptPage() {
             <label className="block text-[10px] font-black text-white/60 uppercase tracking-[0.2em] mb-4">
               Qual o nome da sua equipe?
             </label>
-            <input 
+            <input
               type="text"
               value={awayTeamName}
               onChange={(e) => setAwayTeamName(e.target.value)}
@@ -195,15 +240,34 @@ export default function ChallengeAcceptPage() {
               className="w-full bg-black/50 border border-white/10 p-5 text-sm text-white font-black uppercase tracking-widest outline-none focus:border-primary/50 transition-colors mb-6 rounded-xl"
             />
 
-            <Button 
+            {/* Conta do organizador (só se não estiver logado) */}
+            {!loggedIn && (
+              <div className="mb-6 space-y-3">
+                <p className="text-[9px] font-black text-amber-400/80 uppercase tracking-[0.2em]">
+                  Crie sua conta — você vira o organizador do time e poderá convidar seus jogadores
+                </p>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="Seu e-mail" autoComplete="email"
+                  className="w-full bg-black/50 border border-white/10 p-4 text-sm text-white outline-none focus:border-primary/50 rounded-xl" />
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+                  placeholder="Crie uma senha" autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'}
+                  className="w-full bg-black/50 border border-white/10 p-4 text-sm text-white outline-none focus:border-primary/50 rounded-xl" />
+                <button type="button" onClick={() => setAuthMode(authMode === 'signup' ? 'login' : 'signup')}
+                  className="text-[9px] font-bold text-white/40 hover:text-primary uppercase tracking-widest">
+                  {authMode === 'signup' ? 'Já tenho conta — entrar' : 'Não tenho conta — criar'}
+                </button>
+              </div>
+            )}
+
+            <Button
               onClick={handleAccept}
               disabled={submitting || !awayTeamName.trim()}
               className="w-full py-6 text-sm font-black uppercase tracking-[0.3em] bg-gradient-to-r from-amber-500 to-amber-300 text-black border-none hover:scale-[1.02] transition-transform rounded-xl shadow-[0_0_30px_rgba(245,158,11,0.2)] disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
             >
-              {submitting ? <FontAwesomeIcon icon={faSpinner} spin /> : 'ACEITAR DESAFIO PRO'}
+              {submitting ? <FontAwesomeIcon icon={faSpinner} spin /> : 'ACEITAR E CRIAR MEU TIME'}
             </Button>
             <p className="text-center text-[9px] font-bold text-white/30 uppercase tracking-widest mt-4">
-              Ao aceitar, o duelo será confirmado no sistema do mandante.
+              Ao aceitar, seu time é criado e você cai no painel pra convidar os jogadores.
             </p>
           </div>
 

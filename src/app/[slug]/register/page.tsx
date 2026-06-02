@@ -39,6 +39,7 @@ export default function PlayerRegistrationPage() {
     nationality: 'Brasil',
     phone: '',
     email: '',
+    role: 'jogador' as 'jogador' | 'tecnico' | 'tecnico_jogador',
     preferred_foot: 'R' as 'L' | 'R' | 'Ambidestro',
     positions: ['MO'] as any[],
     height: '',
@@ -132,6 +133,7 @@ export default function PlayerRegistrationPage() {
         nationality: form.nationality,
         phone: form.phone || undefined,
         email: form.email || undefined,
+        role: form.role,
         birth_date,
         preferred_foot: form.preferred_foot,
         positions: form.positions,
@@ -373,6 +375,22 @@ export default function PlayerRegistrationPage() {
                         <option value="L">CANHOTO (ESQUERDO)</option>
                         <option value="Ambidestro">AMBIDESTRO</option>
                     </select>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        Função
+                    </label>
+                    <select
+                        value={form.role}
+                        onChange={(e) => setForm({...form, role: e.target.value as any})}
+                        className="w-full bg-slate-900 border border-primary/20 p-4 text-primary font-bold focus:border-primary/50 outline-none appearance-none cursor-pointer"
+                    >
+                        <option value="jogador">JOGADOR</option>
+                        <option value="tecnico">TÉCNICO</option>
+                        <option value="tecnico_jogador">TÉCNICO QUE TAMBÉM JOGA</option>
+                    </select>
+                    <p className="text-[8px] text-white/20 uppercase font-black">Técnico não entra no sorteio</p>
                 </div>
 
                 <div className="space-y-2">

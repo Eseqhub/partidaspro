@@ -38,6 +38,7 @@ export interface Match {
   challenge_token?: string;
   challenge_status?: ChallengeStatus;
   away_group_name?: string;
+  away_group_id?: string;
   created_at?: string;
 }
 

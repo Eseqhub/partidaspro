@@ -127,6 +127,7 @@ export const PlayerEditModal: React.FC<Props> = ({ player, isOwnerOrEditor, onCl
         full_name:         form.full_name,
         phone:             form.phone,
         email:             form.email,
+        role:              form.role,
         birth_date:        form.birth_date || undefined,
         height:            form.height ? Number(form.height) : undefined,
         weight:            form.weight ? Number(form.weight) : undefined,
@@ -338,6 +339,15 @@ export const PlayerEditModal: React.FC<Props> = ({ player, isOwnerOrEditor, onCl
                 <input style={inp} value={form.nationality ?? ''} onChange={e => set('nationality', e.target.value)}
                   placeholder="Brasileira..." disabled={!isOwnerOrEditor} />
               </div>
+            </div>
+            <div>
+              <label style={lbl}>Função</label>
+              <select style={{ ...inp, cursor: isOwnerOrEditor ? 'pointer' : 'default' }} value={form.role ?? 'jogador'}
+                onChange={e => set('role', e.target.value)} disabled={!isOwnerOrEditor}>
+                <option value="jogador">Jogador</option>
+                <option value="tecnico">Técnico (não entra no sorteio)</option>
+                <option value="tecnico_jogador">Técnico que também joga</option>
+              </select>
             </div>
           </Section>
 

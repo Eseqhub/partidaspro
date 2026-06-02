@@ -9,6 +9,7 @@ export interface JoinRequest {
   birth_date?: string;
   phone?: string;
   email?: string;
+  role?: string;
   preferred_foot?: string;
   positions?: string[];
   height?: number;
