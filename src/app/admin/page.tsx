@@ -118,6 +118,23 @@ export default function AdminPage() {
     await loadAll();
   };
 
+  const handleFinalizeMatch = async (id: string) => {
+    try {
+      await adminRepo.updateMatch(id, { status: 'Finalizada', timer_started_at: null });
+      await loadAll();
+    } catch (e: any) { alert(`Erro ao finalizar: ${e.message}`); }
+  };
+
+  const handleFinalizeAll = async () => {
+    const open = matches.filter(m => m.status !== 'Finalizada');
+    if (!open.length) return;
+    if (!confirm(`Finalizar ${open.length} partida(s) em aberto?`)) return;
+    try {
+      await Promise.all(open.map(m => adminRepo.updateMatch(m.id, { status: 'Finalizada', timer_started_at: null })));
+      await loadAll();
+    } catch (e: any) { alert(`Erro: ${e.message}`); }
+  };
+
   const handleAddAdmin = async () => {
     const email = newAdminEmail.trim().toLowerCase();
     if (!email || !email.includes('@')) { alert('E-mail inválido.'); return; }
@@ -270,6 +287,8 @@ export default function AdminPage() {
             deleting={deleting}
             onEdit={setEditingMatch}
             onDelete={(id, label) => handleDelete('match', id, label)}
+            onFinalize={handleFinalizeMatch}
+            onFinalizeAll={handleFinalizeAll}
             onExport={exportMatches}
           />
         )}

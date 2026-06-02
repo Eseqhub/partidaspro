@@ -8,7 +8,7 @@ import { supabase } from '@/infra/supabase/client';
 import { Group } from '@/core/entities/group';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faShieldHalved, faUsers, faArrowRight, faCrown } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faShieldHalved, faUsers, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import Link from 'next/link';
 
 import { CreateGroupModal } from '@/presentation/components/dashboard/CreateGroupModal';
@@ -17,7 +17,6 @@ export default function DashboardLobby() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [ownerId, setOwnerId] = useState('');
   
@@ -34,11 +33,6 @@ export default function DashboardLobby() {
 
     setOwnerId(user.id);
     setUserName(user.email?.split('@')[0] || 'Organizador');
-    
-    // Checar se é o Super Admin (Você)
-    if (user.email === 'eseqmotion@gmail.com') {
-      setIsAdmin(true);
-    }
 
     const userGroups = await groupRepo.findAllByOwner(user.id);
     setGroups(userGroups);
@@ -73,13 +67,6 @@ export default function DashboardLobby() {
         </div>
 
         <div className="flex gap-4">
-            {isAdmin && (
-                <Link href="/admin">
-                    <Button variant="glass" className="px-6 py-3 border-accent/20 text-accent">
-                        <FontAwesomeIcon icon={faCrown} className="mr-2" /> DATA MASTER
-                    </Button>
-                </Link>
-            )}
             <Button variant="primary" className="px-6 py-3" onClick={() => setIsModalOpen(true)}>
                 <FontAwesomeIcon icon={faPlus} className="mr-2" /> FUNDAR NOVO CLUBE
             </Button>
