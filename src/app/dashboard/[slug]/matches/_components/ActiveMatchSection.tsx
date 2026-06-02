@@ -39,6 +39,9 @@ interface Props {
   homeFormation: Formation;
   awayFormation: Formation;
   events: any[];
+  comments: any[];
+  currentUserName: string;
+  handleAddComment: (message: string) => void;
   slug: string;
   // attendance
   allPlayers: Player[];
@@ -83,7 +86,7 @@ export function ActiveMatchSection({
   score, config, setConfig, timer, status, matchId, matchRepo,
   toggleTimer, setScore, setTimer, setStartTime, setAccumulatedTime, setStatus,
   activeTab, setActiveTab, tabs, teamsQueue,
-  draftResult, matchType, homeFormation, awayFormation, events, slug,
+  draftResult, matchType, homeFormation, awayFormation, events, comments, currentUserName, handleAddComment, slug,
   allPlayers, selectedPlayerIds, togglePlayerAttendance, setIsAddModalOpen,
   guestInput, setGuestInput, guestPlayers, setGuestPlayers,
   handleDraft, setSelectedPlayerIds, availableFormations,
@@ -194,6 +197,9 @@ export function ActiveMatchSection({
             events={events}
             onElectMVP={handleElectMVP}
             mvpPlayerId={mvpPlayerId}
+            comments={comments}
+            currentUserName={currentUserName}
+            onAddComment={handleAddComment}
           />
         )}
 

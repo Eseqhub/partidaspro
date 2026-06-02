@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFutbol, faHandshake, faSquare, faPlus, faChartBar, faRotateLeft, faStar, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faFutbol, faHandshake, faSquare, faPlus, faChartBar, faRotateLeft, faStar, faTimes, faComment, faPaperPlane } from '@fortawesome/free-solid-svg-icons';
 import { GlassCard } from '@/presentation/components/ui/GlassCard';
 import { MatchEvent } from '@/core/entities/match';
 import { DraftResult } from '@/core/services/DraftService';
@@ -15,6 +15,9 @@ interface StatsTabProps {
   events: MatchEvent[];
   onElectMVP?: (playerId: string, team: 'home' | 'away') => void;
   mvpPlayerId?: string | null;
+  comments?: any[];
+  currentUserName?: string;
+  onAddComment?: (message: string) => void;
 }
 
 const EVENT_ICON: Record<string, any> = {
@@ -45,8 +48,17 @@ const EVENT_COLOR: Record<string, string> = {
 export const StatsTab: React.FC<StatsTabProps> = ({
   userRole, handleNewMatch, draftResult, setSelectedEventType, setIsEventModalOpen, events,
   onElectMVP, mvpPlayerId,
+  comments = [], onAddComment,
 }) => {
   const [mvpPickerOpen, setMvpPickerOpen] = useState(false);
+  const [commentText, setCommentText] = useState('');
+
+  const submitComment = () => {
+    const text = commentText.trim();
+    if (!text) return;
+    onAddComment?.(text);
+    setCommentText('');
+  };
   // Agrega eventos da partida atual por jogador
   const playerSummary = new Map<string, { name: string; goals: number; assists: number; yellow: number; red: number; team: string }>();
   events.forEach(ev => {
@@ -249,6 +261,59 @@ export const StatsTab: React.FC<StatsTabProps> = ({
                 </div>
               );
             })
+          )}
+        </div>
+      </GlassCard>
+
+      {/* Comentários ao vivo */}
+      <GlassCard className="border-white/5 bg-white/[0.02] rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+          <h4 className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 flex items-center gap-2">
+            <FontAwesomeIcon icon={faComment} className="text-violet-400" style={{ fontSize: 9 }} />
+            Comentários
+          </h4>
+          <span className="text-[8px] font-bold text-white/20 bg-white/5 px-2 py-0.5 rounded">{comments.length}</span>
+        </div>
+
+        {/* Caixa de envio */}
+        {onAddComment && (
+          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/5">
+            <input
+              value={commentText}
+              onChange={e => setCommentText(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') submitComment(); }}
+              maxLength={240}
+              placeholder="Comente o lance..."
+              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white placeholder:text-white/25 outline-none focus:border-violet-400/40"
+            />
+            <button
+              onClick={submitComment}
+              disabled={!commentText.trim()}
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-violet-500/15 border border-violet-400/30 text-violet-300 hover:bg-violet-500 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <FontAwesomeIcon icon={faPaperPlane} style={{ fontSize: 11 }} />
+            </button>
+          </div>
+        )}
+
+        {/* Lista de comentários */}
+        <div className="max-h-72 overflow-y-auto">
+          {comments.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-[9px] font-black text-white/10 uppercase tracking-widest">Seja o primeiro a comentar</p>
+            </div>
+          ) : (
+            comments.map((c: any) => (
+              <div key={c.id} className="px-4 py-2.5 border-b border-white/[0.04]">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-[10px] font-black uppercase text-violet-300 flex-shrink-0">{c.author_name}</span>
+                  <span className="text-[7px] font-bold text-white/20 flex-shrink-0">
+                    {c.created_at ? new Date(c.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                  </span>
+                </div>
+                <p className="text-[12px] text-white/80 mt-0.5 break-words">{c.message}</p>
+              </div>
+            ))
           )}
         </div>
       </GlassCard>

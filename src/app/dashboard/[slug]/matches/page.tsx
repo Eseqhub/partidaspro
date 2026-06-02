@@ -20,6 +20,7 @@ import { MatchSetupPhase } from './_components/MatchSetupPhase';
 import { ActiveMatchSection } from './_components/ActiveMatchSection';
 import { FinishMatchOverlay } from './_components/FinishMatchOverlay';
 import { EventModal } from './_components/EventModal';
+import { MatchToast } from '@/presentation/components/dashboard/matches/MatchToast';
 
 export default function MatchPage() {
   const params = useParams();
@@ -68,6 +69,9 @@ export default function MatchPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-12 pb-32 relative font-inter">
+
+      {/* Popup in-app de eventos/comentários ao vivo */}
+      <MatchToast notification={m.notification} onDismiss={m.dismissNotification} />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
@@ -125,6 +129,9 @@ export default function MatchPage() {
           homeFormation={m.homeFormation}
           awayFormation={m.awayFormation}
           events={m.events}
+          comments={m.comments}
+          currentUserName={m.currentUserName}
+          handleAddComment={m.handleAddComment}
           slug={slug}
           allPlayers={m.allPlayers}
           selectedPlayerIds={m.selectedPlayerIds}

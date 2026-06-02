@@ -169,6 +169,41 @@ export class MatchRepository {
     return data;
   }
 
+  // ── COMMENTS (chat ao vivo da súmula) ─────────────────────────────────────
+
+  async getComments(matchId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('match_comments')
+      .select('*')
+      .eq('match_id', matchId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  }
+
+  async addComment(comment: { match_id: string; author_name: string; message: string }): Promise<any> {
+    const { data, error } = await supabase
+      .from('match_comments')
+      .insert([comment])
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  /** Realtime: novos comentários da partida. */
+  subscribeToComments(matchId: string, onInsert: (comment: any) => void) {
+    return supabase
+      .channel(`comments:${matchId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'match_comments',
+        filter: `match_id=eq.${matchId}`,
+      }, (payload) => onInsert(payload.new))
+      .subscribe();
+  }
+
   // ── PRESENCE ─────────────────────────────────────────────────────────────
 
   async getPresence(matchId: string): Promise<any[]> {

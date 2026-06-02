@@ -40,6 +40,12 @@ export function useMatchState(slug: string) {
   const [status, setStatus] = useState<MatchStatus>('Pausada');
   const [matchId, setMatchId] = useState<string | null>(null);
   const [events, setEvents] = useState<any[]>([]);
+  const [comments, setComments] = useState<any[]>([]);
+  const [currentUserName, setCurrentUserName] = useState<string>('Torcedor');
+  // Notificação popup in-app (toast) para eventos/comentários ao vivo
+  const [notification, setNotification] = useState<{
+    id: string; kind: 'event' | 'comment'; title: string; subtitle: string; color: string;
+  } | null>(null);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [selectedEventType, setSelectedEventType] = useState<CoreEventType>('Gol');
   const [guestPlayers, setGuestPlayers] = useState<string[]>([]);
@@ -121,6 +127,26 @@ export function useMatchState(slug: string) {
 
   const availableFormations = getFormations(config.sport_type, config.playersPerTeam);
 
+  // Dispara um popup in-app que some sozinho após alguns segundos.
+  const notifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pushNotification = (n: { kind: 'event' | 'comment'; title: string; subtitle: string; color: string }) => {
+    setNotification({ id: `${Date.now()}-${Math.random()}`, ...n });
+    if (notifTimerRef.current) clearTimeout(notifTimerRef.current);
+    notifTimerRef.current = setTimeout(() => setNotification(null), 5000);
+  };
+  const dismissNotification = () => {
+    if (notifTimerRef.current) clearTimeout(notifTimerRef.current);
+    setNotification(null);
+  };
+
+  const EVENT_NOTIF: Record<string, { title: string; color: string }> = {
+    'Gol':             { title: '⚽ GOL!',            color: '#ccff00' },
+    'Assistência':     { title: '🎯 Assistência',     color: '#00b4ff' },
+    'Cartão Amarelo':  { title: '🟨 Cartão Amarelo',  color: '#EAB308' },
+    'Cartão Vermelho': { title: '🟥 Cartão Vermelho', color: '#EF4444' },
+    'Craque':          { title: '🏆 Craque da Partida', color: '#FFD700' },
+  };
+
   const fetchPlayers = async (id: string) => {
     try {
       const data = await playerRepo.findAllByGroupId(id);
@@ -156,6 +182,10 @@ export function useMatchState(slug: string) {
     async function init() {
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user ?? null;
+      if (user) {
+        const meta = (user.user_metadata ?? {}) as any;
+        setCurrentUserName(meta.name || meta.full_name || user.email?.split('@')[0] || 'Torcedor');
+      }
       const group = await groupRepo.findBySlug(slug);
 
       if (group && user) {
@@ -222,6 +252,9 @@ export function useMatchState(slug: string) {
 
           const matchEvents = await matchRepo.getEvents(liveMatch.id);
           setEvents(matchEvents);
+
+          const matchComments = await matchRepo.getComments(liveMatch.id).catch(() => []);
+          setComments(matchComments);
 
           const fieldTypePPT: Record<string, number> = {
             'Futsal 5x5': 5, 'Society 6x6': 6, 'Society 7x7': 7, 'Campo 11x11': 11,
@@ -307,16 +340,34 @@ export function useMatchState(slug: string) {
   useEffect(() => {
     if (!matchId) return;
     const sub = matchRepo.subscribeToEvents(matchId, (raw) => {
+      const player = allPlayers.find(p => p.id === raw.player_id);
+      const playerName = player?.name ?? 'Jogador';
       setEvents(prev => {
-        if (prev.some(e => e.id === raw.id)) return prev;
-        const player = allPlayers.find(p => p.id === raw.player_id);
+        if (prev.some(e => e.id === raw.id)) return prev; // já adicionado localmente
         const enriched = { ...raw, player: player ? { name: player.name } : undefined };
+        // Popup só para eventos vindos de OUTRO dispositivo (novos aqui)
+        const meta = EVENT_NOTIF[raw.type];
+        if (meta) pushNotification({ kind: 'event', title: meta.title, subtitle: playerName, color: meta.color });
         return [enriched, ...prev];
       });
     });
     return () => { supabase.removeChannel(sub); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchId, allPlayers]);
+
+  // Realtime: comentários
+  useEffect(() => {
+    if (!matchId) return;
+    const sub = matchRepo.subscribeToComments(matchId, (raw) => {
+      setComments(prev => {
+        if (prev.some(c => c.id === raw.id)) return prev; // já adicionado localmente
+        pushNotification({ kind: 'comment', title: `💬 ${raw.author_name}`, subtitle: raw.message, color: '#a78bfa' });
+        return [raw, ...prev];
+      });
+    });
+    return () => { supabase.removeChannel(sub); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchId]);
 
   // Realtime: nova partida criada no grupo (outros dispositivos recebem a partida)
   useEffect(() => {
@@ -504,6 +555,20 @@ export function useMatchState(slug: string) {
       setEvents(prev => [newEvent, ...prev.filter(e => e.type !== 'Craque')]);
       setMvpPlayerId(playerId);
     } catch (error) { console.error(error); }
+  };
+
+  const handleAddComment = async (message: string) => {
+    const text = message.trim();
+    if (!text || !matchId) return;
+    try {
+      const newComment = await matchRepo.addComment({
+        match_id: matchId, author_name: currentUserName, message: text,
+      });
+      setComments(prev => [newComment, ...prev]);
+    } catch (error: any) {
+      console.error('[handleAddComment]', error);
+      alert(`Erro ao comentar: ${error?.message ?? 'verifique o console'}`);
+    }
   };
 
   const computeScorers = (): { name: string; team: 'home' | 'away'; goals: number }[] => {
@@ -855,6 +920,9 @@ export function useMatchState(slug: string) {
     status, setStatus,
     matchId,
     events,
+    comments,
+    currentUserName,
+    notification, dismissNotification,
     isEventModalOpen, setIsEventModalOpen,
     selectedEventType, setSelectedEventType,
     guestPlayers, setGuestPlayers,
@@ -882,6 +950,7 @@ export function useMatchState(slug: string) {
     toggleTimer,
     handleAddEvent,
     handleElectMVP,
+    handleAddComment,
     computeScorers,
     togglePlayerAttendance,
     handleDraft,
