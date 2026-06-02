@@ -20,7 +20,7 @@ import { NovaPartidaModal } from '@/presentation/components/clube/components/Nov
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faChartPie, faUsers, faWallet, faCog,
-  faFutbol, faShieldHalved, faChartSimple,
+  faFutbol, faShieldHalved, faChartSimple, faCircleQuestion,
 } from '@fortawesome/free-solid-svg-icons';
 
 type Tab = 'overview' | 'elenco' | 'financeiro' | 'configuracoes';
@@ -228,9 +228,17 @@ export default function DashboardSlugPage() {
         {tab === 'financeiro'    && <FinancesTab      finances={finances} summary={summary} groupId={group.id} groupName={group.name} players={players} onRefresh={load} />}
         {tab === 'configuracoes' && <ClubSettingsTab  group={group} editors={editors} isOwner={isOwner} groupId={group.id} groupRepo={groupRepo} supabase={supabase} onSave={handleSaveGroup} />}
 
-        <p className="text-center mt-16 text-[9px] text-white/10 font-bold uppercase tracking-[0.5em]">
-          PARTIDAS PRO © 2026 — {group.name}
-        </p>
+        <div className="text-center mt-16 space-y-3">
+          <button
+            onClick={() => router.push('/faq')}
+            className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 hover:text-primary transition-colors"
+          >
+            <FontAwesomeIcon icon={faCircleQuestion} className="mr-2" /> Central de Ajuda / FAQ
+          </button>
+          <p className="text-[9px] text-white/10 font-bold uppercase tracking-[0.5em]">
+            PARTIDAS PRO © 2026 — {group.name}
+          </p>
+        </div>
       </div>
 
       {/* Modal Nova Partida */}
