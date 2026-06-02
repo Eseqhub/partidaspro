@@ -102,6 +102,65 @@ export class AdminRepository {
     return buckets;
   }
 
+  // ── Engajamento ───────────────────────────────────────────────────────
+  async getEngagement() {
+    const [{ data: matches }, { data: goals }, { data: presence }] = await Promise.all([
+      supabase.from('matches').select('group_id, date, created_at'),
+      supabase.from('events').select('player_id').eq('type', 'Gol'),
+      supabase.from('match_presence').select('player_id'),
+    ]);
+
+    const tally = (rows: any[], key: string) => {
+      const m = new Map<string, number>();
+      (rows ?? []).forEach(r => { const v = r[key]; if (v) m.set(v, (m.get(v) ?? 0) + 1); });
+      return m;
+    };
+
+    const clubCount = tally(matches ?? [], 'group_id');
+    const topClubs = [...clubCount.entries()]
+      .map(([group_id, matches]) => ({ group_id, matches })).sort((a, b) => b.matches - a.matches).slice(0, 6);
+
+    const goalCount = tally(goals ?? [], 'player_id');
+    const topScorers = [...goalCount.entries()]
+      .map(([player_id, goals]) => ({ player_id, goals })).sort((a, b) => b.goals - a.goals).slice(0, 6);
+
+    const presCount = tally(presence ?? [], 'player_id');
+    const topPresence = [...presCount.entries()]
+      .map(([player_id, games]) => ({ player_id, games })).sort((a, b) => b.games - a.games).slice(0, 6);
+
+    // Partidas por dia (últimos 14 dias)
+    const now = new Date();
+    const days: { key: string; label: string; count: number }[] = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      days.push({
+        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+        label: `${d.getDate()}/${d.getMonth() + 1}`, count: 0,
+      });
+    }
+    const dayIdx = new Map(days.map((d, i) => [d.key, i]));
+    (matches ?? []).forEach((m: any) => {
+      const iso = m.date ?? m.created_at; if (!iso) return;
+      const d = new Date(iso);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const k = dayIdx.get(key); if (k !== undefined) days[k].count++;
+    });
+
+    return { topClubs, topScorers, topPresence, perDay: days };
+  }
+
+  // ── Push / Avisos ─────────────────────────────────────────────────────
+  async getPushStats() {
+    try {
+      const { data } = await supabase.from('push_subscriptions').select('group_id');
+      const m = new Map<string, number>();
+      (data ?? []).forEach((s: any) => { if (s.group_id) m.set(s.group_id, (m.get(s.group_id) ?? 0) + 1); });
+      return { total: data?.length ?? 0, perGroup: [...m.entries()].map(([group_id, count]) => ({ group_id, count })).sort((a, b) => b.count - a.count) };
+    } catch {
+      return { total: 0, perGroup: [] as { group_id: string; count: number }[] };
+    }
+  }
+
   // ── Listagens ─────────────────────────────────────────────────────────
   async getAllGroups() {
     const { data, error } = await supabase

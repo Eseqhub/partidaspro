@@ -18,15 +18,14 @@ export async function POST(request: Request) {
     if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
       return Response.json({ error: 'VAPID não configurado no servidor' }, { status: 500 });
     }
-    const { groupId, title, body, url, excludeEndpoint } = await request.json();
-    if (!groupId || !title) {
-      return Response.json({ error: 'groupId e title são obrigatórios' }, { status: 400 });
+    const { groupId, title, body, url, excludeEndpoint, all } = await request.json();
+    if (!title || (!groupId && !all)) {
+      return Response.json({ error: 'title e (groupId ou all) são obrigatórios' }, { status: 400 });
     }
 
-    const { data: subs, error } = await supabase
-      .from('push_subscriptions')
-      .select('*')
-      .eq('group_id', groupId);
+    let query = supabase.from('push_subscriptions').select('*');
+    if (!all) query = query.eq('group_id', groupId);
+    const { data: subs, error } = await query;
     if (error) throw error;
 
     const payload = JSON.stringify({

@@ -11,20 +11,22 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faCrown, faShieldHalved, faFutbol,
   faArrowLeft, faChartPie, faSearch, faTimes,
-  faCircle, faUsers, faWallet, faKey,
+  faCircle, faUsers, faWallet, faKey, faBell,
 } from '@fortawesome/free-solid-svg-icons';
 import Link from 'next/link';
 
 import { AdminOverviewTab } from './_components/AdminOverviewTab';
+import { AdminEngagement } from './_components/AdminEngagement';
 import { AdminClubsTab } from './_components/AdminClubsTab';
 import { AdminMatchesTab } from './_components/AdminMatchesTab';
 import { AdminPlayersTab } from './_components/AdminPlayersTab';
 import { AdminFinancesTab } from './_components/AdminFinancesTab';
 import { AdminAccessTab } from './_components/AdminAccessTab';
+import { AdminPushTab } from './_components/AdminPushTab';
 
 const adminRepo = new AdminRepository();
 
-type Tab = 'overview' | 'clubs' | 'matches' | 'players' | 'finances' | 'acessos';
+type Tab = 'overview' | 'clubs' | 'matches' | 'players' | 'finances' | 'acessos' | 'avisos';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -41,6 +43,8 @@ export default function AdminPage() {
   const [players, setPlayers]   = useState<any[]>([]);
   const [finances, setFinances] = useState<any[]>([]);
   const [admins, setAdmins]     = useState<any[]>([]);
+  const [engagement, setEngagement] = useState<any>({ topClubs: [], topScorers: [], topPresence: [], perDay: [] });
+  const [pushStats, setPushStats]   = useState<{ total: number; perGroup: { group_id: string; count: number }[] }>({ total: 0, perGroup: [] });
 
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [groupDetails, setGroupDetails]   = useState<Record<string, any>>({});
@@ -52,9 +56,10 @@ export default function AdminPage() {
   const [newAdminEmail, setNewAdminEmail] = useState('');
 
   const groupNameById = new Map(groups.map(g => [g.id, g.name]));
+  const playerNameById = new Map(players.map(p => [p.id, p.name]));
 
   const loadAll = useCallback(async () => {
-    const [s, act, g, m, p, f, a] = await Promise.all([
+    const [s, act, g, m, p, f, a, eng, push] = await Promise.all([
       adminRepo.getGlobalStats(),
       adminRepo.getActivitySeries(6),
       adminRepo.getAllGroups(),
@@ -62,8 +67,11 @@ export default function AdminPage() {
       adminRepo.getAllPlayers(),
       adminRepo.getAllFinances(),
       adminRepo.listAdmins(),
+      adminRepo.getEngagement(),
+      adminRepo.getPushStats(),
     ]);
     setStats(s); setActivity(act); setGroups(g); setMatches(m); setPlayers(p); setFinances(f); setAdmins(a);
+    setEngagement(eng); setPushStats(push);
     setLoading(false);
   }, []);
 
@@ -196,6 +204,7 @@ export default function AdminPage() {
     { id: 'matches',  label: 'Partidas',     icon: faFutbol,       count: matches.length },
     { id: 'players',  label: 'Jogadores',    icon: faUsers,        count: players.length },
     { id: 'finances', label: 'Financeiro',   icon: faWallet,       count: finances.length },
+    { id: 'avisos',   label: 'Avisos',       icon: faBell,         count: pushStats.total },
     { id: 'acessos',  label: 'Acessos',      icon: faKey,          count: admins.length },
   ];
 
@@ -257,14 +266,25 @@ export default function AdminPage() {
 
         {/* Tab Content */}
         {tab === 'overview' && (
-          <AdminOverviewTab
-            stats={stats}
-            activity={activity}
-            onExportPlayers={exportPlayers}
-            onExportClubs={exportClubs}
-            onExportMatches={exportMatches}
-            onExportFinances={exportFinances}
-          />
+          <div className="space-y-6">
+            <AdminOverviewTab
+              stats={stats}
+              activity={activity}
+              onExportPlayers={exportPlayers}
+              onExportClubs={exportClubs}
+              onExportMatches={exportMatches}
+              onExportFinances={exportFinances}
+            />
+            <AdminEngagement
+              engagement={engagement}
+              groupNameById={groupNameById}
+              playerNameById={playerNameById}
+            />
+          </div>
+        )}
+
+        {tab === 'avisos' && (
+          <AdminPushTab pushStats={pushStats} groupNameById={groupNameById} />
         )}
 
         {tab === 'clubs' && (
