@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { GlassCard } from '@/presentation/components/ui/GlassCard';
 import { Button } from '@/presentation/components/ui/Button';
-import { PlayerRepository } from '@/infra/repositories/PlayerRepository';
 import { GroupRepository } from '@/infra/repositories/GroupRepository';
+import { JoinRequestRepository } from '@/infra/repositories/JoinRequestRepository';
+import { sendPush } from '@/infra/services/pushClient';
 import { supabase } from '@/infra/supabase/client';
 import { useRouter, useParams } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -26,8 +27,8 @@ export default function PlayerRegistrationPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
-  const playerRepo = new PlayerRepository();
   const groupRepo = new GroupRepository();
+  const joinRequestRepo = new JoinRequestRepository();
 
   const [group, setGroup] = useState<Group | null>(null);
   const [form, setForm] = useState({
@@ -118,7 +119,8 @@ export default function PlayerRegistrationPage() {
         ? `${birthYear}-${birthMonth}-${birthDay}`
         : undefined;
 
-      const newPlayer = await playerRepo.create({
+      // Cria uma SOLICITAÇÃO de entrada (aguarda aprovação do organizador)
+      await joinRequestRepo.create({
         group_id: group.id,
         name: form.name.substring(0, 15), // Limite para card
         full_name: form.full_name,
@@ -129,34 +131,15 @@ export default function PlayerRegistrationPage() {
         height: form.height ? parseFloat(form.height) : undefined,
         weight: form.weight ? parseFloat(form.weight) : undefined,
         photo_url: photoUrl,
-        rating: 3.0,
-        status: 'Ativo',
-        is_mensalista: false
       });
 
-      // Auto-confirmar na partida do link ou na próxima disponível
-      const urlMatchId = new URLSearchParams(window.location.search).get('matchId');
-      let targetMatchId = urlMatchId;
-
-      if (!targetMatchId) {
-        const { data: nextMatch } = await supabase
-            .from('matches')
-            .select('id')
-            .eq('group_id', group.id)
-            .eq('status', 'Agendada')
-            .order('date', { ascending: true })
-            .limit(1)
-            .maybeSingle();
-        if (nextMatch) targetMatchId = nextMatch.id;
-      }
-
-      if (targetMatchId) {
-         await supabase.from('match_presence').insert({
-            match_id: targetMatchId,
-            player_id: newPlayer.id,
-            status: 'Confirmado'
-         });
-      }
+      // Notifica os admins do grupo (push com app fechado)
+      sendPush({
+        groupId: group.id,
+        title: '🙋 Nova solicitação de entrada',
+        body: `${form.name} quer entrar no ${group.name}`,
+        url: `/dashboard/${slug}`,
+      });
 
       setSuccess(true);
     } catch (err) {
@@ -185,9 +168,9 @@ export default function PlayerRegistrationPage() {
             <div className="w-24 h-24 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center mx-auto mb-8 scale-110 shadow-[0_0_50px_rgba(204,255,0,0.2)]">
                 <FontAwesomeIcon icon={faCheckCircle} className="text-primary text-4xl" />
             </div>
-            <h1 className="text-4xl font-black text-white uppercase tracking-tighter mb-4">CADASTRO REALIZADO!</h1>
+            <h1 className="text-4xl font-black text-white uppercase tracking-tighter mb-4">SOLICITAÇÃO ENVIADA!</h1>
             <p className="text-white/60 mb-10 px-4 leading-relaxed font-medium">
-                Seu Card de Atleta foi criado com sucesso no <span className="text-primary font-bold">{group.name}</span>. O organizador já pode te visualizar no elenco.
+                Sua ficha foi enviada para o <span className="text-primary font-bold">{group.name}</span>. Aguarde o organizador <span className="text-primary font-bold">aprovar sua entrada</span> — você será adicionado ao elenco assim que confirmarem.
             </p>
             
             <Button 

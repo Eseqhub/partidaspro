@@ -6,6 +6,8 @@ import { supabase } from '@/infra/supabase/client';
 import { GroupRepository } from '@/infra/repositories/GroupRepository';
 import { FinanceRepository } from '@/infra/repositories/FinanceRepository';
 import { PlayerRepository } from '@/infra/repositories/PlayerRepository';
+import { JoinRequestRepository, JoinRequest } from '@/infra/repositories/JoinRequestRepository';
+import { JoinRequestsPanel } from '@/presentation/components/clube/components/JoinRequestsPanel';
 import { generateRecruitmentLink } from '@/infra/actions/draftActions';
 import { Group } from '@/core/entities/group';
 import { Player } from '@/core/entities/player';
@@ -52,6 +54,8 @@ export default function DashboardSlugPage() {
   const [loading,  setLoading]  = useState(true);
   const [tab,      setTab]      = useState<Tab>('overview');
   const [isOwner,  setIsOwner]  = useState(false);
+  const [canManage, setCanManage] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState<JoinRequest[]>([]);
   const [copied,      setCopied]      = useState(false);
   const [linkLoading, setLinkLoading] = useState(false);
   const [novaPartidaOpen, setNovaPartidaOpen] = useState(false);
@@ -59,6 +63,7 @@ export default function DashboardSlugPage() {
   const groupRepo   = new GroupRepository();
   const financeRepo = new FinanceRepository();
   const playerRepo  = new PlayerRepository();
+  const joinRepo    = new JoinRequestRepository();
 
   const load = useCallback(async () => {
     try {
@@ -80,7 +85,16 @@ export default function DashboardSlugPage() {
       setSummary(s);
       setMatches(m.data ?? []);
       setEditors(roles.data ?? []);
-      setIsOwner(user?.id === g.owner_id);
+      const owner = user?.id === g.owner_id;
+      setIsOwner(owner);
+
+      // Quem pode gerenciar solicitações: dono OU editor delegado
+      const editor = owner ? true : !!(user?.email && await groupRepo.isEditor(g.id, user.email).catch(() => false));
+      setCanManage(owner || editor);
+      if (owner || editor) {
+        const reqs = await joinRepo.findPendingByGroup(g.id).catch(() => []);
+        setPendingRequests(reqs);
+      }
     } catch (err) {
       console.error('[DashboardSlug]', err);
     } finally {
@@ -89,6 +103,17 @@ export default function DashboardSlugPage() {
   }, [slug]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Realtime: atualiza solicitações de entrada quando chegam/saem
+  useEffect(() => {
+    if (!group || !canManage) return;
+    const sub = joinRepo.subscribeToGroup(group.id, async () => {
+      const reqs = await joinRepo.findPendingByGroup(group.id).catch(() => []);
+      setPendingRequests(reqs);
+    });
+    return () => { supabase.removeChannel(sub); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [group?.id, canManage]);
 
   const handleCopyLink = async () => {
     if (!group) return;
@@ -101,7 +126,7 @@ export default function DashboardSlugPage() {
         hash = result.hash!;
         setGroup(prev => prev ? { ...prev, recruitment_link_hash: hash! } : prev);
       }
-      await navigator.clipboard.writeText(`${window.location.origin}/${group.slug}/register?h=${hash}`);
+      await navigator.clipboard.writeText(`${window.location.origin}/${group.slug}/join?h=${hash}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch { alert('Erro ao gerar link.'); }
@@ -176,6 +201,13 @@ export default function DashboardSlugPage() {
             ))}
           </div>
         </div>
+
+        {/* Solicitações de entrada pendentes (dono/editor) */}
+        {canManage && pendingRequests.length > 0 && (
+          <div className="mt-8">
+            <JoinRequestsPanel requests={pendingRequests} onChanged={load} />
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-1 mt-8 mb-8 border-b border-white/5 overflow-x-auto">

@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { GlassCard } from '@/presentation/components/ui/GlassCard';
 import { Button } from '@/presentation/components/ui/Button';
-import { PlayerRepository } from '@/infra/repositories/PlayerRepository';
+import { JoinRequestRepository } from '@/infra/repositories/JoinRequestRepository';
+import { sendPush } from '@/infra/services/pushClient';
 import { supabase } from '@/infra/supabase/client';
 import { useRouter, useParams } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -22,7 +23,7 @@ export default function PlayerRegistrationPage() {
   const params = useParams();
   const router = useRouter();
   const groupId = params.groupId as string;
-  const playerRepo = new PlayerRepository();
+  const joinRequestRepo = new JoinRequestRepository();
 
   const [form, setForm] = useState({
     name: '',
@@ -86,41 +87,26 @@ export default function PlayerRegistrationPage() {
         photoUrl = await uploadPhoto(photoFile);
       }
 
-      // 1. Criar Jogador
-      const newPlayer = await playerRepo.create({
+      // Cria SOLICITAÇÃO de entrada (aguarda aprovação do organizador)
+      await joinRequestRepo.create({
         group_id: groupId,
         name: form.name,
         full_name: form.full_name,
         nationality: form.nationality,
-        birth_date: form.birth_date,
+        birth_date: form.birth_date || undefined,
         preferred_foot: form.preferred_foot,
         positions: form.positions,
-        height: parseFloat(form.height),
-        weight: parseFloat(form.weight),
+        height: form.height ? parseFloat(form.height) : undefined,
+        weight: form.weight ? parseFloat(form.weight) : undefined,
         photo_url: photoUrl,
-        rating: 3.0, // Default rating for new players
-        status: 'Ativo',
-        is_mensalista: false
       });
 
-      // 2. Automático: Confirmar presença na próxima partida (Placeholder logic)
-      // Aqui poderíamos buscar a próxima partida aberta do grupo e inserir no match_presence
-      const { data: nextMatch } = await supabase
-        .from('matches')
-        .select('id')
-        .eq('group_id', groupId)
-        .eq('status', 'Agendada')
-        .order('date', { ascending: true })
-        .limit(1)
-        .single();
-
-      if (nextMatch) {
-         await supabase.from('match_presence').insert({
-            match_id: nextMatch.id,
-            player_id: newPlayer.id,
-            status: 'Confirmado'
-         });
-      }
+      sendPush({
+        groupId,
+        title: '🙋 Nova solicitação de entrada',
+        body: `${form.name} quer entrar no grupo`,
+        url: `/dashboard`,
+      });
 
       setSuccess(true);
     } catch (err) {
@@ -146,8 +132,8 @@ export default function PlayerRegistrationPage() {
             <div className="w-24 h-24 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center mx-auto mb-6 scale-110">
                 <FontAwesomeIcon icon={faCheckCircle} className="text-primary text-4xl" />
             </div>
-            <h1 className="text-3xl font-black text-white uppercase tracking-tighter mb-2">Inscrito com Sucesso!</h1>
-            <p className="text-white/60 mb-8 px-4">Seu Card de Atleta foi criado e você já está na lista da próxima partida.</p>
+            <h1 className="text-3xl font-black text-white uppercase tracking-tighter mb-2">Solicitação Enviada!</h1>
+            <p className="text-white/60 mb-8 px-4">Sua ficha foi enviada. Aguarde o organizador aprovar sua entrada no grupo.</p>
             
             <Button 
                 variant="glass" 
