@@ -5,7 +5,7 @@ import { supabase } from '@/infra/supabase/client';
 import React from 'react';
 import { MatchType } from '@/core/entities/match';
 import { faTableList } from '@fortawesome/free-solid-svg-icons';
-import { faPlus, faListCheck, faStopwatch, faFutbol, faGear, faBell, faBellSlash } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faListCheck, faStopwatch, faFutbol, faGear, faBell, faBellSlash, faFlagCheckered } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Tab } from '@/presentation/components/dashboard/matches/MatchBottomNav';
 import { AddPlayerModal } from '@/presentation/components/dashboard/AddPlayerModal';
@@ -106,6 +106,14 @@ export default function MatchPage() {
             className="px-6 py-2.5 bg-primary text-black font-black uppercase text-[10px] tracking-widest rounded-full shadow-lg shadow-primary/20 hover:scale-105 transition-all"
           >
             <FontAwesomeIcon icon={faPlus} className="mr-2" /> CRIAR PARTIDA
+          </button>
+        )}
+        {m.sessionPhase !== 'idle' && m.userRole !== 'viewer' && (
+          <button
+            onClick={() => { if (confirm('Encerrar a partida atual? Ela vai para o histórico e você poderá criar uma nova.')) m.handleNewMatch(); }}
+            className="px-5 py-2.5 bg-white/5 border border-red-500/30 text-red-400 font-black uppercase text-[10px] tracking-widest rounded-full hover:bg-red-500/15 transition-all"
+          >
+            <FontAwesomeIcon icon={faFlagCheckered} className="mr-2" /> ENCERRAR PARTIDA
           </button>
         )}
       </div>
@@ -278,6 +286,10 @@ export default function MatchPage() {
             playersPerTeam: cfg.playersPerTeam,
             location:       cfg.location,
           }));
+          // Pré-seleciona o "time de sempre" (atletas ativos do grupo).
+          // O organizador só desmarca quem faltou e marca os convidados novos.
+          const regulars = m.allPlayers.filter(p => p.status === 'Ativo').map(p => p.id);
+          m.setSelectedPlayerIds(regulars);
           m.setSessionPhase('setup');
           m.setActiveTab('attendance');
           m.setIsCreateMatchModalOpen(false);

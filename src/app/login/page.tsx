@@ -6,7 +6,7 @@ import { Button } from '@/presentation/components/ui/Button';
 import { supabase } from '@/infra/supabase/client';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEnvelope, faLock, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { faEnvelope, faLock, faArrowRight, faCircleQuestion } from '@fortawesome/free-solid-svg-icons';
 import { LogoMark } from '@/presentation/components/ui/Logo';
 import Link from 'next/link';
 
@@ -111,9 +111,14 @@ export default function LoginPage() {
           </div>
         </GlassCard>
 
-        <p className="text-center mt-8 text-[10px] text-white/20 font-bold uppercase tracking-[0.2em]">
-          Partidas Pro &copy; 2026 | SaaS Global Architecture
-        </p>
+        <div className="text-center mt-8 space-y-3">
+          <Link href="/faq" className="inline-block text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-primary transition-colors">
+            <FontAwesomeIcon icon={faCircleQuestion} className="mr-2" /> Como funciona? Central de Ajuda
+          </Link>
+          <p className="text-[10px] text-white/20 font-bold uppercase tracking-[0.2em]">
+            Partidas Pro &copy; 2026 | SaaS Global Architecture
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -917,7 +917,11 @@ export function useMatchState(slug: string) {
     setActiveTab('match');
   };
 
-  const handleNewMatch = () => {
+  const handleNewMatch = async () => {
+    // Encerra a partida atual no banco para não reabrir ao recarregar
+    if (matchId) {
+      await matchRepo.update(matchId, { status: 'Finalizada', timer_started_at: null }).catch(console.error);
+    }
     setDraftResult(null);
     setTeamsQueue([]);
     setConsecutiveWins(0);
@@ -928,6 +932,7 @@ export function useMatchState(slug: string) {
     setStatus('Pausada');
     setMatchId(null);
     setEvents([]);
+    setComments([]);
     setMatchType('rachao');
     setSessionPhase('idle');
     setTeamAssignments({});

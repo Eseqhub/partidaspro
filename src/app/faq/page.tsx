@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faChevronDown, faFutbol, faUsers, faStopwatch, faBell, faComments,
   faTableList, faWallet, faShieldHalved, faCircleQuestion, faTriangleExclamation,
-  faMobileScreen, faArrowLeft,
+  faMobileScreen, faArrowLeft, faFilePdf, faShareNodes,
 } from '@fortawesome/free-solid-svg-icons';
 
 interface QA { q: string; a: React.ReactNode; }
@@ -245,15 +245,36 @@ const SECTIONS: Section[] = [
 export default function FaqPage() {
   const [open, setOpen] = useState<string | null>('geral-0');
 
+  const handlePdf = () => window.print();
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/faq`;
+    const text = 'Partidas Pro — Central de Ajuda: como funciona o app de gestão de peladas';
+    if (typeof navigator !== 'undefined' && (navigator as any).share) {
+      try { await (navigator as any).share({ title: 'Partidas Pro — Ajuda', text, url }); return; } catch { /* cancelado */ }
+    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, '_blank');
+  };
+
   return (
     <div className="min-h-screen bg-[#020810] text-white">
+      {/* CSS de impressão: abre tudo e esconde elementos de navegação */}
+      <style>{`
+        @media print {
+          body { background: #fff !important; }
+          .no-print { display: none !important; }
+          .faq-answer { display: block !important; }
+          * { color: #111 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          a[href]:after { content: ''; }
+        }
+      `}</style>
       {/* Glows */}
       <div className="fixed top-0 left-0 w-[600px] h-[600px] bg-primary/[0.03] rounded-full blur-[200px] -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
       <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-blue-600/[0.03] rounded-full blur-[180px] translate-x-1/2 translate-y-1/2 pointer-events-none" />
 
       <div className="max-w-3xl mx-auto px-4 py-12 relative z-10">
         {/* Voltar */}
-        <Link href="/dashboard" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-primary transition-colors mb-8">
+        <Link href="/dashboard" className="no-print inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-primary transition-colors mb-8">
           <FontAwesomeIcon icon={faArrowLeft} /> Voltar
         </Link>
 
@@ -268,10 +289,22 @@ export default function FaqPage() {
           <p className="text-white/40 text-[11px] mt-4 font-bold uppercase tracking-[0.2em]">
             Tudo sobre o Partidas Pro — como funciona e como usar
           </p>
+
+          {/* Ações: PDF + compartilhar */}
+          <div className="no-print flex items-center justify-center gap-3 mt-6">
+            <button onClick={handleShare}
+              className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-black uppercase text-[9px] tracking-widest rounded-full hover:scale-105 transition-all">
+              <FontAwesomeIcon icon={faShareNodes} /> Compartilhar no WhatsApp
+            </button>
+            <button onClick={handlePdf}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/15 text-white/70 font-black uppercase text-[9px] tracking-widest rounded-full hover:text-white hover:border-white/30 transition-all">
+              <FontAwesomeIcon icon={faFilePdf} /> Baixar PDF
+            </button>
+          </div>
         </div>
 
         {/* Sumário */}
-        <div className="flex flex-wrap gap-2 justify-center mb-10">
+        <div className="no-print flex flex-wrap gap-2 justify-center mb-10">
           {SECTIONS.map(s => (
             <a key={s.id} href={`#${s.id}`}
               className="flex items-center gap-2 px-3 py-2 bg-white/[0.03] border border-white/5 text-[9px] font-black uppercase tracking-widest text-white/50 hover:text-white hover:border-white/20 transition-all rounded">
@@ -301,14 +334,13 @@ export default function FaqPage() {
                         className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-white/[0.02] transition-colors">
                         <span className="text-[12px] font-bold text-white/90">{item.q}</span>
                         <FontAwesomeIcon icon={faChevronDown}
-                          className="text-white/30 text-xs flex-shrink-0 transition-transform"
+                          className="no-print text-white/30 text-xs flex-shrink-0 transition-transform"
                           style={{ transform: isOpen ? 'rotate(180deg)' : 'none' }} />
                       </button>
-                      {isOpen && (
-                        <div className="px-4 pb-4 pt-1 text-[12px] leading-relaxed text-white/55">
-                          {item.a}
-                        </div>
-                      )}
+                      <div className="faq-answer px-4 pb-4 pt-1 text-[12px] leading-relaxed text-white/55"
+                        style={{ display: isOpen ? 'block' : 'none' }}>
+                        {item.a}
+                      </div>
                     </div>
                   );
                 })}

@@ -352,12 +352,12 @@ export const StatsTab: React.FC<StatsTabProps> = ({
       {/* Nova rodada */}
       {userRole === 'owner' && (
         <button
-          onClick={() => { if (confirm('Deseja reiniciar e limpar o sorteio?')) handleNewMatch(); }}
+          onClick={() => { if (confirm('Encerrar a partida atual? Ela vai para o histórico e você poderá criar uma nova.')) handleNewMatch(); }}
           className="w-full flex items-center justify-center gap-3 py-3 bg-white/[0.03] border border-white/5 hover:bg-red-500/10 hover:border-red-500/20 transition-all rounded-xl group"
         >
           <FontAwesomeIcon icon={faRotateLeft} className="text-white/15 group-hover:text-red-500 text-xs transition-colors" />
           <span className="text-[9px] font-black uppercase text-white/15 group-hover:text-red-500 tracking-[0.3em] transition-colors">
-            Reiniciar Rodada
+            Encerrar Partida
           </span>
         </button>
       )}
