@@ -19,7 +19,9 @@ import {
   faCheckCircle,
   faFutbol,
   faArrowRight,
-  faShieldHalved
+  faShieldHalved,
+  faPhone,
+  faEnvelope
 } from '@fortawesome/free-solid-svg-icons';
 import { Group } from '@/core/entities/group';
 
@@ -35,6 +37,8 @@ export default function PlayerRegistrationPage() {
     name: '',
     full_name: '',
     nationality: 'Brasil',
+    phone: '',
+    email: '',
     preferred_foot: 'R' as 'L' | 'R' | 'Ambidestro',
     positions: ['MO'] as any[],
     height: '',
@@ -66,7 +70,13 @@ export default function PlayerRegistrationPage() {
         if (!hasAccess) {
             setAccessDenied(true);
             setTimeout(() => router.push(`/${slug}/join`), 2000);
+            return;
         }
+
+        // Pré-preenche o email a partir da conta logada (se houver)
+        const { data: { session } } = await supabase.auth.getSession();
+        const sessionEmail = session?.user?.email;
+        if (sessionEmail) setForm(prev => ({ ...prev, email: prev.email || sessionEmail }));
     }
     load();
   }, [slug, router]);
@@ -120,6 +130,8 @@ export default function PlayerRegistrationPage() {
         name: form.name.substring(0, 15), // Limite para card
         full_name: form.full_name,
         nationality: form.nationality,
+        phone: form.phone || undefined,
+        email: form.email || undefined,
         birth_date,
         preferred_foot: form.preferred_foot,
         positions: form.positions,
@@ -256,11 +268,44 @@ export default function PlayerRegistrationPage() {
                 </div>
 
                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        <FontAwesomeIcon icon={faPhone} className="text-[8px]" /> WhatsApp / Telefone
+                    </label>
+                    <input
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        name="phone"
+                        placeholder="(11) 99999-9999"
+                        value={form.phone}
+                        onChange={(e) => setForm({...form, phone: e.target.value})}
+                        className="w-full bg-black/40 border border-white/10 p-4 text-white focus:border-primary/50 outline-none transition-colors"
+                    />
+                    <p className="text-[8px] text-white/20 uppercase font-black">O celular sugere seu número salvo</p>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        <FontAwesomeIcon icon={faEnvelope} className="text-[8px]" /> E-mail
+                    </label>
+                    <input
+                        type="email"
+                        inputMode="email"
+                        autoComplete="email"
+                        name="email"
+                        placeholder="voce@email.com"
+                        value={form.email}
+                        onChange={(e) => setForm({...form, email: e.target.value})}
+                        className="w-full bg-black/40 border border-white/10 p-4 text-white focus:border-primary/50 outline-none transition-colors"
+                    />
+                </div>
+
+                <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-white/40 flex items-center gap-2">
                         <FontAwesomeIcon icon={faGlobe} className="text-[8px]" /> Nacionalidade
                     </label>
-                    <input 
-                        type="text" 
+                    <input
+                        type="text"
                         value={form.nationality}
                         onChange={(e) => setForm({...form, nationality: e.target.value})}
                         className="w-full bg-black/40 border border-white/10 p-4 text-white focus:border-primary/50 outline-none transition-colors"

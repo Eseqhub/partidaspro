@@ -5,7 +5,7 @@ import { Player, PlayerPositionV2 } from '@/core/entities/player';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faXmark, faCamera, faUser, faRuler, faWeight,
-  faBirthdayCake, faPhone, faShieldHalved, faStar,
+  faBirthdayCake, faPhone, faEnvelope, faShieldHalved, faStar,
   faCheckCircle, faTrashCan, faSpinner, faSave,
   faToggleOn, faToggleOff, faExclamationTriangle,
   faLink, faCopy, faBan
@@ -126,6 +126,7 @@ export const PlayerEditModal: React.FC<Props> = ({ player, isOwnerOrEditor, onCl
         name:              form.name,
         full_name:         form.full_name,
         phone:             form.phone,
+        email:             form.email,
         birth_date:        form.birth_date || undefined,
         height:            form.height ? Number(form.height) : undefined,
         weight:            form.weight ? Number(form.weight) : undefined,
@@ -321,15 +322,22 @@ export const PlayerEditModal: React.FC<Props> = ({ player, isOwnerOrEditor, onCl
                   placeholder="(11) 99999-9999" type="tel" disabled={!isOwnerOrEditor} />
               </div>
               <div>
+                <label style={lbl}><FontAwesomeIcon icon={faEnvelope} style={{ marginRight: 5 }} />E-mail</label>
+                <input style={inp} value={form.email ?? ''} onChange={e => set('email', e.target.value)}
+                  placeholder="atleta@email.com" type="email" disabled={!isOwnerOrEditor} />
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
                 <label style={lbl}><FontAwesomeIcon icon={faBirthdayCake} style={{ marginRight: 5 }} />Nascimento</label>
                 <input style={{ ...inp, colorScheme: 'dark' }} type="date" value={form.birth_date ?? ''}
                   onChange={e => set('birth_date', e.target.value)} disabled={!isOwnerOrEditor} />
               </div>
-            </div>
-            <div>
-              <label style={lbl}>Nacionalidade</label>
-              <input style={inp} value={form.nationality ?? ''} onChange={e => set('nationality', e.target.value)}
-                placeholder="Brasileira..." disabled={!isOwnerOrEditor} />
+              <div>
+                <label style={lbl}>Nacionalidade</label>
+                <input style={inp} value={form.nationality ?? ''} onChange={e => set('nationality', e.target.value)}
+                  placeholder="Brasileira..." disabled={!isOwnerOrEditor} />
+              </div>
             </div>
           </Section>
 

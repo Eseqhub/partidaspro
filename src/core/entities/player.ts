@@ -9,6 +9,7 @@ export interface Player {
   nationality?: string;
   birth_date?: string;
   phone?: string;
+  email?: string;
   preferred_foot?: 'L' | 'R' | 'Ambidestro';
   height?: number;
   weight?: number;

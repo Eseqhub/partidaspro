@@ -30,6 +30,8 @@ export const JoinRequestsPanel: React.FC<Props> = ({ requests, onChanged }) => {
         name: req.name,
         full_name: req.full_name,
         nationality: req.nationality,
+        phone: req.phone,
+        email: req.email,
         birth_date: req.birth_date,
         preferred_foot: (req.preferred_foot as any) ?? 'R',
         positions: (req.positions && req.positions.length ? req.positions : ['MO']) as any,
