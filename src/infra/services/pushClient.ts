@@ -67,14 +67,21 @@ export async function enablePush(groupId: string | null): Promise<{ ok: boolean;
   return { ok: true };
 }
 
-/** Dispara um push para o grupo (exclui o próprio dispositivo). */
-export async function sendPush(args: { groupId: string; title: string; body: string; url?: string }) {
+/** Dispara um push para o grupo. Por padrão exclui o próprio dispositivo. */
+export async function sendPush(args: { groupId: string; title: string; body: string; url?: string; includeSelf?: boolean }) {
   try {
-    await fetch('/api/push/send', {
+    const res = await fetch('/api/push/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...args, excludeEndpoint: getSavedEndpoint() }),
+      body: JSON.stringify({
+        groupId: args.groupId,
+        title: args.title,
+        body: args.body,
+        url: args.url,
+        excludeEndpoint: args.includeSelf ? undefined : getSavedEndpoint(),
+      }),
       keepalive: true,
     });
-  } catch { /* silencioso — push é best-effort */ }
+    return await res.json().catch(() => ({}));
+  } catch { return {}; }
 }

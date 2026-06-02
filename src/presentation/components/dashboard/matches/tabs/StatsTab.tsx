@@ -17,7 +17,7 @@ interface StatsTabProps {
   mvpPlayerId?: string | null;
   comments?: any[];
   currentUserName?: string;
-  onAddComment?: (message: string) => void;
+  onAddComment?: (message: string, authorName?: string) => void;
 }
 
 const EVENT_ICON: Record<string, any> = {
@@ -48,15 +48,30 @@ const EVENT_COLOR: Record<string, string> = {
 export const StatsTab: React.FC<StatsTabProps> = ({
   userRole, handleNewMatch, draftResult, setSelectedEventType, setIsEventModalOpen, events,
   onElectMVP, mvpPlayerId,
-  comments = [], onAddComment,
+  comments = [], currentUserName = 'Torcedor', onAddComment,
 }) => {
   const [mvpPickerOpen, setMvpPickerOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
 
+  // Atletas da partida (mandante + visitante) para identificar o autor
+  const roster: { id: string; name: string }[] = draftResult
+    ? [...draftResult.homeTeam, ...draftResult.awayTeam].map(p => ({ id: p.id, name: p.name }))
+    : [];
+
+  const [author, setAuthor] = useState<string>(() => {
+    if (typeof window === 'undefined') return currentUserName;
+    return localStorage.getItem('pp_comment_author') || currentUserName;
+  });
+
+  const onChangeAuthor = (name: string) => {
+    setAuthor(name);
+    try { localStorage.setItem('pp_comment_author', name); } catch { /* ignore */ }
+  };
+
   const submitComment = () => {
     const text = commentText.trim();
     if (!text) return;
-    onAddComment?.(text);
+    onAddComment?.(text, author);
     setCommentText('');
   };
   // Agrega eventos da partida atual por jogador
@@ -277,22 +292,38 @@ export const StatsTab: React.FC<StatsTabProps> = ({
 
         {/* Caixa de envio */}
         {onAddComment && (
-          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/5">
-            <input
-              value={commentText}
-              onChange={e => setCommentText(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') submitComment(); }}
-              maxLength={240}
-              placeholder="Comente o lance..."
-              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white placeholder:text-white/25 outline-none focus:border-violet-400/40"
-            />
-            <button
-              onClick={submitComment}
-              disabled={!commentText.trim()}
-              className="w-9 h-9 flex items-center justify-center rounded-lg bg-violet-500/15 border border-violet-400/30 text-violet-300 hover:bg-violet-500 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <FontAwesomeIcon icon={faPaperPlane} style={{ fontSize: 11 }} />
-            </button>
+          <div className="px-3 py-2.5 border-b border-white/5 space-y-2">
+            {/* Seletor de quem está comentando */}
+            <div className="flex items-center gap-2">
+              <span className="text-[8px] font-black uppercase tracking-widest text-white/25 flex-shrink-0">Comentar como</span>
+              <select
+                value={author}
+                onChange={e => onChangeAuthor(e.target.value)}
+                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[10px] font-bold text-violet-200 outline-none focus:border-violet-400/40"
+              >
+                <option value={currentUserName}>{currentUserName} (eu)</option>
+                {roster.map(p => (
+                  <option key={p.id} value={p.name}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') submitComment(); }}
+                maxLength={240}
+                placeholder="Comente o lance..."
+                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white placeholder:text-white/25 outline-none focus:border-violet-400/40"
+              />
+              <button
+                onClick={submitComment}
+                disabled={!commentText.trim()}
+                className="w-9 h-9 flex items-center justify-center rounded-lg bg-violet-500/15 border border-violet-400/30 text-violet-300 hover:bg-violet-500 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <FontAwesomeIcon icon={faPaperPlane} style={{ fontSize: 11 }} />
+              </button>
+            </div>
           </div>
         )}
 

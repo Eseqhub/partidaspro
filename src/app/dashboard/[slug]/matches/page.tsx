@@ -78,9 +78,17 @@ export default function MatchPage() {
         {/* Ativar notificações (push com app fechado) */}
         {m.pushStatus !== 'unsupported' ? (
           m.pushStatus === 'granted' ? (
-            <span className="flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-primary/70">
-              <FontAwesomeIcon icon={faBell} /> Avisos ativos
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-primary/70">
+                <FontAwesomeIcon icon={faBell} /> Avisos ativos
+              </span>
+              <button
+                onClick={m.handleTestPush}
+                className="px-3 py-2 text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-primary border border-white/10 hover:border-primary/30 rounded-full transition-all"
+              >
+                Testar
+              </button>
+            </div>
           ) : (
             <button
               onClick={m.handleEnablePush}

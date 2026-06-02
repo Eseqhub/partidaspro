@@ -14,6 +14,7 @@ import { AudioService } from '@/infra/services/AudioService';
 import { PlayerRole } from '@/presentation/components/dashboard/matches/tabs/TeamAssignmentTab';
 import { EventType as CoreEventType } from '@/core/entities/match';
 import { enablePush, getPushPermission, sendPush } from '@/infra/services/pushClient';
+import { filterProfanity } from '@/core/services/profanityFilter';
 
 const SPORT_PLAYERS: Record<string, number> = {
   Futsal: 5,
@@ -143,6 +144,19 @@ export function useMatchState(slug: string) {
 
   // Estado inicial da permissão de push
   useEffect(() => { setPushStatus(getPushPermission() as any); }, []);
+
+  const handleTestPush = async () => {
+    if (!groupId) { alert('Abra uma partida primeiro.'); return; }
+    const r: any = await sendPush({
+      groupId,
+      title: '🔔 Teste de notificação',
+      body: 'Se você viu isso, as notificações estão funcionando!',
+      url: `/dashboard/${slug}/matches`,
+      includeSelf: true,
+    });
+    if (r?.error) alert('Falha no envio: ' + r.error);
+    else if ((r?.total ?? 0) === 0) alert('Nenhum dispositivo inscrito ainda. Clique em "Ativar avisos" primeiro.');
+  };
 
   const handleEnablePush = async () => {
     const res = await enablePush(groupId);
@@ -583,18 +597,19 @@ export function useMatchState(slug: string) {
     } catch (error) { console.error(error); }
   };
 
-  const handleAddComment = async (message: string) => {
-    const text = message.trim();
+  const handleAddComment = async (message: string, authorName?: string) => {
+    const text = filterProfanity(message.trim());
     if (!text || !matchId) return;
+    const author = authorName?.trim() || currentUserName;
     try {
       const newComment = await matchRepo.addComment({
-        match_id: matchId, author_name: currentUserName, message: text,
+        match_id: matchId, author_name: author, message: text,
       });
       setComments(prev => [newComment, ...prev]);
 
       if (groupId) sendPush({
         groupId,
-        title: `💬 ${currentUserName}`,
+        title: `💬 ${author}`,
         body: text,
         url: matchId ? `/${slug}/ao-vivo/${matchId}` : `/dashboard/${slug}/matches`,
       });
@@ -956,7 +971,7 @@ export function useMatchState(slug: string) {
     comments,
     currentUserName,
     notification, dismissNotification,
-    pushStatus, handleEnablePush,
+    pushStatus, handleEnablePush, handleTestPush,
     isEventModalOpen, setIsEventModalOpen,
     selectedEventType, setSelectedEventType,
     guestPlayers, setGuestPlayers,

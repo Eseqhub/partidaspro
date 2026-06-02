@@ -18,10 +18,13 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil((async () => {
-    // Se já existe uma aba aberta e visível, deixa o popup in-app cuidar (evita duplicar)
+    // Mostra a notificação do sistema. Só evita duplicar se houver uma aba
+    // visível JÁ na página da partida (onde o popup in-app aparece).
     const clientsArr = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    const visible = clientsArr.some((c) => c.visibilityState === 'visible');
-    if (visible) return;
+    const onMatchPage = clientsArr.some(
+      (c) => c.visibilityState === 'visible' && (c.url.includes('/matches') || c.url.includes('/ao-vivo/')),
+    );
+    if (onMatchPage) return;
     await self.registration.showNotification(title, options);
   })());
 });
