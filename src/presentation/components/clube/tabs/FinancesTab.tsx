@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faArrowTrendUp, faArrowTrendDown, faWallet,
   faCircleCheck, faHourglassHalf, faUsers,
   faCalendarAlt, faChevronLeft, faChevronRight,
-  faSpinner, faQrcode
+  faSpinner, faQrcode, faCommentDots,
 } from '@fortawesome/free-solid-svg-icons';
+import { generatePixCode } from '@/core/services/PixService';
 import { FinanceRepository } from '@/infra/repositories/FinanceRepository';
 import { Player } from '@/core/entities/player';
 import { PixRateioPanel } from '@/presentation/components/clube/components/PixRateioPanel';
@@ -52,6 +53,43 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [monthlyFee, setMonthlyFee] = useState<string>('50.00');
   const [generating, setGenerating] = useState(false);
+  const [pixCfg, setPixCfg] = useState<{ pixKey: string; pixName: string }>({ pixKey: '', pixName: groupName });
+
+  // Carrega valor mensal salvo + chave PIX (mesma do painel de rateio)
+  useEffect(() => {
+    try {
+      const fee = localStorage.getItem(`monthlyFee:${groupId}`);
+      if (fee) setMonthlyFee(fee);
+      const pix = localStorage.getItem(`pix:${groupId}`);
+      if (pix) { const o = JSON.parse(pix); setPixCfg({ pixKey: o.pixKey || '', pixName: o.pixName || groupName }); }
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId]);
+
+  const updateMonthlyFee = (v: string) => {
+    setMonthlyFee(v);
+    try { localStorage.setItem(`monthlyFee:${groupId}`, v); } catch { /* ignore */ }
+  };
+
+  const sanitizePhone = (raw?: string) => {
+    if (!raw) return '';
+    let d = raw.replace(/\D/g, '');
+    if (d.length >= 10 && d.length <= 11) d = '55' + d;
+    return d;
+  };
+
+  const cobrarMensalistaWhats = (p: Player) => {
+    const fee = parseFloat(monthlyFee.replace(',', '.'));
+    const phone = sanitizePhone(p.phone);
+    const first = p.name.split(' ')[0];
+    const linhas = [`💳 *Mensalidade ${monthName}*`, `Olá ${first}! Sua mensalidade é *R$${(fee || 0).toFixed(2)}*.`];
+    if (pixCfg.pixKey && fee > 0) {
+      const code = generatePixCode({ pixKey: pixCfg.pixKey.trim(), merchantName: pixCfg.pixName || groupName, amount: Number(fee.toFixed(2)), description: `Mensalidade ${monthName}` });
+      linhas.push('', 'PIX copia e cola:', code);
+    }
+    const text = encodeURIComponent(linhas.join('\n'));
+    window.open(phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`, '_blank');
+  };
 
   const transactions = finances.slice(0, 50);
   const mensalistas = players.filter(p => p.is_mensalista && p.status === 'Ativo');
@@ -254,7 +292,7 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
               <span style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(255,255,255,0.5)' }}>Valor mensal</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span style={{ fontSize: 11, fontWeight: 900, color: gold }}>R$</span>
-                <input value={monthlyFee} onChange={e => setMonthlyFee(e.target.value)} inputMode="decimal"
+                <input value={monthlyFee} onChange={e => updateMonthlyFee(e.target.value)} inputMode="decimal"
                   style={{ width: 70, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: 13, fontWeight: 900, padding: '6px 8px', borderRadius: 6, outline: 'none' }} />
               </div>
               <button onClick={handleGenerateMonthly} disabled={generating}
@@ -298,13 +336,21 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
                   </div>
                   
                   {!isPaid && (
-                    <button 
-                      onClick={() => openPaymentModal(p)}
-                      style={{ padding: '8px 12px', background: `${gold}15`, border: `1px solid ${gold}30`, color: gold, fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer', transition: 'all .2s' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = `${gold}30`)}
-                      onMouseLeave={e => (e.currentTarget.style.background = `${gold}15`)}>
-                      Receber
-                    </button>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <button
+                        onClick={() => cobrarMensalistaWhats(p)}
+                        title="Cobrar no WhatsApp"
+                        style={{ padding: '8px 10px', background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.35)', color: '#25D366', fontSize: 11, cursor: 'pointer', borderRadius: 4 }}>
+                        <FontAwesomeIcon icon={faCommentDots} />
+                      </button>
+                      <button
+                        onClick={() => openPaymentModal(p)}
+                        style={{ padding: '8px 12px', background: `${gold}15`, border: `1px solid ${gold}30`, color: gold, fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer', transition: 'all .2s' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = `${gold}30`)}
+                        onMouseLeave={e => (e.currentTarget.style.background = `${gold}15`)}>
+                        Receber
+                      </button>
+                    </div>
                   )}
                   {isPaid && (
                     <div style={{ padding: '8px', color: green }}>
