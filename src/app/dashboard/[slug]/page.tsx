@@ -161,6 +161,7 @@ export default function DashboardSlugPage() {
         {/* Header */}
         <ClubHeader
           group={group} players={players} summary={summary} isOwner={isOwner}
+          canManage={canManage} onOpenSettings={() => setTab('configuracoes')}
           copied={copied} linkLoading={linkLoading}
           onCopyLink={handleCopyLink} onNavigate={router.push}
         />
@@ -188,7 +189,7 @@ export default function DashboardSlugPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 mt-8 mb-8 border-b border-white/5 overflow-x-auto">
-          {TABS.map(t => (
+          {TABS.filter(t => t.id !== 'configuracoes' || canManage).map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`flex items-center gap-2 px-5 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border-b-2 -mb-[1px] ${
                 tab === t.id ? 'border-primary text-primary' : 'border-transparent text-white/30 hover:text-white/60'
@@ -203,7 +204,7 @@ export default function DashboardSlugPage() {
         {tab === 'overview'      && <OverviewTab      group={group} players={players} finances={finances} summary={summary} matches={matches} onCopyLink={handleCopyLink} onNavigate={router.push} />}
         {tab === 'elenco'        && <ElencoTab        players={players} groupId={group.id} onNavigate={router.push} onRefresh={load} />}
         {tab === 'financeiro'    && <FinancesTab      finances={finances} summary={summary} groupId={group.id} groupName={group.name} players={players} onRefresh={load} />}
-        {tab === 'configuracoes' && <ClubSettingsTab  group={group} editors={editors} isOwner={isOwner} groupId={group.id} groupRepo={groupRepo} supabase={supabase} onSave={handleSaveGroup} />}
+        {tab === 'configuracoes' && <ClubSettingsTab  group={group} editors={editors} isOwner={isOwner} canManage={canManage} groupId={group.id} groupRepo={groupRepo} supabase={supabase} onSave={handleSaveGroup} />}
 
         <div className="text-center mt-16 space-y-3">
           <button

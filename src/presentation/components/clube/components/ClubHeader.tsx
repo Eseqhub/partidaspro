@@ -4,7 +4,7 @@ import { Player } from '@/core/entities/player';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faShieldHalved, faCopy, faCheckCircle, faPlus,
-  faUsers, faWallet,
+  faUsers, faWallet, faGear,
 } from '@fortawesome/free-solid-svg-icons';
 
 interface Props {
@@ -12,6 +12,8 @@ interface Props {
   players: Player[];
   summary: { balance: number; income: number; expense: number; received: number; pending: number };
   isOwner: boolean;
+  canManage?: boolean;
+  onOpenSettings?: () => void;
   copied: boolean;
   linkLoading: boolean;
   onCopyLink: () => void;
@@ -25,7 +27,7 @@ const green = '#22c55e';
 const red   = '#ef4444';
 
 export const ClubHeader: React.FC<Props> = ({
-  group, players, summary, isOwner, copied, linkLoading, onCopyLink, onNavigate,
+  group, players, summary, isOwner, canManage, onOpenSettings, copied, linkLoading, onCopyLink, onNavigate,
 }) => {
   const activeCount  = players.filter(p => p.status === 'Ativo').length;
   const balanceColor = summary.balance >= 0 ? green : red;
@@ -87,14 +89,24 @@ export const ClubHeader: React.FC<Props> = ({
 
         {/* Ações */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
-          <button onClick={onCopyLink} disabled={linkLoading}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px',
-              background: 'transparent', color: copied ? green : blue,
-              border: `1px solid ${copied ? green : blue}33`, fontWeight: 900, fontSize: 10,
-              textTransform: 'uppercase', letterSpacing: '0.2em', cursor: 'pointer' }}>
-            <FontAwesomeIcon icon={copied ? faCheckCircle : faCopy} />
-            {copied ? 'COPIADO!' : linkLoading ? 'GERANDO...' : 'LINK RECRUTAMENTO'}
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={onCopyLink} disabled={linkLoading}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', flex: 1,
+                background: 'transparent', color: copied ? green : blue,
+                border: `1px solid ${copied ? green : blue}33`, fontWeight: 900, fontSize: 10,
+                textTransform: 'uppercase', letterSpacing: '0.2em', cursor: 'pointer' }}>
+              <FontAwesomeIcon icon={copied ? faCheckCircle : faCopy} />
+              {copied ? 'COPIADO!' : linkLoading ? 'GERANDO...' : 'LINK RECRUTAMENTO'}
+            </button>
+            {/* Config do time — só dono/editores */}
+            {canManage && onOpenSettings && (
+              <button onClick={onOpenSettings} title="Configurações do time"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 42, flexShrink: 0,
+                  background: 'transparent', color: gold, border: `1px solid ${gold}33`, cursor: 'pointer' }}>
+                <FontAwesomeIcon icon={faGear} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

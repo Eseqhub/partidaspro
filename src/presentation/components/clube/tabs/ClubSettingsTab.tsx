@@ -18,6 +18,7 @@ interface Props {
   group: Group;
   editors: any[];
   isOwner: boolean;
+  canManage?: boolean; // dono OU editor delegado
   groupId: string;
   groupRepo: any;
   supabase: any;
@@ -48,8 +49,9 @@ const labelStyle: React.CSSProperties = {
 };
 
 export const ClubSettingsTab: React.FC<Props> = ({
-  group, editors, isOwner, groupId, groupRepo, supabase, onSave,
+  group, editors, isOwner, canManage, groupId, groupRepo, supabase, onSave,
 }) => {
+  const allowed = canManage ?? isOwner;
   // Form fields
   const [name,        setName]        = useState(group.name);
   const [description, setDesc]        = useState(group.description ?? '');
@@ -115,11 +117,11 @@ export const ClubSettingsTab: React.FC<Props> = ({
     setLocalEditors(prev => prev.filter(e => e.id !== id));
   };
 
-  if (!isOwner) return (
+  if (!allowed) return (
     <div style={{ textAlign: 'center', padding: '64px 0' }}>
       <FontAwesomeIcon icon={faShieldHalved} style={{ fontSize: 40, color: 'rgba(255,255,255,0.1)', marginBottom: 16 }} />
       <p style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)' }}>
-        Apenas o dono do clube pode acessar as configurações.
+        Apenas o dono ou editores podem acessar as configurações.
       </p>
     </div>
   );
@@ -204,7 +206,8 @@ export const ClubSettingsTab: React.FC<Props> = ({
         </div>
       </Section>
 
-      {/* ── GESTÃO DE EDITORES ── */}
+      {/* ── GESTÃO DE EDITORES (só o dono) ── */}
+      {isOwner && (
       <Section title="Quem Gerencia o Clube" icon={faUsers}>
         <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 16, lineHeight: 1.5 }}>
           Editores podem criar partidas, fazer chamada e gerenciar atletas. O dono retém controle total das configurações.
@@ -274,6 +277,7 @@ export const ClubSettingsTab: React.FC<Props> = ({
           }
         </div>
       </Section>
+      )}
 
       {/* ── BOTÃO SALVAR ── */}
       {saveError && (
