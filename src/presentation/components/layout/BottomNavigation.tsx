@@ -19,9 +19,6 @@ export function BottomNavigation() {
   const pathParts = pathname.split('/');
   // pathParts: ['', 'dashboard', '<slug>', '<subRoute?>']
   const slug     = pathParts[1] === 'dashboard' && pathParts[2] ? pathParts[2] : '';
-  const subRoute = pathParts[3]; // 'matches' | 'finances' | 'players' | 'stats' | undefined
-  // Matches page has its own MatchBottomNav — skip rendering global nav there
-  if (subRoute === 'matches') return null;
   const isInsideGroup = !!slug;
 
   const navItems = isInsideGroup ? [

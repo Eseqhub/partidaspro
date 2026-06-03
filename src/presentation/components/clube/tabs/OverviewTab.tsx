@@ -114,6 +114,38 @@ export const OverviewTab: React.FC<Props> = ({ group, players, finances, summary
         <KpiCard icon={faFutbol}         label="Partidas"       value={String(matches.length)}                        sub={lastMatch ? `última: ${new Date(lastMatch.created_at).toLocaleDateString('pt-BR')}` : 'nenhuma ainda'} color="#fff" accent={neon} />
       </div>
 
+      {/* Estatuto & Regras (somente leitura — edita em Configurações) */}
+      {(group.estatuto_regras || group.rules_text) && (
+        <div style={{ padding: 24, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderLeft: `3px solid ${gold}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+            <h2 style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.25em', color: gold, display: 'flex', alignItems: 'center', gap: 8 }}>
+              📜 Estatuto &amp; Regras
+            </h2>
+            <span style={{ fontSize: 7, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(255,255,255,0.25)' }}>
+              Edição em Configurações
+            </span>
+          </div>
+
+          {group.estatuto_regras && (
+            <div style={{ maxHeight: 220, overflowY: 'auto', whiteSpace: 'pre-wrap', fontFamily: 'monospace',
+              fontSize: 11, lineHeight: 1.7, color: 'rgba(255,255,255,0.6)',
+              background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 8, padding: 16 }}>
+              {group.estatuto_regras}
+            </div>
+          )}
+
+          {group.rules_text && (
+            <div style={{ marginTop: group.estatuto_regras ? 12 : 0 }}>
+              <p style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Regras da Pelada</p>
+              <div style={{ whiteSpace: 'pre-wrap', fontSize: 11, lineHeight: 1.6, color: 'rgba(255,255,255,0.55)',
+                background: `${neon}06`, border: `1px solid ${neon}15`, borderRadius: 8, padding: 14 }}>
+                {group.rules_text}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Grid movimentações + elenco */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 20 }}>
         {/* Movimentações */}

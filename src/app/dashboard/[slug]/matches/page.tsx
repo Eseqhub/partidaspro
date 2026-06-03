@@ -68,7 +68,7 @@ export default function MatchPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-12 pb-32 relative font-inter">
+    <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-12 pb-44 md:pb-12 relative font-inter">
 
       {/* Popup in-app de eventos/comentários ao vivo */}
       <MatchToast notification={m.notification} onDismiss={m.dismissNotification} />

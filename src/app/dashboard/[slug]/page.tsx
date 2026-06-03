@@ -20,7 +20,7 @@ import { NovaPartidaModal } from '@/presentation/components/clube/components/Nov
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faChartPie, faUsers, faWallet, faCog,
-  faFutbol, faShieldHalved, faChartSimple, faCircleQuestion,
+  faFutbol, faShieldHalved, faCircleQuestion,
 } from '@fortawesome/free-solid-svg-icons';
 
 type Tab = 'overview' | 'elenco' | 'financeiro' | 'configuracoes';
@@ -30,14 +30,6 @@ const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: 'elenco',        label: 'Elenco',        icon: faUsers     },
   { id: 'financeiro',    label: 'Financeiro',    icon: faWallet    },
   { id: 'configuracoes', label: 'Configurações', icon: faCog       },
-];
-
-// Links rápidos para sub-módulos operacionais
-const QUICK_LINKS = (slug: string) => [
-  { label: 'Partidas',    icon: faFutbol,      href: `/dashboard/${slug}/matches`,  color: '#ccff00' },
-  { label: 'Atletas',     icon: faUsers,       href: `/dashboard/${slug}/players`,  color: '#00b4ff' },
-  { label: 'Financeiro',  icon: faWallet,      href: `/dashboard/${slug}/finances`, color: '#22c55e' },
-  { label: 'Estatísticas',icon: faChartSimple, href: `/dashboard/${slug}/stats`,    color: '#d4a017' },
 ];
 
 export default function DashboardSlugPage() {
@@ -173,7 +165,7 @@ export default function DashboardSlugPage() {
           onCopyLink={handleCopyLink} onNavigate={router.push}
         />
 
-        {/* Botão Nova Partida + links rápidos */}
+        {/* Botão Nova Partida (navegação fica na barra inferior) */}
         <div style={{ display: 'flex', gap: 10, marginTop: 24, flexWrap: 'wrap', alignItems: 'center' }}>
           <button
             onClick={() => setNovaPartidaOpen(true)}
@@ -185,21 +177,6 @@ export default function DashboardSlugPage() {
             <FontAwesomeIcon icon={faFutbol} />
             NOVA PARTIDA
           </button>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: 1 }}>
-            {QUICK_LINKS(slug).map(({ label, icon, href, color }) => (
-              <button key={href} onClick={() => router.push(href)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px',
-                  background: 'rgba(255,255,255,0.02)', border: `1px solid ${color}18`,
-                  color: 'rgba(255,255,255,0.5)', fontWeight: 900, fontSize: 9,
-                  textTransform: 'uppercase', letterSpacing: '0.15em', cursor: 'pointer',
-                  transition: 'all .2s', whiteSpace: 'nowrap' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; (e.currentTarget as HTMLElement).style.color = '#fff'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.5)'; }}>
-                <FontAwesomeIcon icon={icon} style={{ color }} />
-                {label}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Solicitações de entrada pendentes (dono/editor) */}

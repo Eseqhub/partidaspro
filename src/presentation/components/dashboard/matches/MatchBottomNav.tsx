@@ -29,7 +29,7 @@ export const MatchBottomNav: React.FC<MatchBottomNavProps> = ({
   waitingCount = 0
 }) => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[100] md:relative md:bottom-auto md:z-0">
+    <nav className="fixed bottom-16 left-0 right-0 z-[90] md:relative md:bottom-auto md:z-0">
       {/* Container com Blur e Gradiente */}
       <div className="bg-slate-950/80 backdrop-blur-2xl border-t border-white/10 px-2 pb-safe pt-2 md:bg-transparent md:backdrop-blur-none md:border-none md:p-0">
         <div className="flex items-center justify-around max-w-4xl mx-auto md:justify-start md:gap-1 md:border md:border-white/10 md:bg-black/20 overflow-x-auto no-scrollbar">
