@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/infra/supabase/client';
 import { GroupRepository } from '@/infra/repositories/GroupRepository';
@@ -48,6 +48,12 @@ export default function DashboardSlugPage() {
   const [isOwner,  setIsOwner]  = useState(false);
   const [canManage, setCanManage] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<JoinRequest[]>([]);
+  const tabsRef = useRef<HTMLDivElement>(null);
+
+  const openSettings = () => {
+    setTab('configuracoes');
+    setTimeout(() => tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  };
   const [copied,      setCopied]      = useState(false);
   const [linkLoading, setLinkLoading] = useState(false);
   const [novaPartidaOpen, setNovaPartidaOpen] = useState(false);
@@ -161,7 +167,7 @@ export default function DashboardSlugPage() {
         {/* Header */}
         <ClubHeader
           group={group} players={players} summary={summary} isOwner={isOwner}
-          canManage={canManage} onOpenSettings={() => setTab('configuracoes')}
+          canManage={canManage} onOpenSettings={openSettings}
           copied={copied} linkLoading={linkLoading}
           onCopyLink={handleCopyLink} onNavigate={router.push}
         />
@@ -188,7 +194,7 @@ export default function DashboardSlugPage() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-1 mt-8 mb-8 border-b border-white/5 overflow-x-auto">
+        <div ref={tabsRef} className="flex gap-1 mt-8 mb-8 border-b border-white/5 overflow-x-auto scroll-mt-4">
           {TABS.filter(t => t.id !== 'configuracoes' || canManage).map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`flex items-center gap-2 px-5 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border-b-2 -mb-[1px] ${
