@@ -112,6 +112,7 @@ export default function PlayerRegistrationPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!group) return;
+    if (!form.phone.trim()) { alert('Informe seu telefone/WhatsApp — é obrigatório.'); return; }
     setLoading(true);
 
     try {
@@ -278,12 +279,13 @@ export default function PlayerRegistrationPage() {
                         inputMode="tel"
                         autoComplete="tel"
                         name="phone"
+                        required
                         placeholder="(11) 99999-9999"
                         value={form.phone}
                         onChange={(e) => setForm({...form, phone: e.target.value})}
                         className="w-full bg-black/40 border border-white/10 p-4 text-white focus:border-primary/50 outline-none transition-colors"
                     />
-                    <p className="text-[8px] text-white/20 uppercase font-black">O celular sugere seu número salvo</p>
+                    <p className="text-[8px] text-white/20 uppercase font-black">Obrigatório — usado para cobranças via WhatsApp</p>
                 </div>
 
                 <div className="space-y-2">

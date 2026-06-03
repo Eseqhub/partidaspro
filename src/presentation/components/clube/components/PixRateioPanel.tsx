@@ -77,11 +77,15 @@ export const PixRateioPanel: React.FC<Props> = ({ groupId, groupName, onRefresh 
   // ── Rateio (por partida, só quem participou) ──────────────────────────
   const [matches, setMatches] = useState<any[]>([]);
   const [selectedMatchId, setSelectedMatchId] = useState('');
-  const [participants, setParticipants] = useState<{ id: string; name: string }[]>([]);
+  const [participants, setParticipants] = useState<{ id: string; name: string; phone?: string }[]>([]);
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [loadingPart, setLoadingPart] = useState(false);
   const [rateioTotal, setRateioTotal] = useState('');
   const [launching, setLaunching] = useState(false);
   const [launched, setLaunched]   = useState(false);
+
+  const toggleExcluded = (id: string) =>
+    setExcluded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   // Carrega as partidas do grupo
   useEffect(() => {
@@ -105,28 +109,55 @@ export const PixRateioPanel: React.FC<Props> = ({ groupId, groupName, onRefresh 
       .then(rows => {
         const ps = (rows ?? [])
           .filter((r: any) => r.player)
-          .map((r: any) => ({ id: r.player_id, name: r.player?.name ?? '—' }));
+          .map((r: any) => ({ id: r.player_id, name: r.player?.name ?? '—', phone: r.player?.phone }));
         setParticipants(ps);
+        setExcluded(new Set());
       })
       .catch(() => setParticipants([]))
       .finally(() => setLoadingPart(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMatchId]);
 
+  const included = participants.filter(p => !excluded.has(p.id));
   const totalNum = parseFloat(rateioTotal.replace(',', '.'));
-  const countNum = participants.length;
+  const countNum = included.length;
   const perHead  = totalNum > 0 && countNum > 0 ? totalNum / countNum : 0;
+
+  // PIX com o valor POR JOGADOR (para a mensagem do WhatsApp)
+  const perHeadPixCode = pixKey && perHead > 0
+    ? generatePixCode({ pixKey: pixKey.trim(), merchantName: pixName || groupName, amount: Number(perHead.toFixed(2)), description: 'Rateio da pelada' })
+    : '';
+
+  const sanitizePhone = (raw?: string) => {
+    if (!raw) return '';
+    let d = raw.replace(/\D/g, '');
+    if (d.length >= 10 && d.length <= 11) d = '55' + d; // adiciona DDI Brasil se faltar
+    return d;
+  };
+
+  const whatsappCobranca = (p: { name: string; phone?: string }) => {
+    const phone = sanitizePhone(p.phone);
+    const first = p.name.split(' ')[0];
+    const linhas = [
+      `⚽ *Rateio da pelada*`,
+      `Olá ${first}! Sua parte ficou em *R$${perHead.toFixed(2)}*.`,
+    ];
+    if (perHeadPixCode) linhas.push('', 'PIX copia e cola:', perHeadPixCode);
+    const text = encodeURIComponent(linhas.join('\n'));
+    const url = phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+    window.open(url, '_blank');
+  };
 
   const matchLabel = (m: any) =>
     `${new Date(m.date ?? m.created_at).toLocaleDateString('pt-BR')} · ${m.home_team_name || 'Time A'} x ${m.away_team_name || 'Time B'}`;
 
   const launchRateio = async () => {
-    if (perHead <= 0 || participants.length === 0) return;
-    if (!confirm(`Lançar cobrança de R$${perHead.toFixed(2)} para os ${participants.length} jogadores que participaram desta partida?`)) return;
+    if (perHead <= 0 || included.length === 0) return;
+    if (!confirm(`Lançar cobrança de R$${perHead.toFixed(2)} para os ${included.length} jogadores selecionados?`)) return;
     setLaunching(true);
     try {
       const today = new Date().toISOString().split('T')[0];
-      for (const p of participants) {
+      for (const p of included) {
         await financeRepo.create({
           group_id: groupId,
           player_id: p.id,
@@ -260,6 +291,44 @@ export const PixRateioPanel: React.FC<Props> = ({ groupId, groupName, onRefresh 
             <FontAwesomeIcon icon={faQrcode} style={{ marginRight: 6 }} />
             Gerar PIX de R${perHead.toFixed(2)} por jogador
           </button>
+        )}
+
+        {/* Lista de quem vai ratear (toque pra incluir/excluir + WhatsApp) */}
+        {participants.length > 0 && (
+          <div style={{ marginBottom: 14, border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, overflow: 'hidden' }}>
+            <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.4)' }}>Quem vai ratear</span>
+              <span style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}>{countNum}/{participants.length}</span>
+            </div>
+            <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+              {participants.map(p => {
+                const isIn = !excluded.has(p.id);
+                return (
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                    borderBottom: '1px solid rgba(255,255,255,0.03)', opacity: isIn ? 1 : 0.4 }}>
+                    <button onClick={() => toggleExcluded(p.id)} title={isIn ? 'Remover do rateio' : 'Incluir no rateio'}
+                      style={{ width: 20, height: 20, flexShrink: 0, borderRadius: 4, cursor: 'pointer',
+                        background: isIn ? green : 'transparent', border: `1px solid ${isIn ? green : 'rgba(255,255,255,0.2)'}`,
+                        color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>
+                      {isIn && <FontAwesomeIcon icon={faCheck} />}
+                    </button>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 11, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {p.name}
+                      {!p.phone && <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', marginLeft: 6 }}>sem telefone</span>}
+                    </span>
+                    {isIn && perHead > 0 && (
+                      <button onClick={() => whatsappCobranca(p)} title="Cobrar no WhatsApp"
+                        style={{ flexShrink: 0, padding: '5px 10px', borderRadius: 6, cursor: 'pointer',
+                          background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.35)', color: '#25D366',
+                          fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                        WhatsApp
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
 
         <button onClick={launchRateio} disabled={perHead <= 0 || launching || countNum === 0}
