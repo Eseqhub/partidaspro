@@ -5,6 +5,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faQrcode, faCopy, faCheck, faDivide, faMoneyBillWave, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { generatePixCode } from '@/core/services/PixService';
 import { FinanceRepository } from '@/infra/repositories/FinanceRepository';
+import { MatchRepository } from '@/infra/repositories/MatchRepository';
+import { supabase } from '@/infra/supabase/client';
 import { Player } from '@/core/entities/player';
 
 interface Props {
@@ -28,8 +30,9 @@ const lbl: React.CSSProperties = {
   letterSpacing: '0.2em', color: 'rgba(255,255,255,0.35)', marginBottom: 5,
 };
 
-export const PixRateioPanel: React.FC<Props> = ({ groupId, groupName, players, onRefresh }) => {
+export const PixRateioPanel: React.FC<Props> = ({ groupId, groupName, onRefresh }) => {
   const financeRepo = new FinanceRepository();
+  const matchRepo = new MatchRepository();
 
   // ── PIX ───────────────────────────────────────────────────────────────
   const [pixKey,  setPixKey]  = useState('');
@@ -71,30 +74,65 @@ export const PixRateioPanel: React.FC<Props> = ({ groupId, groupName, players, o
     setTimeout(() => setCopied(false), 2500);
   };
 
-  // ── Rateio ────────────────────────────────────────────────────────────
-  const activePlayers = players.filter(p => p.status === 'Ativo');
+  // ── Rateio (por partida, só quem participou) ──────────────────────────
+  const [matches, setMatches] = useState<any[]>([]);
+  const [selectedMatchId, setSelectedMatchId] = useState('');
+  const [participants, setParticipants] = useState<{ id: string; name: string }[]>([]);
+  const [loadingPart, setLoadingPart] = useState(false);
   const [rateioTotal, setRateioTotal] = useState('');
-  const [rateioCount, setRateioCount] = useState(String(activePlayers.length || 0));
   const [launching, setLaunching] = useState(false);
   const [launched, setLaunched]   = useState(false);
 
+  // Carrega as partidas do grupo
+  useEffect(() => {
+    supabase.from('matches')
+      .select('id, date, home_team_name, away_team_name, status, created_at')
+      .eq('group_id', groupId)
+      .order('created_at', { ascending: false })
+      .limit(20)
+      .then(({ data }) => {
+        setMatches(data ?? []);
+        if (data && data.length && !selectedMatchId) setSelectedMatchId(data[0].id);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId]);
+
+  // Carrega quem participou da partida selecionada
+  useEffect(() => {
+    if (!selectedMatchId) { setParticipants([]); return; }
+    setLoadingPart(true);
+    matchRepo.getPresence(selectedMatchId)
+      .then(rows => {
+        const ps = (rows ?? [])
+          .filter((r: any) => r.player)
+          .map((r: any) => ({ id: r.player_id, name: r.player?.name ?? '—' }));
+        setParticipants(ps);
+      })
+      .catch(() => setParticipants([]))
+      .finally(() => setLoadingPart(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMatchId]);
+
   const totalNum = parseFloat(rateioTotal.replace(',', '.'));
-  const countNum = parseInt(rateioCount) || 0;
+  const countNum = participants.length;
   const perHead  = totalNum > 0 && countNum > 0 ? totalNum / countNum : 0;
 
+  const matchLabel = (m: any) =>
+    `${new Date(m.date ?? m.created_at).toLocaleDateString('pt-BR')} · ${m.home_team_name || 'Time A'} x ${m.away_team_name || 'Time B'}`;
+
   const launchRateio = async () => {
-    if (perHead <= 0) return;
-    if (!confirm(`Lançar cobrança de R$${perHead.toFixed(2)} para ${activePlayers.length} atletas ativos?`)) return;
+    if (perHead <= 0 || participants.length === 0) return;
+    if (!confirm(`Lançar cobrança de R$${perHead.toFixed(2)} para os ${participants.length} jogadores que participaram desta partida?`)) return;
     setLaunching(true);
     try {
       const today = new Date().toISOString().split('T')[0];
-      for (const p of activePlayers) {
+      for (const p of participants) {
         await financeRepo.create({
           group_id: groupId,
           player_id: p.id,
           type: 'Receita',
           category: 'Rateio',
-          description: `Rateio da pelada (${today})`,
+          description: `Rateio da partida (${today})`,
           amount: Number(perHead.toFixed(2)),
           status: 'Pendente',
           date: today,
@@ -175,6 +213,17 @@ export const PixRateioPanel: React.FC<Props> = ({ groupId, groupName, players, o
           <FontAwesomeIcon icon={faDivide} /> Rateio da Partida
         </h3>
 
+        {/* Seletor de partida */}
+        <div style={{ marginBottom: 12 }}>
+          <label style={lbl}>Partida (cobra só quem participou)</label>
+          <select style={{ ...inp, cursor: 'pointer' }} value={selectedMatchId} onChange={e => setSelectedMatchId(e.target.value)}>
+            {matches.length === 0 && <option value="">Nenhuma partida encontrada</option>}
+            {matches.map(m => (
+              <option key={m.id} value={m.id}>{matchLabel(m)}</option>
+            ))}
+          </select>
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
           <div>
             <label style={lbl}>Custo total (quadra, etc.)</label>
@@ -182,9 +231,12 @@ export const PixRateioPanel: React.FC<Props> = ({ groupId, groupName, players, o
               onChange={e => setRateioTotal(e.target.value)} />
           </div>
           <div>
-            <label style={lbl}>Nº de jogadores</label>
-            <input style={inp} value={rateioCount} inputMode="numeric"
-              onChange={e => setRateioCount(e.target.value)} />
+            <label style={lbl}>Participaram</label>
+            <div style={{ ...inp, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontWeight: 900, color: countNum ? '#fff' : 'rgba(255,255,255,0.3)' }}>
+                {loadingPart ? '...' : `${countNum} jogador${countNum === 1 ? '' : 'es'}`}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -199,23 +251,34 @@ export const PixRateioPanel: React.FC<Props> = ({ groupId, groupName, players, o
           </span>
         </div>
 
-        <button onClick={launchRateio} disabled={perHead <= 0 || launching || activePlayers.length === 0}
+        {/* Usar o valor POR JOGADOR no PIX copia-e-cola */}
+        {perHead > 0 && (
+          <button onClick={() => { setPixAmount(perHead.toFixed(2)); setPixDesc('Rateio da pelada'); }}
+            style={{ width: '100%', padding: '10px 0', marginBottom: 10, fontWeight: 900, fontSize: 9,
+              textTransform: 'uppercase', letterSpacing: '0.15em', borderRadius: 8, cursor: 'pointer',
+              background: `${green}15`, border: `1px solid ${green}40`, color: green }}>
+            <FontAwesomeIcon icon={faQrcode} style={{ marginRight: 6 }} />
+            Gerar PIX de R${perHead.toFixed(2)} por jogador
+          </button>
+        )}
+
+        <button onClick={launchRateio} disabled={perHead <= 0 || launching || countNum === 0}
           style={{
             width: '100%', padding: '12px 0', fontWeight: 900, fontSize: 10, textTransform: 'uppercase',
             letterSpacing: '0.2em', border: 'none', borderRadius: 8,
-            cursor: perHead > 0 && !launching ? 'pointer' : 'not-allowed',
-            background: launched ? green : perHead > 0 ? `linear-gradient(135deg,${blue},#0088cc)` : 'rgba(255,255,255,0.05)',
-            color: perHead > 0 || launched ? '#000' : 'rgba(255,255,255,0.2)',
+            cursor: perHead > 0 && countNum > 0 && !launching ? 'pointer' : 'not-allowed',
+            background: launched ? green : (perHead > 0 && countNum > 0) ? `linear-gradient(135deg,${blue},#0088cc)` : 'rgba(255,255,255,0.05)',
+            color: (perHead > 0 && countNum > 0) || launched ? '#000' : 'rgba(255,255,255,0.2)',
           }}>
           {launching
             ? <><FontAwesomeIcon icon={faSpinner} spin /> Lançando...</>
             : launched
             ? <><FontAwesomeIcon icon={faCheck} /> Cobranças lançadas!</>
-            : <><FontAwesomeIcon icon={faMoneyBillWave} style={{ marginRight: 6 }} /> Lançar cobrança p/ {activePlayers.length} ativos</>
+            : <><FontAwesomeIcon icon={faMoneyBillWave} style={{ marginRight: 6 }} /> Lançar cobrança p/ {countNum} participante{countNum === 1 ? '' : 's'}</>
           }
         </button>
         <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', marginTop: 8, fontWeight: 700 }}>
-          Cria uma receita pendente por atleta ativo na categoria "Rateio".
+          Cria uma receita pendente só para quem esteve presente na partida selecionada.
         </p>
       </div>
     </div>
