@@ -53,7 +53,7 @@ export default function MatchPage() {
     setGuestPlayers: m.setGuestPlayers,
     handleDraft: m.handleDraft,
     setSelectedPlayerIds: m.setSelectedPlayerIds,
-    playersPerTeam: m.SPORT_PLAYERS[m.config.sport_type] ?? m.config.playersPerTeam,
+    playersPerTeam: m.config.playersPerTeam,
     availableFormations: m.availableFormations,
     homeFormation: m.homeFormation,
     awayFormation: m.awayFormation,
@@ -180,7 +180,7 @@ export default function MatchPage() {
           awayTeamName={m.config.awayTeamName || 'Time B'}
           onSelectHomeFormation={(id) => { const f = m.availableFormations.find(x => x.id === id); if (f) m.setHomeFormation(f); }}
           onSelectAwayFormation={(id) => { const f = m.availableFormations.find(x => x.id === id); if (f) m.setAwayFormation(f); }}
-          SPORT_PLAYERS={m.SPORT_PLAYERS}
+          FIELD_TYPE_PPT={m.FIELD_TYPE_PPT}
           userRole={m.userRole}
           handleNewMatch={m.handleNewMatch}
           setSelectedEventType={m.setSelectedEventType}
@@ -218,7 +218,7 @@ export default function MatchPage() {
           winnerTeam={m.nextTeamCtx.winnerResult === 'home' ? m.draftResult.homeTeam : m.draftResult.awayTeam}
           winnerTeamName={m.nextTeamCtx.winnerResult === 'home' ? (m.config.homeTeamName || 'Time A') : (m.config.awayTeamName || 'Time B')}
           availablePlayers={m.allPlayers.filter(p => m.selectedPlayerIds.includes(p.id))}
-          playersPerTeam={m.SPORT_PLAYERS[m.config.sport_type] ?? m.config.playersPerTeam}
+          playersPerTeam={m.config.playersPerTeam}
           onConfirm={m.confirmNextTeam}
           onCancel={() => m.setNextTeamCtx(null)}
         />
@@ -274,17 +274,19 @@ export default function MatchPage() {
           m.setMatchType((cfg.match_type || 'rachao') as MatchType);
           m.setConfig((prev: any) => ({
             ...prev,
-            duration:       cfg.duration,
-            stoppage:       cfg.stoppage,
-            goalLimit:      cfg.goalLimit,
-            homeColor:      cfg.home_color,
-            awayColor:      cfg.away_color,
-            homeTeamName:   cfg.home_team_name,
-            awayTeamName:   cfg.away_team_name,
-            sport_type:     cfg.sport_type,
-            game_mode:      cfg.game_mode,
-            playersPerTeam: cfg.playersPerTeam,
-            location:       cfg.location,
+            duration:            cfg.duration,
+            stoppage:            cfg.stoppage,
+            goalLimit:           cfg.goalLimit,
+            homeColor:           cfg.home_color,
+            awayColor:           cfg.away_color,
+            homeTeamName:        cfg.home_team_name,
+            awayTeamName:        cfg.away_team_name,
+            sport_type:          cfg.sport_type,
+            game_mode:           cfg.game_mode,
+            playersPerTeam:      cfg.playersPerTeam,
+            location:            cfg.location,
+            rotation_rule:       cfg.rotation_rule,
+            rotation_goal_diff:  cfg.rotation_goal_diff,
           }));
           // Pré-seleciona o "time de sempre" (atletas ativos do grupo).
           // O organizador só desmarca quem faltou e marca os convidados novos.

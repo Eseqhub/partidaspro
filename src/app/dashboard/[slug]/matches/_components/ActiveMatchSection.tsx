@@ -60,7 +60,7 @@ interface Props {
   awayTeamName: string;
   onSelectHomeFormation: (id: string) => void;
   onSelectAwayFormation: (id: string) => void;
-  SPORT_PLAYERS: Record<string, number>;
+  FIELD_TYPE_PPT: Record<string, number>;
   // stats
   userRole: string;
   handleNewMatch: () => void;
@@ -91,7 +91,7 @@ export function ActiveMatchSection({
   guestInput, setGuestInput, guestPlayers, setGuestPlayers,
   handleDraft, setSelectedPlayerIds, availableFormations,
   homeTeamName, awayTeamName, onSelectHomeFormation, onSelectAwayFormation,
-  SPORT_PLAYERS,
+  FIELD_TYPE_PPT,
   userRole, handleNewMatch, setSelectedEventType, setIsEventModalOpen,
   handleElectMVP, mvpPlayerId,
   loading, handleSaveConfig, editorInput, setEditorInput, editors, setEditors,
@@ -156,7 +156,7 @@ export function ActiveMatchSection({
             userRole={userRole}
             matchType={matchType === 'desafio' ? 'desafio' : 'rachao'}
             setSelectedPlayerIds={setSelectedPlayerIds}
-            playersPerTeam={SPORT_PLAYERS[config.sport_type] ?? config.playersPerTeam}
+            playersPerTeam={config.playersPerTeam}
             homeFormations={availableFormations}
             awayFormations={availableFormations}
             homeFormationId={homeFormation.id}

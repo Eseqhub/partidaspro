@@ -5,6 +5,20 @@ import { GlassCard } from '@/presentation/components/ui/GlassCard';
 import { Button } from '@/presentation/components/ui/Button';
 import { EditorManager } from './EditorManager';
 import { GameMode, SportType } from '@/core/entities/match';
+import { RotationRule } from '@/presentation/components/dashboard/CreateMatchModal/types';
+
+const FIELD_MAP: Record<string, { sport: SportType; ppt: number }> = {
+  'Futsal 5x5':  { sport: 'Futsal',   ppt: 5  },
+  'Society 6x6': { sport: 'Society',  ppt: 6  },
+  'Society 7x7': { sport: 'Society',  ppt: 7  },
+  'Campo 11x11': { sport: 'Campo',    ppt: 11 },
+};
+
+function currentFieldType(cfg: any): string {
+  if (cfg.sport_type === 'Futsal') return 'Futsal 5x5';
+  if (cfg.sport_type === 'Campo')  return 'Campo 11x11';
+  return (cfg.playersPerTeam ?? 7) <= 6 ? 'Society 6x6' : 'Society 7x7';
+}
 
 interface SettingsTabProps {
   config: any;
@@ -90,13 +104,14 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2 grid grid-cols-2 gap-4">
           <div>
-            <label className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-2 block">Esporte</label>
-            <select value={config.sport_type}
-              onChange={e => setConfig({ ...config, sport_type: e.target.value as SportType })}
+            <label className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-2 block">Modalidade</label>
+            <select value={currentFieldType(config)}
+              onChange={e => { const m = FIELD_MAP[e.target.value]; if (m) setConfig({ ...config, sport_type: m.sport, playersPerTeam: m.ppt }); }}
               className="w-full bg-black/40 border border-white/10 p-3 text-white text-[9px] font-black uppercase tracking-widest outline-none rounded-lg">
-              <option value="Society" className="bg-slate-900">SOCIETY (7x7)</option>
-              <option value="Futsal"  className="bg-slate-900">FUTSAL (5x5)</option>
-              <option value="Campo"   className="bg-slate-900">CAMPO (11x11)</option>
+              <option value="Futsal 5x5"  className="bg-slate-900">FUTSAL (5x5)</option>
+              <option value="Society 6x6" className="bg-slate-900">SOCIETY (6x6)</option>
+              <option value="Society 7x7" className="bg-slate-900">SOCIETY (7x7)</option>
+              <option value="Campo 11x11" className="bg-slate-900">CAMPO (11x11)</option>
             </select>
           </div>
           <div>
@@ -110,6 +125,28 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               <option value="Vira-Acaba"  className="bg-slate-900">VIRA-ACABA</option>
             </select>
           </div>
+        </div>
+        {/* Regra de Rotação */}
+        <div className="sm:col-span-2 grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-2 block">Regra de Rotação</label>
+            <select value={config.rotation_rule ?? 'two_and_out'}
+              onChange={e => setConfig({ ...config, rotation_rule: e.target.value as RotationRule })}
+              className="w-full bg-black/40 border border-white/10 p-3 text-white text-[9px] font-black uppercase tracking-widest outline-none rounded-lg">
+              <option value="winner_stays"  className="bg-slate-900">GANHADOR FICA (SEMPRE)</option>
+              <option value="two_and_out"   className="bg-slate-900">JOGOU 2, SAI</option>
+              <option value="goal_diff"     className="bg-slate-900">DIFERENÇA DE GOLS</option>
+            </select>
+          </div>
+          {(config.rotation_rule ?? 'two_and_out') === 'goal_diff' && (
+            <div>
+              <label className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-2 block">Dif. Mín. p/ Ficar</label>
+              <input type="number" min={1} max={10} value={config.rotation_goal_diff ?? 2}
+                onChange={e => setConfig({ ...config, rotation_goal_diff: +e.target.value })}
+                className="w-full bg-black/40 border border-white/10 p-3 text-white text-[10px] font-black rounded-lg"
+              />
+            </div>
+          )}
         </div>
         {(['duration', 'stoppage'] as const).map((key) => (
           <div key={key}>

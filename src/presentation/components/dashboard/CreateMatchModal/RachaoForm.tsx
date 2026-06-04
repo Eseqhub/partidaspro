@@ -1,8 +1,8 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFutbol, faShuffle, faUsers, faClock, faMapPin } from '@fortawesome/free-solid-svg-icons';
-import { SportType, GameMode } from '@/core/entities/match';
-import { CreateMatchConfig } from './types';
+import { faFutbol, faShuffle, faUsers, faClock, faMapPin, faArrowsRotate } from '@fortawesome/free-solid-svg-icons';
+import { GameMode } from '@/core/entities/match';
+import { CreateMatchConfig, RotationRule } from './types';
 
 interface Props {
   cfg: CreateMatchConfig;
@@ -17,18 +17,26 @@ const selectCls = `${inputCls} appearance-none cursor-pointer`;
 const neon = '#ccff00';
 const blue = '#00b4ff';
 
-// Mapa sport_type → playersPerTeam padrão
-const SPORT_DEFAULTS: Record<string, number> = {
-  Futsal: 5,
-  Society: 7,
-  Campo: 11,
+// campo → sport_type + playersPerTeam
+const FIELD_MAP: Record<string, { sport: 'Futsal' | 'Society' | 'Campo'; ppt: number }> = {
+  'Futsal 5x5':  { sport: 'Futsal',   ppt: 5  },
+  'Society 6x6': { sport: 'Society',  ppt: 6  },
+  'Society 7x7': { sport: 'Society',  ppt: 7  },
+  'Campo 11x11': { sport: 'Campo',    ppt: 11 },
 };
+
+function currentFieldType(cfg: CreateMatchConfig): string {
+  if (cfg.sport_type === 'Futsal') return 'Futsal 5x5';
+  if (cfg.sport_type === 'Campo')  return 'Campo 11x11';
+  return cfg.playersPerTeam <= 6 ? 'Society 6x6' : 'Society 7x7';
+}
 
 export const RachaoForm: React.FC<Props> = ({ cfg, set, onSubmit, mode = 'rachao' }) => {
   const accent = mode === 'rachao' ? neon : blue;
 
-  const handleSportChange = (sport: SportType) => {
-    set({ sport_type: sport, playersPerTeam: SPORT_DEFAULTS[sport] ?? 7 });
+  const handleFieldChange = (fieldType: string) => {
+    const m = FIELD_MAP[fieldType];
+    if (m) set({ sport_type: m.sport, playersPerTeam: m.ppt });
   };
 
   return (
@@ -36,12 +44,13 @@ export const RachaoForm: React.FC<Props> = ({ cfg, set, onSubmit, mode = 'rachao
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
 
         <div>
-          <label className={labelCls}><FontAwesomeIcon icon={faFutbol} className="mr-1" /> Esporte</label>
-          <select className={selectCls} value={cfg.sport_type}
-            onChange={e => handleSportChange(e.target.value as SportType)}>
-            <option value="Society" className="bg-slate-900">Society (7x7)</option>
-            <option value="Futsal"  className="bg-slate-900">Futsal (5x5)</option>
-            <option value="Campo"   className="bg-slate-900">Campo (11x11)</option>
+          <label className={labelCls}><FontAwesomeIcon icon={faFutbol} className="mr-1" /> Modalidade</label>
+          <select className={selectCls} value={currentFieldType(cfg)}
+            onChange={e => handleFieldChange(e.target.value)}>
+            <option value="Futsal 5x5"  className="bg-slate-900">Futsal (5x5)</option>
+            <option value="Society 6x6" className="bg-slate-900">Society (6x6)</option>
+            <option value="Society 7x7" className="bg-slate-900">Society (7x7)</option>
+            <option value="Campo 11x11" className="bg-slate-900">Campo (11x11)</option>
           </select>
         </div>
 
@@ -112,6 +121,28 @@ export const RachaoForm: React.FC<Props> = ({ cfg, set, onSubmit, mode = 'rachao
         <input type="text" className={inputCls} value={cfg.location}
           placeholder="EX: ARENA NACIONAL..." onChange={e => set({ location: e.target.value })} />
       </div>
+
+      {/* Regra de Rotação */}
+      {mode === 'rachao' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label className={labelCls}><FontAwesomeIcon icon={faArrowsRotate} className="mr-1" /> Regra de Rotação</label>
+            <select className={selectCls} value={cfg.rotation_rule}
+              onChange={e => set({ rotation_rule: e.target.value as RotationRule })}>
+              <option value="winner_stays"  className="bg-slate-900">Ganhador Fica (sempre)</option>
+              <option value="two_and_out"   className="bg-slate-900">Jogou 2 Sai</option>
+              <option value="goal_diff"     className="bg-slate-900">Diferença de Gols</option>
+            </select>
+          </div>
+          {cfg.rotation_rule === 'goal_diff' && (
+            <div>
+              <label className={labelCls}>Diferença Mín. p/ Ficar</label>
+              <input type="number" className={inputCls} value={cfg.rotation_goal_diff} min={1} max={10}
+                onChange={e => set({ rotation_goal_diff: +e.target.value })} />
+            </div>
+          )}
+        </div>
+      )}
 
       <button
         onClick={onSubmit}

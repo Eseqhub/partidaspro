@@ -41,11 +41,15 @@ export function NovaPartidaModal({ isOpen, groupId, groupSlug, onClose, onSucces
         if (refreshErr) { alert('Sua sessão expirou. Faça login novamente.'); setSaving(false); return; }
       }
 
+      const sportFromCampo = (c: string) =>
+        c.startsWith('Futsal') ? 'Futsal' : c.startsWith('Campo') ? 'Campo' : 'Society';
+
       const basePayload: Record<string, any> = {
         group_id:         groupId,
         date:             draft.data,
         status:           'Agendada',
         field_type:       draft.tipo_campo,
+        sport_type:       sportFromCampo(draft.tipo_campo),
         modality:         draft.modalidade,
         match_type:       draft.modalidade === 'Desafio' ? 'desafio' : draft.modalidade === 'Manual' ? 'manual' : 'rachao',
         start_time:       draft.hora_inicio,

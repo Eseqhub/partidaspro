@@ -1,5 +1,7 @@
 import { MatchType, SportType, GameMode } from '@/core/entities/match';
 
+export type RotationRule = 'winner_stays' | 'two_and_out' | 'goal_diff';
+
 export interface CreateMatchConfig {
   match_type: MatchType;
   sport_type: SportType;
@@ -15,6 +17,8 @@ export interface CreateMatchConfig {
   location: string;
   date: string;
   sessionStartTime: string;
+  rotation_rule: RotationRule;
+  rotation_goal_diff: number;
 }
 
 export type Step = 'choose' | 'rachao' | 'manual';
@@ -40,4 +44,6 @@ export const DEFAULT_CFG: CreateMatchConfig = {
   location: '',
   date: new Date().toISOString().slice(0, 10),
   sessionStartTime: '08:00',
+  rotation_rule: 'two_and_out',
+  rotation_goal_diff: 2,
 };

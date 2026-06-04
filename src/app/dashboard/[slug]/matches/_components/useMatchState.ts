@@ -16,10 +16,8 @@ import { EventType as CoreEventType } from '@/core/entities/match';
 import { enablePush, getPushPermission, sendPush } from '@/infra/services/pushClient';
 import { filterProfanity } from '@/core/services/profanityFilter';
 
-const SPORT_PLAYERS: Record<string, number> = {
-  Futsal: 5,
-  Society: 7,
-  Campo: 11,
+const FIELD_TYPE_PPT: Record<string, number> = {
+  'Futsal 5x5': 5, 'Society 6x6': 6, 'Society 7x7': 7, 'Campo 11x11': 11,
 };
 
 export type SessionPhase = 'idle' | 'setup' | 'active';
@@ -75,6 +73,8 @@ export function useMatchState(slug: string) {
     sport_type: 'Society' as SportType,
     game_mode: 'Rachão' as GameMode,
     tipo_campo: '' as string,
+    rotation_rule: 'two_and_out' as 'winner_stays' | 'two_and_out' | 'goal_diff',
+    rotation_goal_diff: 2,
     max_players: 14,
     max_goalkeepers: 2,
     rules_text: '',
@@ -87,6 +87,7 @@ export function useMatchState(slug: string) {
     outgoingName: string;
     incomingTeam: Player[];
     winnerResult: 'home' | 'away' | 'draw';
+    goalDiff: number;
   } | null>(null);
   const [mvpPlayerId, setMvpPlayerId] = useState<string | null>(null);
   const [tieBreakOpen, setTieBreakOpen] = useState(false);
@@ -284,9 +285,6 @@ export function useMatchState(slug: string) {
           const matchComments = await matchRepo.getComments(liveMatch.id).catch(() => []);
           setComments(matchComments);
 
-          const fieldTypePPT: Record<string, number> = {
-            'Futsal 5x5': 5, 'Society 6x6': 6, 'Society 7x7': 7, 'Campo 11x11': 11,
-          };
           setConfig(prev => ({
             ...prev,
             homeTeamName:    liveMatch.home_team_name   || prev.homeTeamName,
@@ -297,7 +295,7 @@ export function useMatchState(slug: string) {
             stoppage:        liveMatch.stoppage_minutes ?? prev.stoppage,
             goalLimit:       liveMatch.goal_limit       ?? prev.goalLimit,
             sport_type:     (liveMatch.sport_type as any) || prev.sport_type,
-            playersPerTeam:  fieldTypePPT[liveMatch.field_type || ''] ?? prev.playersPerTeam,
+            playersPerTeam:  FIELD_TYPE_PPT[liveMatch.field_type || ''] ?? prev.playersPerTeam,
             tipo_campo:      liveMatch.field_type || prev.tipo_campo,
           }));
 
@@ -423,15 +421,17 @@ export function useMatchState(slug: string) {
 
       setConfig((prev: any) => ({
         ...prev,
-        homeTeamName: m.home_team_name   ?? prev.homeTeamName,
-        awayTeamName: m.away_team_name   ?? prev.awayTeamName,
-        homeColor:    m.home_color       ?? prev.homeColor,
-        awayColor:    m.away_color       ?? prev.awayColor,
-        duration:     m.duration_minutes ?? prev.duration,
-        stoppage:     m.stoppage_minutes ?? prev.stoppage,
-        goalLimit:    m.goal_limit       ?? prev.goalLimit,
-        sport_type:  (m.sport_type as SportType)  ?? prev.sport_type,
-        game_mode:   (m.modality  as GameMode)    ?? prev.game_mode,
+        homeTeamName:   m.home_team_name   ?? prev.homeTeamName,
+        awayTeamName:   m.away_team_name   ?? prev.awayTeamName,
+        homeColor:      m.home_color       ?? prev.homeColor,
+        awayColor:      m.away_color       ?? prev.awayColor,
+        duration:       m.duration_minutes ?? prev.duration,
+        stoppage:       m.stoppage_minutes ?? prev.stoppage,
+        goalLimit:      m.goal_limit       ?? prev.goalLimit,
+        sport_type:    (m.sport_type as SportType) ?? prev.sport_type,
+        game_mode:     (m.modality  as GameMode)   ?? prev.game_mode,
+        playersPerTeam: m.field_type ? (FIELD_TYPE_PPT[m.field_type] ?? prev.playersPerTeam) : prev.playersPerTeam,
+        tipo_campo:     m.field_type ?? prev.tipo_campo,
       }));
 
       const ev = await matchRepo.getEvents(m.id);
@@ -710,7 +710,7 @@ export function useMatchState(slug: string) {
       const totalAvailable = [...realPlayers, ...guests];
       if (totalAvailable.length < 2) return alert('Mínimo de 2 jogadores!');
 
-      const playersPerTeam = SPORT_PLAYERS[config.sport_type] ?? config.playersPerTeam;
+      const playersPerTeam = config.playersPerTeam;
       const isReal = (p: Player) => !p.id.startsWith('guest-');
 
       if (config.game_mode === 'Bolão') {
@@ -852,6 +852,7 @@ export function useMatchState(slug: string) {
       outgoingName: loserName,
       incomingTeam: nextFromQueue,
       winnerResult: winner,
+      goalDiff: Math.abs(score.home - score.away),
     });
   };
 
@@ -864,11 +865,19 @@ export function useMatchState(slug: string) {
     let newConsecutive = winner === lastWinnerId ? consecutiveWins + 1 : 1;
     let nextHome: Player[];
     let nextAway: Player[];
+    const rule = config.rotation_rule ?? 'two_and_out';
+    const goalDiff = nextTeamCtx.goalDiff;
+
+    // Decides if the winning team must rotate out despite winning
+    const winnerMustLeave = (
+      (rule === 'two_and_out' && newConsecutive >= 2) ||
+      (rule === 'goal_diff'   && goalDiff < (config.rotation_goal_diff ?? 2))
+    );
 
     if (winner === 'home') {
       nextHome = draftResult.homeTeam;
       nextAway = incomingTeam;
-      if (newConsecutive >= 2) {
+      if (winnerMustLeave) {
         newQueue.push(nextHome);
         nextHome = newQueue.shift() ?? [];
         newConsecutive = 0;
@@ -878,7 +887,7 @@ export function useMatchState(slug: string) {
     } else if (winner === 'away') {
       nextAway = draftResult.awayTeam;
       nextHome = incomingTeam;
-      if (newConsecutive >= 2) {
+      if (winnerMustLeave) {
         newQueue.push(nextAway);
         nextAway = newQueue.shift() ?? [];
         newConsecutive = 0;
@@ -1020,6 +1029,6 @@ export function useMatchState(slug: string) {
     confirmNextTeam,
     handleNewMatch,
     handleAssignPlayer,
-    SPORT_PLAYERS,
+    FIELD_TYPE_PPT,
   };
 }
