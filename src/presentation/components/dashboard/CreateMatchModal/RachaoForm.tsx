@@ -185,19 +185,27 @@ export const RachaoForm: React.FC<Props> = ({ cfg, set, onSubmit, mode = 'rachao
         </div>
       )}
 
-      <button
-        onClick={onSubmit}
-        style={{
-          padding: '14px 0', fontWeight: 900, fontSize: 11, textTransform: 'uppercase',
-          letterSpacing: '0.3em', border: 'none', cursor: 'pointer',
-          background: `linear-gradient(135deg,${accent},${mode === 'rachao' ? '#aadd00' : '#0090cc'})`,
-          color: '#000',
-          boxShadow: `0 0 30px ${accent}33`,
-        }}
-      >
-        <FontAwesomeIcon icon={mode === 'rachao' ? faShuffle : faUsers} style={{ marginRight: 8 }} />
-        {mode === 'rachao' ? 'CRIAR E IR PARA CHAMADA' : 'CRIAR E ESCALAR TIMES'}
-      </button>
+      {/* Botão sticky — sempre visível no rodapé mesmo em telas pequenas */}
+      <div style={{
+        position: 'sticky', bottom: 0,
+        background: 'linear-gradient(to top, rgba(3,9,18,0.98) 70%, transparent)',
+        padding: '12px 0 4px', marginTop: 4,
+      }}>
+        <button
+          onClick={onSubmit}
+          style={{
+            width: '100%', padding: '16px 0', fontWeight: 900, fontSize: 12, textTransform: 'uppercase',
+            letterSpacing: '0.25em', border: 'none', cursor: 'pointer',
+            background: `linear-gradient(135deg,${accent},${mode === 'rachao' ? '#aadd00' : '#0090cc'})`,
+            color: '#000',
+            boxShadow: `0 0 30px ${accent}44`,
+            borderRadius: 4,
+          }}
+        >
+          <FontAwesomeIcon icon={mode === 'rachao' ? faShuffle : faUsers} style={{ marginRight: 10 }} />
+          {mode === 'rachao' ? 'CRIAR E IR PARA CHAMADA' : 'CRIAR E ESCALAR TIMES'}
+        </button>
+      </div>
     </div>
   );
 };
