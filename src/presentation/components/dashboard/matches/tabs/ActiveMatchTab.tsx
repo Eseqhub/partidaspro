@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faShuffle, faPlay, faUsers } from '@fortawesome/free-solid-svg-icons';
+import { faShuffle, faPlay, faUsers, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
 import { GlassCard } from '@/presentation/components/ui/GlassCard';
 import { Button } from '@/presentation/components/ui/Button';
 import { TacticalBoardV2 } from '@/presentation/components/dashboard/TacticalBoardV2';
@@ -70,6 +70,10 @@ export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
 
   const homeTeamName = config.homeTeamName || 'TIME A';
   const awayTeamName = config.awayTeamName || 'TIME B';
+
+  const [homeOpen,    setHomeOpen]    = useState(true);
+  const [awayOpen,    setAwayOpen]    = useState(true);
+  const [waitingOpen, setWaitingOpen] = useState(false);
 
   return (
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -196,90 +200,88 @@ export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
 
         {/* Time A */}
         <div className="border border-white/5 rounded-xl overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between px-3 py-2 bg-primary/[0.06] border-b border-primary/10">
+          <button className="w-full flex items-center justify-between px-3 py-2 bg-primary/[0.06] border-b border-primary/10 cursor-pointer"
+            onClick={() => setHomeOpen(o => !o)}>
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-4 bg-primary rounded-full shadow-[0_0_8px_rgba(204,255,0,0.5)]" />
               <span className="text-[9px] font-black uppercase tracking-widest text-white truncate max-w-[80px]">
                 {homeTeamName}
               </span>
-            </div>
-            <div className="flex items-center gap-1">
-              <FontAwesomeIcon icon={faUsers} className="text-white/20" style={{ fontSize: 7 }} />
               <span className="text-[8px] font-bold text-white/30">{draftResult.homeTeam.length}</span>
             </div>
-          </div>
-          {/* Formação badge */}
-          {homeFormation && (
-            <div className="px-3 py-1 border-b border-white/[0.04] bg-black/20">
-              <span className="text-[7px] font-black uppercase tracking-widest text-primary/60">
-                {homeFormation.label} — {homeFormation.name}
-              </span>
+            <div className="flex items-center gap-2">
+              {homeFormation && (
+                <span className="text-[7px] font-black uppercase tracking-widest text-primary/50">{homeFormation.label}</span>
+              )}
+              <FontAwesomeIcon icon={homeOpen ? faChevronUp : faChevronDown} className="text-white/20" style={{ fontSize: 8 }} />
             </div>
+          </button>
+          {homeOpen && (
+            <>
+              <div>
+                {draftResult.homeTeam.map((p, i) => (
+                  <PlayerRow key={p.id} player={p} index={i} accentColor="#ccff00" />
+                ))}
+              </div>
+              <div className="px-3 py-1.5 bg-black/20 border-t border-white/[0.04] flex items-center justify-between">
+                <span className="text-[7px] font-black uppercase tracking-widest text-white/20">Força média</span>
+                <span className="text-[9px] font-black text-primary">{draftResult.homeRating.toFixed(0)}</span>
+              </div>
+            </>
           )}
-          {/* Lista jogadores */}
-          <div>
-            {draftResult.homeTeam.map((p, i) => (
-              <PlayerRow key={p.id} player={p} index={i} accentColor="#ccff00" />
-            ))}
-          </div>
-          {/* Rating */}
-          <div className="px-3 py-1.5 bg-black/20 border-t border-white/[0.04] flex items-center justify-between">
-            <span className="text-[7px] font-black uppercase tracking-widest text-white/20">Força média</span>
-            <span className="text-[9px] font-black text-primary">{draftResult.homeRating.toFixed(0)}</span>
-          </div>
         </div>
 
         {/* Time B */}
         <div className="border border-white/5 rounded-xl overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between px-3 py-2 bg-white/[0.03] border-b border-white/5">
+          <button className="w-full flex items-center justify-between px-3 py-2 bg-white/[0.03] border-b border-white/5 cursor-pointer"
+            onClick={() => setAwayOpen(o => !o)}>
             <div className="flex items-center gap-2">
-              <div className="w-1.5 h-4 bg-white/30 rounded-full" />
+              <div className="w-1.5 h-4 bg-blue-400 rounded-full" />
               <span className="text-[9px] font-black uppercase tracking-widest text-white/60 truncate max-w-[80px]">
                 {awayTeamName}
               </span>
-            </div>
-            <div className="flex items-center gap-1">
-              <FontAwesomeIcon icon={faUsers} className="text-white/20" style={{ fontSize: 7 }} />
               <span className="text-[8px] font-bold text-white/30">{draftResult.awayTeam.length}</span>
             </div>
-          </div>
-          {/* Formação badge */}
-          {awayFormation && (
-            <div className="px-3 py-1 border-b border-white/[0.04] bg-black/20">
-              <span className="text-[7px] font-black uppercase tracking-widest text-blue-400/60">
-                {awayFormation.label} — {awayFormation.name}
-              </span>
+            <div className="flex items-center gap-2">
+              {awayFormation && (
+                <span className="text-[7px] font-black uppercase tracking-widest text-blue-400/50">{awayFormation.label}</span>
+              )}
+              <FontAwesomeIcon icon={awayOpen ? faChevronUp : faChevronDown} className="text-white/20" style={{ fontSize: 8 }} />
             </div>
+          </button>
+          {awayOpen && (
+            <>
+              <div>
+                {draftResult.awayTeam.map((p, i) => (
+                  <PlayerRow key={p.id} player={p} index={i} accentColor="#00b4ff" />
+                ))}
+              </div>
+              <div className="px-3 py-1.5 bg-black/20 border-t border-white/[0.04] flex items-center justify-between">
+                <span className="text-[7px] font-black uppercase tracking-widest text-white/20">Força média</span>
+                <span className="text-[9px] font-black text-blue-400">{draftResult.awayRating.toFixed(0)}</span>
+              </div>
+            </>
           )}
-          {/* Lista jogadores */}
-          <div>
-            {draftResult.awayTeam.map((p, i) => (
-              <PlayerRow key={p.id} player={p} index={i} accentColor="#00b4ff" />
-            ))}
-          </div>
-          {/* Rating */}
-          <div className="px-3 py-1.5 bg-black/20 border-t border-white/[0.04] flex items-center justify-between">
-            <span className="text-[7px] font-black uppercase tracking-widest text-white/20">Força média</span>
-            <span className="text-[9px] font-black text-blue-400">{draftResult.awayRating.toFixed(0)}</span>
-          </div>
         </div>
       </div>
 
       {/* Lista de espera (se houver) */}
       {draftResult.waitingList.length > 0 && (
         <div className="border border-white/5 rounded-xl overflow-hidden">
-          <div className="px-3 py-2 border-b border-white/5 bg-black/20">
+          <button className="w-full flex items-center justify-between px-3 py-2 border-b border-white/5 bg-black/20 cursor-pointer"
+            onClick={() => setWaitingOpen(o => !o)}>
             <span className="text-[8px] font-black uppercase tracking-widest text-white/30">
               Aguardando ({draftResult.waitingList.length})
             </span>
-          </div>
-          <div className="grid grid-cols-2">
-            {draftResult.waitingList.map((p, i) => (
-              <PlayerRow key={p.id} player={p} index={i} accentColor="#6B7280" />
-            ))}
-          </div>
+            <FontAwesomeIcon icon={waitingOpen ? faChevronUp : faChevronDown} className="text-white/20" style={{ fontSize: 8 }} />
+          </button>
+          {waitingOpen && (
+            <div className="grid grid-cols-2">
+              {draftResult.waitingList.map((p, i) => (
+                <PlayerRow key={p.id} player={p} index={i} accentColor="#6B7280" />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

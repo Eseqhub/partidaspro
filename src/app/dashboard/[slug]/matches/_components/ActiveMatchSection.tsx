@@ -109,6 +109,14 @@ export function ActiveMatchSection({
         awayColor={config.awayColor}
         timer={timer}
         status={status}
+        duration={config.duration}
+        stoppage={config.stoppage}
+        matchInfo={{
+          campo:        config.tipo_campo || config.sport_type,
+          gameMode:     config.game_mode,
+          location:     config.location,
+          rotationRule: config.rotation_rule,
+        }}
         onToggleTimer={toggleTimer}
         onStopMatch={async () => {
           setStartTime(null);

@@ -75,6 +75,20 @@ export const RachaoForm: React.FC<Props> = ({ cfg, set, onSubmit, mode = 'rachao
 
         <div>
           <label className={labelCls}><FontAwesomeIcon icon={faClock} className="mr-1" /> Duração (min)</label>
+          <div style={{ display: 'flex', gap: 4, marginBottom: 6, flexWrap: 'wrap' }}>
+            {[10, 15, 20, 30, 45].map(t => (
+              <button key={t} type="button" onClick={() => set({ duration: t })}
+                style={{
+                  flex: '0 0 auto', padding: '4px 10px', fontSize: 9, fontWeight: 900,
+                  textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer',
+                  background: cfg.duration === t ? `${neon}18` : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${cfg.duration === t ? neon + '44' : 'rgba(255,255,255,0.1)'}`,
+                  color: cfg.duration === t ? neon : 'rgba(255,255,255,0.4)',
+                }}>
+                {t}min
+              </button>
+            ))}
+          </div>
           <input type="number" className={inputCls} value={cfg.duration} min={1}
             onChange={e => set({ duration: +e.target.value })} />
         </div>
