@@ -9,6 +9,14 @@ interface Props {
   accentColor?: string;
 }
 
+const POS_LABEL: Record<string, string> = {
+  G:   'Goleiro',   LD: 'Lat. Dir.', LE: 'Lat. Esq.',
+  ZAG: 'Zagueiro',  ZGD: 'Zagueiro', ZGE: 'Zagueiro',
+  VOL: 'Volante',   MC: 'Meia',      MD: 'Meia Dir.', ME: 'Meia Esq.',
+  MO:  'Meia Of.',  PD: 'Ponta Dir.', PE: 'Ponta Esq.',
+  SA:  'Atacante',  CA: 'Centroavante',
+};
+
 const POS_COLOR: Record<string, string> = {
   G:   '#EAB308',
   LD: '#22C55E', LE: '#22C55E',
@@ -51,33 +59,40 @@ export const PlayerRow: React.FC<Props> = ({ player, index, accentColor = '#ccff
         }
       </div>
 
-      {/* Nome */}
-      <span style={{
-        flex: 1, fontSize: 10, fontWeight: 900, textTransform: 'uppercase',
-        letterSpacing: '0.05em', color: '#fff',
-        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-      }}>
-        {player.name.split(' ')[0]}
-        {player.name.split(' ').length > 1 && (
-          <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>
-            {' '}{player.name.split(' ').slice(1).join(' ')}
-          </span>
-        )}
-      </span>
-
-      {/* Posição */}
-      <span style={{
-        fontSize: 7, fontWeight: 900, padding: '1px 5px',
+      {/* Posição — destaque à esquerda do nome */}
+      <div style={{
+        width: 32, height: 32, flexShrink: 0, borderRadius: 7,
         background: `${posClr}18`, border: `1px solid ${posClr}40`,
-        color: posClr, borderRadius: 3, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        {pos}
-      </span>
+        <span style={{ fontSize: 9, fontWeight: 900, color: posClr, letterSpacing: '0.02em' }}>
+          {pos}
+        </span>
+      </div>
+
+      {/* Nome */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span style={{
+          fontSize: 11, fontWeight: 900, textTransform: 'uppercase',
+          letterSpacing: '0.04em', color: '#fff',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block',
+        }}>
+          {player.name.split(' ')[0]}
+          {player.name.split(' ').length > 1 && (
+            <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>
+              {' '}{player.name.split(' ').slice(1).join(' ')}
+            </span>
+          )}
+        </span>
+        <span style={{ fontSize: 8, color: `${posClr}99`, fontWeight: 700 }}>
+          {POS_LABEL[pos] ?? pos}
+        </span>
+      </div>
 
       {/* Nível */}
       <span style={{
-        fontSize: 11, fontWeight: 900, minWidth: 18, textAlign: 'center',
-        color: lvl >= 8 ? accentColor : lvl >= 6 ? '#60A5FA' : 'rgba(255,255,255,0.4)',
+        fontSize: 12, fontWeight: 900, minWidth: 20, textAlign: 'center',
+        color: lvl >= 8 ? accentColor : lvl >= 6 ? '#60A5FA' : 'rgba(255,255,255,0.35)',
         flexShrink: 0,
       }}>
         {lvl}

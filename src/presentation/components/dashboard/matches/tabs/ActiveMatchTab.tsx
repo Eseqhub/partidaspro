@@ -80,15 +80,23 @@ export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
 
       {/* Botão INICIAR (só quando Agendada) */}
       {status === 'Agendada' && onStartMatch && (
-        <div className="flex items-center justify-between px-4 py-3 border border-primary/20 bg-primary/[0.04] rounded-xl">
+        <div style={{ border: '1px solid rgba(204,255,0,0.2)', background: 'rgba(204,255,0,0.04)',
+          borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div>
-            <p className="text-[8px] font-black uppercase tracking-[0.25em] text-white/30">Sorteio concluído</p>
-            <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/60 mt-0.5">Pronto para iniciar</p>
+            <p style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.25em',
+              color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>Sorteio concluído</p>
+            <p style={{ fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em',
+              color: 'rgba(255,255,255,0.6)' }}>Times definidos — pronto para iniciar</p>
           </div>
-          <button onClick={onStartMatch}
-            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-black font-black uppercase tracking-[0.25em] text-[10px] rounded-lg shadow-[0_0_20px_rgba(204,255,0,0.2)] hover:scale-105 transition-all active:scale-95">
+          <button onClick={onStartMatch} style={{
+            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            padding: '14px 0', background: 'linear-gradient(135deg,#ccff00,#aadd00)',
+            color: '#000', fontWeight: 900, fontSize: 13, textTransform: 'uppercase',
+            letterSpacing: '0.2em', border: 'none', cursor: 'pointer', borderRadius: 10,
+            boxShadow: '0 0 24px rgba(204,255,0,0.25)',
+          }}>
             <FontAwesomeIcon icon={faPlay} />
-            INICIAR
+            IR PARA O JOGO
           </button>
         </div>
       )}
