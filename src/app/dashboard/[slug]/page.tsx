@@ -86,7 +86,12 @@ export default function DashboardSlugPage() {
       setEditors(roles.data ?? []);
       const owner = user?.id === g.owner_id;
       setIsOwner(owner);
-      const displayName = user?.user_metadata?.full_name
+      // Tenta casar pelo email para pegar o apelido (player.name = nome de guerra)
+      const matchedPlayer = user?.email
+        ? (p ?? []).find((pl: any) => pl.email?.toLowerCase() === user.email!.toLowerCase())
+        : null;
+      const displayName = matchedPlayer?.name
+        || user?.user_metadata?.full_name
         || user?.user_metadata?.name
         || user?.email?.split('@')[0]
         || '';
