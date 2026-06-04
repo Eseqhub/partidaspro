@@ -202,6 +202,13 @@ export const RachaoForm: React.FC<Props> = ({ cfg, set, onSubmit, mode = 'rachao
           })()}
         </div>
 
+        {/* Local — junto com horário */}
+        <div className="sm:col-span-2">
+          <label className={labelCls}><FontAwesomeIcon icon={faMapPin} className="mr-1" /> Local / Quadra</label>
+          <input type="text" className={inputCls} value={cfg.location}
+            placeholder="EX: ARENA NACIONAL..." onChange={e => set({ location: e.target.value })} />
+        </div>
+
         {/* Duração de cada jogo */}
         <div className="sm:col-span-2">
           <label className={labelCls}><FontAwesomeIcon icon={faClock} className="mr-1" /> Duração de cada jogo (min)</label>
@@ -249,12 +256,6 @@ export const RachaoForm: React.FC<Props> = ({ cfg, set, onSubmit, mode = 'rachao
           onNameChange={v => set({ away_team_name: v })} onColorChange={v => set({ away_color: v })}
           namePlaceholder="VISITANTE..." exclude={cfg.home_color}
         />
-      </div>
-
-      <div>
-        <label className={labelCls}><FontAwesomeIcon icon={faMapPin} className="mr-1" /> Local / Quadra</label>
-        <input type="text" className={inputCls} value={cfg.location}
-          placeholder="EX: ARENA NACIONAL..." onChange={e => set({ location: e.target.value })} />
       </div>
 
       {/* Regra de Rotação */}
