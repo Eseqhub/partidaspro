@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFutbol, faShuffle, faUsers, faClock, faMapPin, faArrowsRotate, faCalendarDays, faShirt, faStar } from '@fortawesome/free-solid-svg-icons';
 import { GameMode } from '@/core/entities/match';
 import { CreateMatchConfig, RotationRule } from './types';
+import { LocationInput } from './LocationInput';
 
 interface Props {
   cfg: CreateMatchConfig;
@@ -205,8 +206,11 @@ export const RachaoForm: React.FC<Props> = ({ cfg, set, onSubmit, mode = 'rachao
         {/* Local — junto com horário */}
         <div className="sm:col-span-2">
           <label className={labelCls}><FontAwesomeIcon icon={faMapPin} className="mr-1" /> Local / Quadra</label>
-          <input type="text" className={inputCls} value={cfg.location}
-            placeholder="EX: ARENA NACIONAL..." onChange={e => set({ location: e.target.value })} />
+          <LocationInput
+            value={cfg.location}
+            onChange={v => set({ location: v })}
+            placeholder="Buscar arena, clube, quadra..."
+          />
         </div>
 
         {/* Duração de cada jogo */}
