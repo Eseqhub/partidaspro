@@ -76,7 +76,7 @@ export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
   const [waitingOpen, setWaitingOpen] = useState(false);
 
   return (
-    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ paddingBottom: 16 }}>
 
       {/* Botão INICIAR (só quando Agendada) */}
       {status === 'Agendada' && onStartMatch && (
@@ -89,14 +89,14 @@ export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
               color: 'rgba(255,255,255,0.6)' }}>Times definidos — pronto para iniciar</p>
           </div>
           <button onClick={onStartMatch} style={{
-            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            padding: '14px 0', background: 'linear-gradient(135deg,#ccff00,#aadd00)',
-            color: '#000', fontWeight: 900, fontSize: 13, textTransform: 'uppercase',
-            letterSpacing: '0.2em', border: 'none', cursor: 'pointer', borderRadius: 10,
-            boxShadow: '0 0 24px rgba(204,255,0,0.25)',
+            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            padding: '16px 12px', background: 'linear-gradient(135deg,#ccff00,#aadd00)',
+            color: '#000', fontWeight: 900, fontSize: 12, textTransform: 'uppercase',
+            letterSpacing: '0.1em', border: 'none', cursor: 'pointer', borderRadius: 10,
+            boxShadow: '0 0 24px rgba(204,255,0,0.25)', boxSizing: 'border-box',
           }}>
-            <FontAwesomeIcon icon={faPlay} />
-            IR PARA O JOGO
+            <FontAwesomeIcon icon={faPlay} style={{ flexShrink: 0 }} />
+            <span style={{ whiteSpace: 'nowrap' }}>IR PARA O JOGO</span>
           </button>
         </div>
       )}

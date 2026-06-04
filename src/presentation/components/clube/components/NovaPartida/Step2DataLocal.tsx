@@ -1,6 +1,6 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCalendarDays, faClock, faMapPin, faShirt } from '@fortawesome/free-solid-svg-icons';
+import { faCalendarDays, faClock, faMapPin, faShirt, faStar } from '@fortawesome/free-solid-svg-icons';
 import { parseDias, serializeDias, labelDias, WEEKDAY_NAMES } from '@/core/services/RecurrenceService';
 import { MatchDraft, Recorrencia, SHIRT_COLORS, blue, inp, lbl } from './types';
 
@@ -91,27 +91,32 @@ export function Step2DataLocal({ draft, modColor, set }: Props) {
   );
 }
 
+const PROPRIO = '#a855f7';
+
 function TeamColorPicker({ label, name, color, onNameChange, onColorChange, namePlaceholder }: {
   label: string; name: string; color: string;
   onNameChange: (v: string) => void; onColorChange: (v: string) => void;
   namePlaceholder: string;
 }) {
-  const colorHex = SHIRT_COLORS.find(c => c.label === color)?.hex ?? '#fff';
+  const isProprio = color === 'Uniforme Próprio';
+  const colorHex  = isProprio ? PROPRIO : (SHIRT_COLORS.find(c => c.label === color)?.hex ?? '#fff');
   const borderColor = colorHex !== '#111111' ? colorHex : '#fff';
   return (
-    <div style={{ padding: '14px 16px', background: `${borderColor}0a`, border: `1px solid ${borderColor}30` }}>
-      <label style={{ ...lbl, marginBottom: 8 }}>{label} — Nome &amp; Cor</label>
+    <div style={{ padding: '14px 16px', background: `${borderColor}0a`, border: `1px solid ${borderColor}25`, borderRadius: 10 }}>
+      <label style={{ ...lbl, marginBottom: 8 }}>{label} — Nome &amp; Colete</label>
       <input style={{ ...inp, marginBottom: 10 }} value={name} onChange={e => onNameChange(e.target.value)} placeholder={namePlaceholder} />
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+
+      {/* Coletes */}
+      <p style={{ fontSize: 7, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em',
+        color: 'rgba(255,255,255,0.25)', marginBottom: 6 }}>Colete</p>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
         {SHIRT_COLORS.map(c => (
           <button key={c.hex} onClick={() => onColorChange(c.label)} title={c.label}
             style={{
               width: 34, height: 34, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: color === c.label ? `${c.hex}20` : 'rgba(255,255,255,0.04)',
               outline: color === c.label ? `2px solid ${c.hex}` : '2px solid transparent',
-              outlineOffset: 1,
-              cursor: 'pointer', flexShrink: 0, border: 'none',
-              transition: 'all .15s',
+              outlineOffset: 1, cursor: 'pointer', flexShrink: 0, border: 'none', transition: 'all .15s',
             }}>
             <FontAwesomeIcon icon={faShirt} style={{
               fontSize: 18, color: c.hex,
@@ -120,9 +125,30 @@ function TeamColorPicker({ label, name, color, onNameChange, onColorChange, name
           </button>
         ))}
       </div>
+
+      {/* Uniforme Próprio */}
+      <button onClick={() => onColorChange('Uniforme Próprio')}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+          background: isProprio ? `${PROPRIO}15` : 'rgba(255,255,255,0.03)',
+          border: `2px solid ${isProprio ? PROPRIO : 'rgba(255,255,255,0.1)'}`,
+          borderRadius: 8, cursor: 'pointer', transition: 'all 0.15s' }}>
+        <div style={{ width: 30, height: 30, borderRadius: 7, flexShrink: 0, display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          background: isProprio ? `${PROPRIO}25` : 'rgba(255,255,255,0.06)' }}>
+          <FontAwesomeIcon icon={faStar} style={{ fontSize: 13, color: isProprio ? PROPRIO : 'rgba(255,255,255,0.3)' }} />
+        </div>
+        <div style={{ flex: 1, textAlign: 'left' }}>
+          <p style={{ fontSize: 11, fontWeight: 900, textTransform: 'uppercase',
+            color: isProprio ? PROPRIO : 'rgba(255,255,255,0.5)', marginBottom: 1 }}>Uniforme Próprio</p>
+          <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>O time joga com seu próprio kit</p>
+        </div>
+      </button>
+
       {color && (
-        <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', marginTop: 6, fontWeight: 700, textTransform: 'uppercase' }}>
-          Selecionado: {color}
+        <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', marginTop: 8, fontWeight: 700, textTransform: 'uppercase',
+          display: 'flex', alignItems: 'center', gap: 5 }}>
+          <FontAwesomeIcon icon={isProprio ? faStar : faShirt} style={{ color: colorHex, fontSize: 9 }} />
+          {color}
         </p>
       )}
     </div>

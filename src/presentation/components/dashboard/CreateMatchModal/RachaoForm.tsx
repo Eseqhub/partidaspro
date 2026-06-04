@@ -1,6 +1,6 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFutbol, faShuffle, faUsers, faClock, faMapPin, faArrowsRotate, faCalendarDays, faShirt } from '@fortawesome/free-solid-svg-icons';
+import { faFutbol, faShuffle, faUsers, faClock, faMapPin, faArrowsRotate, faCalendarDays, faShirt, faStar } from '@fortawesome/free-solid-svg-icons';
 import { GameMode } from '@/core/entities/match';
 import { CreateMatchConfig, RotationRule } from './types';
 
@@ -17,7 +17,10 @@ const selectCls = `${inputCls} appearance-none cursor-pointer`;
 const neon = '#ccff00';
 const blue = '#00b4ff';
 
-// Paleta de uniformes
+// Colete especial "Uniforme Próprio"
+const PROPRIO_COLOR = '#a855f7'; // roxo para diferenciar
+
+// Paleta de coletes
 const UNIFORMS: { label: string; hex: string }[] = [
   { label: 'Branco',   hex: '#ffffff' },
   { label: 'Preto',    hex: '#222222' },
@@ -38,27 +41,33 @@ function ShirtPicker({ label, teamName, onNameChange, namePlaceholder, color, on
   onNameChange: (v: string) => void; onColorChange: (v: string) => void;
   namePlaceholder: string; exclude?: string;
 }) {
-  const hex = UNIFORMS.find(u => u.label === color)?.hex ?? '#fff';
-  const border = hex === '#ffffff' ? 'rgba(255,255,255,0.5)' : hex;
+  const isProprio = color === 'Uniforme Próprio';
+  const hex = isProprio ? PROPRIO_COLOR : (UNIFORMS.find(u => u.label === color)?.hex ?? '#fff');
+  const border = hex === '#ffffff' ? 'rgba(255,255,255,0.4)' : hex;
+
   return (
-    <div style={{ padding: '14px', background: `${border}0c`, border: `1px solid ${border}30`, borderRadius: 8 }}>
+    <div style={{ padding: '14px', background: `${border}0c`, border: `1px solid ${border}25`, borderRadius: 10 }}>
       <label style={{ display: 'block', fontSize: 8, fontWeight: 900, textTransform: 'uppercase',
         letterSpacing: '0.25em', color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>
-        {label} — Uniforme
+        {label}
       </label>
       <input
         value={teamName} onChange={e => onNameChange(e.target.value)} placeholder={namePlaceholder}
         style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.4)',
           border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: 12,
-          fontWeight: 700, outline: 'none', marginBottom: 12, boxSizing: 'border-box' as const }}
+          fontWeight: 700, outline: 'none', marginBottom: 10, boxSizing: 'border-box' as const, borderRadius: 6 }}
       />
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+
+      {/* Label seção coletes */}
+      <p style={{ fontSize: 7, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em',
+        color: 'rgba(255,255,255,0.25)', marginBottom: 6 }}>Colete</p>
+      <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
         {UNIFORMS.filter(u => u.label !== exclude).map(u => {
           const selected = color === u.label;
           return (
             <button key={u.label} type="button" title={u.label} onClick={() => onColorChange(u.label)}
               style={{
-                position: 'relative', width: 36, height: 36, borderRadius: 8,
+                width: 36, height: 36, borderRadius: 8,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: selected ? `${u.hex}22` : 'rgba(255,255,255,0.04)',
                 border: `2px solid ${selected ? u.hex : 'rgba(255,255,255,0.1)'}`,
@@ -71,10 +80,39 @@ function ShirtPicker({ label, teamName, onNameChange, namePlaceholder, color, on
           );
         })}
       </div>
+
+      {/* Uniforme Próprio */}
+      <button type="button" onClick={() => onColorChange('Uniforme Próprio')}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+          background: isProprio ? `${PROPRIO_COLOR}18` : 'rgba(255,255,255,0.03)',
+          border: `2px solid ${isProprio ? PROPRIO_COLOR : 'rgba(255,255,255,0.1)'}`,
+          borderRadius: 8, cursor: 'pointer', transition: 'all 0.15s',
+          boxShadow: isProprio ? `0 0 12px ${PROPRIO_COLOR}44` : 'none' }}>
+        <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          background: isProprio ? `${PROPRIO_COLOR}25` : 'rgba(255,255,255,0.06)',
+          border: `1px solid ${isProprio ? PROPRIO_COLOR : 'rgba(255,255,255,0.12)'}` }}>
+          <FontAwesomeIcon icon={faStar} style={{ fontSize: 14, color: isProprio ? PROPRIO_COLOR : 'rgba(255,255,255,0.3)' }} />
+        </div>
+        <div style={{ flex: 1, textAlign: 'left' }}>
+          <p style={{ fontSize: 11, fontWeight: 900, textTransform: 'uppercase',
+            color: isProprio ? PROPRIO_COLOR : 'rgba(255,255,255,0.5)', letterSpacing: '0.05em', marginBottom: 1 }}>
+            Uniforme Próprio
+          </p>
+          <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>
+            O time joga com seu próprio kit
+          </p>
+        </div>
+        {isProprio && (
+          <FontAwesomeIcon icon={faShirt} style={{ fontSize: 16, color: PROPRIO_COLOR, flexShrink: 0 }} />
+        )}
+      </button>
+
+      {/* Label selecionado */}
       {color && (
-        <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', marginTop: 8,
+        <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', marginTop: 8,
           fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <FontAwesomeIcon icon={faShirt} style={{ color: hex, fontSize: 10 }} />
+          <FontAwesomeIcon icon={isProprio ? faStar : faShirt} style={{ color: hex, fontSize: 10 }} />
           {color}
         </p>
       )}
@@ -202,12 +240,12 @@ export const RachaoForm: React.FC<Props> = ({ cfg, set, onSubmit, mode = 'rachao
       {/* Uniformes dos times */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <ShirtPicker
-          label="Time A" teamName={cfg.home_team_name} color={cfg.home_color}
+          label="Time A — Nome &amp; Colete" teamName={cfg.home_team_name} color={cfg.home_color}
           onNameChange={v => set({ home_team_name: v })} onColorChange={v => set({ home_color: v })}
           namePlaceholder="TIME A..." exclude={cfg.away_color}
         />
         <ShirtPicker
-          label="Time B" teamName={cfg.away_team_name} color={cfg.away_color}
+          label="Time B — Nome &amp; Colete" teamName={cfg.away_team_name} color={cfg.away_color}
           onNameChange={v => set({ away_team_name: v })} onColorChange={v => set({ away_color: v })}
           namePlaceholder="VISITANTE..." exclude={cfg.home_color}
         />
