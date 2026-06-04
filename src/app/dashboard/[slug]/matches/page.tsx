@@ -65,6 +65,13 @@ export default function MatchPage() {
     onAssignPlayer: m.handleAssignPlayer,
     onConfirmTeams: m.handleConfirmTeams,
     onCancel: m.handleNewMatch,
+    matchConfig: {
+      campo:    m.config.tipo_campo || m.config.sport_type,
+      gameMode: m.config.game_mode,
+      duration: m.config.duration,
+      homeTeamName: m.config.homeTeamName || 'Time A',
+      awayTeamName: m.config.awayTeamName || 'Time B',
+    },
   };
 
   return (

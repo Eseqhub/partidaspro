@@ -56,7 +56,7 @@ export const ClubHeader: React.FC<Props> = ({
               : <FontAwesomeIcon icon={faShieldHalved} style={{ color: blue, fontSize: 32 }} />
             }
           </div>
-          {hasRules && (
+          {hasRules ? (
             <button onClick={() => setRulesOpen(true)}
               style={{ width: 80, padding: '5px 0', background: `${gold}10`, border: `1px solid ${gold}30`,
                 color: gold, fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em',
@@ -64,7 +64,15 @@ export const ClubHeader: React.FC<Props> = ({
               <FontAwesomeIcon icon={faScroll} style={{ fontSize: 8 }} />
               Regras
             </button>
-          )}
+          ) : canManage && onOpenSettings ? (
+            <button onClick={onOpenSettings}
+              style={{ width: 80, padding: '5px 0', background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)',
+                color: 'rgba(255,255,255,0.25)', fontSize: 7, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+              <FontAwesomeIcon icon={faScroll} style={{ fontSize: 7 }} />
+              + Regras
+            </button>
+          ) : null}
         </div>
 
         {/* Modal Regras */}

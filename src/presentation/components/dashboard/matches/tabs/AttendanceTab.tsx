@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faShuffle, faTimes, faTableCells } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faShuffle, faTimes, faTableCells, faCheck, faUserPlus } from '@fortawesome/free-solid-svg-icons';
 import { GlassCard } from '@/presentation/components/ui/GlassCard';
 import { Button } from '@/presentation/components/ui/Button';
 import { AttendanceSelector } from '@/presentation/components/dashboard/AttendanceSelector';
@@ -63,6 +63,19 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
   onSelectHomeFormation,
   onSelectAwayFormation,
 }) => {
+  const [addedToast, setAddedToast] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleAddGuest = () => {
+    const name = guestInput.trim();
+    if (!name) return;
+    setGuestPlayers([...guestPlayers, name]);
+    setGuestInput('');
+    setAddedToast(name);
+    setTimeout(() => setAddedToast(null), 2000);
+    inputRef.current?.focus();
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
@@ -119,50 +132,95 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
         onReorder={setSelectedPlayerIds}
       />
 
-      <div className="border-t border-white/5 pt-8">
-        <div className="flex justify-between items-center mb-6">
+      {/* Convidados / Avulsos */}
+      <div className="border-t border-white/5 pt-5">
+        <div className="flex justify-between items-center mb-3">
           <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] flex items-center gap-2">
-            <FontAwesomeIcon icon={faPlus} className="text-primary" /> Atletas Avulsos
+            <FontAwesomeIcon icon={faUserPlus} className="text-primary" style={{ fontSize: 9 }} />
+            Convidados / Avulsos
           </h3>
-          <span className="text-[10px] text-white/20 font-bold bg-white/5 px-2 py-0.5 border border-white/5">
-            {guestPlayers.length} ADICIONADOS
-          </span>
-        </div>
-        
-        <div className="flex gap-2 mb-6">
-          <input 
-            type="text" 
-            value={guestInput}
-            onChange={(e) => setGuestInput(e.target.value)}
-            placeholder="NOME DO CONVIDADO..."
-            className="flex-1 bg-white/5 border border-white/10 p-4 text-white uppercase font-black text-[10px] tracking-[0.2em] outline-none focus:border-primary/40 focus:bg-primary/5 transition-all rounded-lg"
-          />
-          <Button 
-            onClick={() => {
-              if (guestInput) {
-                setGuestPlayers([...guestPlayers, guestInput]);
-                setGuestInput('');
-              }
-            }}
-            className="bg-primary text-black px-8 font-black uppercase tracking-widest border-none h-auto rounded-lg"
-          >
-            ADD
-          </Button>
+          {guestPlayers.length > 0 && (
+            <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 8px', background: 'rgba(204,255,0,0.1)',
+              border: '1px solid rgba(204,255,0,0.25)', color: '#ccff00' }}>
+              {guestPlayers.length} na lista
+            </span>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {guestPlayers.map((name, i) => (
-            <div key={i} className="flex items-center justify-between p-3 bg-white/5 border border-white/5 group hover:border-white/10 transition-all rounded-lg">
-              <span className="text-[10px] font-black uppercase text-white/60 tracking-widest italic">{name}</span>
-              <button 
-                onClick={() => setGuestPlayers(guestPlayers.filter((_, idx) => idx !== i))}
-                className="text-white/10 hover:text-red-500 transition-colors p-2"
-              >
-                <FontAwesomeIcon icon={faTimes} />
-              </button>
-            </div>
-          ))}
+        {/* Input + botão inline */}
+        <div className="flex gap-2 mb-3">
+          <input
+            ref={inputRef}
+            type="text"
+            value={guestInput}
+            onChange={e => setGuestInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleAddGuest(); }}
+            placeholder="Nome do convidado..."
+            className="flex-1 bg-white/5 border border-white/10 p-3 text-white font-bold text-[11px] outline-none focus:border-primary/40 focus:bg-primary/5 transition-all rounded-lg"
+          />
+          <button
+            onClick={handleAddGuest}
+            disabled={!guestInput.trim()}
+            style={{
+              padding: '0 18px', background: guestInput.trim() ? '#ccff00' : 'rgba(255,255,255,0.06)',
+              color: guestInput.trim() ? '#000' : 'rgba(255,255,255,0.2)',
+              border: 'none', fontWeight: 900, fontSize: 10, textTransform: 'uppercase',
+              letterSpacing: '0.15em', cursor: guestInput.trim() ? 'pointer' : 'not-allowed',
+              borderRadius: 8, transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+            }}
+          >
+            <FontAwesomeIcon icon={faPlus} /> ADD
+          </button>
         </div>
+
+        {/* Toast confirmação */}
+        {addedToast && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 8,
+            background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8,
+          }}>
+            <FontAwesomeIcon icon={faCheck} style={{ color: '#22c55e', fontSize: 10 }} />
+            <span style={{ fontSize: 10, fontWeight: 900, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              {addedToast} adicionado!
+            </span>
+          </div>
+        )}
+
+        {/* Lista de convidados (mesmo estilo dos jogadores) */}
+        {guestPlayers.length > 0 && (
+          <div className="grid grid-cols-2 gap-2">
+            {guestPlayers.map((name, i) => (
+              <div key={i}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 10px',
+                  background: 'rgba(204,255,0,0.06)', border: '1px solid rgba(204,255,0,0.2)',
+                  borderRadius: 8, cursor: 'default' }}>
+                <div style={{ width: 28, height: 28, borderRadius: 6, background: 'rgba(204,255,0,0.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11, fontWeight: 900, color: '#ccff00', flexShrink: 0 }}>
+                  {name[0]?.toUpperCase()}
+                </div>
+                <span style={{ flex: 1, fontSize: 10, fontWeight: 900, textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {name}
+                </span>
+                <span style={{ fontSize: 7, color: 'rgba(204,255,0,0.5)', fontWeight: 900, marginRight: 2 }}>
+                  AVULSO
+                </span>
+                <button onClick={() => setGuestPlayers(guestPlayers.filter((_, idx) => idx !== i))}
+                  style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.4)',
+                    cursor: 'pointer', padding: 2, flexShrink: 0 }}>
+                  <FontAwesomeIcon icon={faTimes} style={{ fontSize: 9 }} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {guestPlayers.length === 0 && (
+          <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontWeight: 700, textAlign: 'center', padding: '12px 0' }}>
+            Digite o nome e pressione ADD ou Enter
+          </p>
+        )}
       </div>
 
       {/* Seleção de Formações (só Rachão com formações disponíveis) */}

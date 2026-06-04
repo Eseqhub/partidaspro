@@ -9,6 +9,7 @@ interface Props {
   userRole: string;
   slug: string;
   matchId: string | null;
+  matchConfig?: { campo?: string; gameMode?: string; duration?: number; homeTeamName?: string; awayTeamName?: string };
   allPlayers: Player[];
   selectedPlayerIds: string[];
   togglePlayerAttendance: (id: string) => void;
@@ -41,9 +42,39 @@ export function MatchSetupPhase({
   availableFormations, homeFormation, awayFormation,
   homeTeamName, awayTeamName, onSelectHomeFormation, onSelectAwayFormation,
   teamAssignments, onAssignPlayer, onConfirmTeams, onCancel,
+  matchConfig,
 }: Props) {
   return (
     <div className="space-y-4">
+
+      {/* Resumo da configuração da partida */}
+      {matchConfig && (matchConfig.campo || matchConfig.gameMode) && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8,
+          padding: '10px 14px', background: 'rgba(204,255,0,0.04)',
+          border: '1px solid rgba(204,255,0,0.15)', borderRadius: 10,
+        }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(255,255,255,0.25)' }}>
+              Partida:
+            </span>
+            {[matchConfig.campo, matchConfig.gameMode, matchConfig.duration ? `${matchConfig.duration}min` : null]
+              .filter(Boolean).map((v, i) => (
+                <span key={i} style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em',
+                  padding: '2px 7px', background: 'rgba(204,255,0,0.1)', border: '1px solid rgba(204,255,0,0.2)',
+                  color: '#ccff00', borderRadius: 4 }}>
+                  {v}
+                </span>
+              ))}
+          </div>
+          <button onClick={onCancel}
+            style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em',
+              color: 'rgba(239,68,68,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}>
+            CANCELAR
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
@@ -51,12 +82,14 @@ export function MatchSetupPhase({
             {matchType === 'manual' ? 'ESCALANDO TIMES' : 'SELECIONANDO JOGADORES'}
           </span>
         </div>
-        <button
-          onClick={onCancel}
-          className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors"
-        >
-          CANCELAR
-        </button>
+        {!matchConfig && (
+          <button
+            onClick={onCancel}
+            className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors"
+          >
+            CANCELAR
+          </button>
+        )}
       </div>
 
       {matchType !== 'manual' && (
