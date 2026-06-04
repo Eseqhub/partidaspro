@@ -48,6 +48,7 @@ export default function DashboardSlugPage() {
   const [isOwner,  setIsOwner]  = useState(false);
   const [canManage, setCanManage] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<JoinRequest[]>([]);
+  const [currentUserName, setCurrentUserName] = useState('');
   const tabsRef = useRef<HTMLDivElement>(null);
 
   const openSettings = () => {
@@ -85,6 +86,11 @@ export default function DashboardSlugPage() {
       setEditors(roles.data ?? []);
       const owner = user?.id === g.owner_id;
       setIsOwner(owner);
+      const displayName = user?.user_metadata?.full_name
+        || user?.user_metadata?.name
+        || user?.email?.split('@')[0]
+        || '';
+      setCurrentUserName(displayName);
 
       // Quem pode gerenciar solicitações: dono OU editor delegado
       const editor = owner ? true : !!(user?.email && await groupRepo.isEditor(g.id, user.email).catch(() => false));
@@ -168,6 +174,7 @@ export default function DashboardSlugPage() {
         <ClubHeader
           group={group} players={players} summary={summary} isOwner={isOwner}
           canManage={canManage} onOpenSettings={openSettings}
+          currentUserName={currentUserName}
           copied={copied} linkLoading={linkLoading}
           onCopyLink={handleCopyLink} onNavigate={router.push}
         />
