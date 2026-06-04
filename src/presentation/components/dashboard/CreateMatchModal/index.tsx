@@ -76,56 +76,63 @@ export function CreateMatchModal({ isOpen, onClose, onCreateMatch }: Props) {
 
         <div style={{ padding: '16px' }}>
 
-          {/* Escolha do modo */}
+          {/* Escolha do modo — centralizado */}
           {step === 'choose' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '8px 0' }}>
+              <p style={{ textAlign: 'center', fontSize: 9, fontWeight: 900, textTransform: 'uppercase',
+                letterSpacing: '0.25em', color: 'rgba(255,255,255,0.25)', marginBottom: 4 }}>
+                Escolha o formato
+              </p>
               {[
                 {
                   mode: 'rachao' as const,
                   icon: faShuffle,
                   accent: neon,
-                  title: '⚡ Rachão / Pelada',
-                  desc: 'Sorteio inteligente de times equilibrados com base em habilidade, idade e posição.',
-                  tags: ['Sorteio Automático', 'Chamada', 'Placar ao vivo'],
+                  title: 'Rachão / Pelada',
+                  emoji: '⚡',
+                  desc: 'Sorteio inteligente por habilidade, posição e idade.',
+                  tags: ['Sorteio', 'Chamada', 'Placar'],
                 },
                 {
                   mode: 'manual' as const,
                   icon: faUsers,
                   accent: blue,
-                  title: '🏆 Time Contra Time',
-                  desc: 'Você escala os titulares e reservas de cada time. Sem sorteio automático.',
-                  tags: ['Escalação Manual', 'Titulares', 'Reservas'],
+                  title: 'Time Contra Time',
+                  emoji: '🏆',
+                  desc: 'Você escala cada jogador. Sem sorteio automático.',
+                  tags: ['Manual', 'Titulares', 'Reservas'],
                 },
-              ].map(({ mode, icon, accent, title, desc, tags }) => (
+              ].map(({ mode, icon, accent, title, emoji, desc, tags }) => (
                 <button key={mode}
-                  onClick={() => {
-                    set({ match_type: mode });
-                    setStep(mode);
-                  }}
+                  onClick={() => { set({ match_type: mode }); setStep(mode); }}
                   style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 20, padding: '22px 20px',
-                    background: `linear-gradient(135deg,${accent}0a,transparent)`,
-                    border: `1px solid ${accent}30`, cursor: 'pointer', textAlign: 'left', transition: 'all .2s',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+                    padding: '24px 20px', textAlign: 'center',
+                    background: `linear-gradient(135deg,${accent}0c,transparent)`,
+                    border: `1px solid ${accent}35`, cursor: 'pointer', transition: 'all .2s', borderRadius: 4,
                   }}
                   onMouseEnter={e => (e.currentTarget.style.borderColor = `${accent}80`)}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = `${accent}30`)}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = `${accent}35`)}
                 >
                   <div style={{
-                    width: 52, height: 52, flexShrink: 0, background: `${accent}18`,
+                    width: 64, height: 64, background: `${accent}18`,
                     border: `1px solid ${accent}44`, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontSize: 22, color: accent,
+                    justifyContent: 'center', fontSize: 28, color: accent, borderRadius: 16,
                   }}>
                     <FontAwesomeIcon icon={icon} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', textTransform: 'uppercase', letterSpacing: '-0.01em', marginBottom: 4 }}>{title}</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>{desc}</div>
-                    <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', textTransform: 'uppercase',
+                      letterSpacing: '-0.01em', marginBottom: 6 }}>
+                      {emoji} {title}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5, marginBottom: 8 }}>{desc}</div>
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
                       {tags.map(tag => (
                         <span key={tag} style={{
-                          fontSize: 7, fontWeight: 900, padding: '2px 6px',
+                          fontSize: 8, fontWeight: 900, padding: '3px 8px',
                           background: `${accent}12`, border: `1px solid ${accent}25`,
-                          color: accent, textTransform: 'uppercase', letterSpacing: '0.1em',
+                          color: accent, textTransform: 'uppercase', letterSpacing: '0.1em', borderRadius: 4,
                         }}>{tag}</span>
                       ))}
                     </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCalendarDays, faClock, faMapPin } from '@fortawesome/free-solid-svg-icons';
+import { faCalendarDays, faClock, faMapPin, faShirt } from '@fortawesome/free-solid-svg-icons';
 import { parseDias, serializeDias, labelDias, WEEKDAY_NAMES } from '@/core/services/RecurrenceService';
 import { MatchDraft, Recorrencia, SHIRT_COLORS, blue, inp, lbl } from './types';
 
@@ -106,12 +106,18 @@ function TeamColorPicker({ label, name, color, onNameChange, onColorChange, name
         {SHIRT_COLORS.map(c => (
           <button key={c.hex} onClick={() => onColorChange(c.label)} title={c.label}
             style={{
-              width: 28, height: 28, borderRadius: '50%', background: c.hex,
-              border: `2px solid ${color === c.label ? '#fff' : 'transparent'}`,
-              cursor: 'pointer', flexShrink: 0,
-              boxShadow: color === c.label ? `0 0 0 2px ${c.hex}` : 'none',
+              width: 34, height: 34, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: color === c.label ? `${c.hex}20` : 'rgba(255,255,255,0.04)',
+              outline: color === c.label ? `2px solid ${c.hex}` : '2px solid transparent',
+              outlineOffset: 1,
+              cursor: 'pointer', flexShrink: 0, border: 'none',
               transition: 'all .15s',
+            }}>
+            <FontAwesomeIcon icon={faShirt} style={{
+              fontSize: 18, color: c.hex,
+              filter: color === c.label ? `drop-shadow(0 0 4px ${c.hex})` : 'none',
             }} />
+          </button>
         ))}
       </div>
       {color && (

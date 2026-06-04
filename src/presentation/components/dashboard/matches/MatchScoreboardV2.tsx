@@ -36,11 +36,23 @@ const rotationLabel = (r?: string) => ({
   goal_diff:    'Dif. de Gols',
 } as any)[r ?? ''] ?? '';
 
-const getVestHex = (colorName: string) => ({
-  Branco:   '#fff', Preto: '#444', Vermelho: '#EF4444', Azul: '#3B82F6',
-  Verde:    '#22C55E', Amarelo: '#EAB308', Laranja: '#F97316', Roxo: '#A855F7',
-  Rosa:     '#EC4899', Cinza: '#6B7280', Ciano: '#06B6D4', Marrom: '#92400E',
-} as any)[colorName] ?? '#fff';
+const VEST_COLORS: { label: string; hex: string }[] = [
+  { label: 'Branco',   hex: '#ffffff' },
+  { label: 'Preto',    hex: '#222222' },
+  { label: 'Vermelho', hex: '#EF4444' },
+  { label: 'Azul',     hex: '#3B82F6' },
+  { label: 'Verde',    hex: '#22C55E' },
+  { label: 'Amarelo',  hex: '#EAB308' },
+  { label: 'Laranja',  hex: '#F97316' },
+  { label: 'Roxo',     hex: '#A855F7' },
+  { label: 'Rosa',     hex: '#EC4899' },
+  { label: 'Cinza',    hex: '#6B7280' },
+  { label: 'Ciano',    hex: '#06B6D4' },
+  { label: 'Marrom',   hex: '#92400E' },
+];
+
+const getVestHex = (colorName: string) =>
+  VEST_COLORS.find(v => v.label === colorName)?.hex ?? '#fff';
 
 export const ScoreboardV2: React.FC<ScoreboardProps> = ({
   homeScore, awayScore,
@@ -145,14 +157,20 @@ export const ScoreboardV2: React.FC<ScoreboardProps> = ({
                   {homeTeamName || 'Time A'}
                 </p>
                 {expanded && (
-                  <select value={homeColor} onChange={e => onUpdateConfig?.({ homeColor: e.target.value })}
-                    style={{ marginTop: 4, background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)',
-                      color: 'rgba(255,255,255,0.4)', fontSize: 8, fontWeight: 900, padding: '2px 6px',
-                      textTransform: 'uppercase', outline: 'none', cursor: 'pointer' }}>
-                    {colors.filter(c => c !== awayColor).map(c =>
-                      <option key={c} value={c} className="bg-slate-950">{c}</option>
-                    )}
-                  </select>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 6 }}>
+                    {VEST_COLORS.filter(v => v.label !== awayColor).map(v => (
+                      <button key={v.label} type="button" title={v.label}
+                        onClick={() => onUpdateConfig?.({ homeColor: v.label })}
+                        style={{ width: 26, height: 26, borderRadius: 6, display: 'flex', alignItems: 'center',
+                          justifyContent: 'center', cursor: 'pointer', border: 'none',
+                          background: homeColor === v.label ? `${v.hex}25` : 'rgba(255,255,255,0.04)',
+                          outline: homeColor === v.label ? `2px solid ${v.hex}` : '2px solid transparent',
+                          outlineOffset: 1, transition: 'all 0.12s' }}>
+                        <FontAwesomeIcon icon={faShirt} style={{ fontSize: 14, color: v.hex,
+                          filter: homeColor === v.label ? `drop-shadow(0 0 3px ${v.hex})` : 'none' }} />
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
@@ -206,14 +224,20 @@ export const ScoreboardV2: React.FC<ScoreboardProps> = ({
                   {awayTeamName || 'Time B'}
                 </p>
                 {expanded && (
-                  <select value={awayColor} onChange={e => onUpdateConfig?.({ awayColor: e.target.value })}
-                    style={{ marginTop: 4, background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)',
-                      color: 'rgba(255,255,255,0.4)', fontSize: 8, fontWeight: 900, padding: '2px 6px',
-                      textTransform: 'uppercase', outline: 'none', cursor: 'pointer' }}>
-                    {colors.filter(c => c !== homeColor).map(c =>
-                      <option key={c} value={c} className="bg-slate-950">{c}</option>
-                    )}
-                  </select>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 6, justifyContent: 'flex-end' }}>
+                    {VEST_COLORS.filter(v => v.label !== homeColor).map(v => (
+                      <button key={v.label} type="button" title={v.label}
+                        onClick={() => onUpdateConfig?.({ awayColor: v.label })}
+                        style={{ width: 26, height: 26, borderRadius: 6, display: 'flex', alignItems: 'center',
+                          justifyContent: 'center', cursor: 'pointer', border: 'none',
+                          background: awayColor === v.label ? `${v.hex}25` : 'rgba(255,255,255,0.04)',
+                          outline: awayColor === v.label ? `2px solid ${v.hex}` : '2px solid transparent',
+                          outlineOffset: 1, transition: 'all 0.12s' }}>
+                        <FontAwesomeIcon icon={faShirt} style={{ fontSize: 14, color: v.hex,
+                          filter: awayColor === v.label ? `drop-shadow(0 0 3px ${v.hex})` : 'none' }} />
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
               <FontAwesomeIcon icon={faShirt} style={{ fontSize: 22, color: getVestHex(awayColor), flexShrink: 0,

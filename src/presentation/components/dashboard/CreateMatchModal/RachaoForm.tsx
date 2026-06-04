@@ -1,6 +1,6 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFutbol, faShuffle, faUsers, faClock, faMapPin, faArrowsRotate, faCalendarDays } from '@fortawesome/free-solid-svg-icons';
+import { faFutbol, faShuffle, faUsers, faClock, faMapPin, faArrowsRotate, faCalendarDays, faShirt } from '@fortawesome/free-solid-svg-icons';
 import { GameMode } from '@/core/entities/match';
 import { CreateMatchConfig, RotationRule } from './types';
 
@@ -16,6 +16,71 @@ const labelCls = 'block text-[9px] font-black uppercase tracking-[0.25em] text-w
 const selectCls = `${inputCls} appearance-none cursor-pointer`;
 const neon = '#ccff00';
 const blue = '#00b4ff';
+
+// Paleta de uniformes
+const UNIFORMS: { label: string; hex: string }[] = [
+  { label: 'Branco',   hex: '#ffffff' },
+  { label: 'Preto',    hex: '#222222' },
+  { label: 'Vermelho', hex: '#EF4444' },
+  { label: 'Azul',     hex: '#3B82F6' },
+  { label: 'Verde',    hex: '#22C55E' },
+  { label: 'Amarelo',  hex: '#EAB308' },
+  { label: 'Laranja',  hex: '#F97316' },
+  { label: 'Roxo',     hex: '#A855F7' },
+  { label: 'Rosa',     hex: '#EC4899' },
+  { label: 'Cinza',    hex: '#6B7280' },
+  { label: 'Ciano',    hex: '#06B6D4' },
+  { label: 'Marrom',   hex: '#92400E' },
+];
+
+function ShirtPicker({ label, teamName, onNameChange, namePlaceholder, color, onColorChange, exclude }: {
+  label: string; teamName: string; color: string;
+  onNameChange: (v: string) => void; onColorChange: (v: string) => void;
+  namePlaceholder: string; exclude?: string;
+}) {
+  const hex = UNIFORMS.find(u => u.label === color)?.hex ?? '#fff';
+  const border = hex === '#ffffff' ? 'rgba(255,255,255,0.5)' : hex;
+  return (
+    <div style={{ padding: '14px', background: `${border}0c`, border: `1px solid ${border}30`, borderRadius: 8 }}>
+      <label style={{ display: 'block', fontSize: 8, fontWeight: 900, textTransform: 'uppercase',
+        letterSpacing: '0.25em', color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>
+        {label} — Uniforme
+      </label>
+      <input
+        value={teamName} onChange={e => onNameChange(e.target.value)} placeholder={namePlaceholder}
+        style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.4)',
+          border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: 12,
+          fontWeight: 700, outline: 'none', marginBottom: 12, boxSizing: 'border-box' as const }}
+      />
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        {UNIFORMS.filter(u => u.label !== exclude).map(u => {
+          const selected = color === u.label;
+          return (
+            <button key={u.label} type="button" title={u.label} onClick={() => onColorChange(u.label)}
+              style={{
+                position: 'relative', width: 36, height: 36, borderRadius: 8,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: selected ? `${u.hex}22` : 'rgba(255,255,255,0.04)',
+                border: `2px solid ${selected ? u.hex : 'rgba(255,255,255,0.1)'}`,
+                cursor: 'pointer', transition: 'all 0.15s',
+                boxShadow: selected ? `0 0 10px ${u.hex}66` : 'none',
+              }}>
+              <FontAwesomeIcon icon={faShirt} style={{ fontSize: 18, color: u.hex,
+                filter: selected ? `drop-shadow(0 0 4px ${u.hex})` : 'none' }} />
+            </button>
+          );
+        })}
+      </div>
+      {color && (
+        <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', marginTop: 8,
+          fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <FontAwesomeIcon icon={faShirt} style={{ color: hex, fontSize: 10 }} />
+          {color}
+        </p>
+      )}
+    </div>
+  );
+}
 
 // campo → sport_type + playersPerTeam
 const FIELD_MAP: Record<string, { sport: 'Futsal' | 'Society' | 'Campo'; ppt: number }> = {
@@ -132,29 +197,20 @@ export const RachaoForm: React.FC<Props> = ({ cfg, set, onSubmit, mode = 'rachao
             onChange={e => set({ stoppage: +e.target.value })} />
         </div>
 
-        <div>
-          <label className={labelCls}>Nome Time A</label>
-          <input type="text" className={inputCls} value={cfg.home_team_name}
-            placeholder="TIME A..." onChange={e => set({ home_team_name: e.target.value })} />
-        </div>
+      </div>
 
-        <div>
-          <label className={labelCls}>Nome Time B</label>
-          <input type="text" className={inputCls} value={cfg.away_team_name}
-            placeholder="TIME B..." onChange={e => set({ away_team_name: e.target.value })} />
-        </div>
-
-        <div>
-          <label className={labelCls}>Cor Time A</label>
-          <input type="text" className={inputCls} value={cfg.home_color}
-            placeholder="BRANCO..." onChange={e => set({ home_color: e.target.value })} />
-        </div>
-
-        <div>
-          <label className={labelCls}>Cor Time B</label>
-          <input type="text" className={inputCls} value={cfg.away_color}
-            placeholder="PRETO..." onChange={e => set({ away_color: e.target.value })} />
-        </div>
+      {/* Uniformes dos times */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <ShirtPicker
+          label="Time A" teamName={cfg.home_team_name} color={cfg.home_color}
+          onNameChange={v => set({ home_team_name: v })} onColorChange={v => set({ home_color: v })}
+          namePlaceholder="TIME A..." exclude={cfg.away_color}
+        />
+        <ShirtPicker
+          label="Time B" teamName={cfg.away_team_name} color={cfg.away_color}
+          onNameChange={v => set({ away_team_name: v })} onColorChange={v => set({ away_color: v })}
+          namePlaceholder="VISITANTE..." exclude={cfg.home_color}
+        />
       </div>
 
       <div>
