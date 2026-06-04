@@ -29,6 +29,8 @@ interface PlayerStat {
   redCards: number;
   matches: number;
   wins: number;
+  draws: number;
+  losses: number;
   mvps: number;
   score: number;
 }
@@ -101,7 +103,7 @@ export default function StatsPage() {
           statsMap.set(pid, {
             id: pid, name: p.player.name, photo_url: p.player.photo_url,
             positions: p.player.positions ?? [],
-            goals: 0, assists: 0, yellowCards: 0, redCards: 0, matches: 0, wins: 0, mvps: 0, score: 0,
+            goals: 0, assists: 0, yellowCards: 0, redCards: 0, matches: 0, wins: 0, draws: 0, losses: 0, mvps: 0, score: 0,
           });
         }
         const match = allMatches.find(m => m.id === p.match_id);
@@ -110,7 +112,10 @@ export default function StatsPage() {
           s.matches++;
           const homeWon = match.home_score > match.away_score;
           const awayWon = match.away_score > match.home_score;
+          const isDraw  = match.home_score === match.away_score;
           if ((p.team === 'home' && homeWon) || (p.team === 'away' && awayWon)) s.wins++;
+          else if (isDraw) s.draws++;
+          else s.losses++;
         }
       });
 
@@ -200,29 +205,36 @@ export default function StatsPage() {
             {/* KPIs */}
             <div className="grid grid-cols-3 gap-3 mb-6">
               {[
-                { label: 'Partidas', value: matchHistory.length,                             color: '#00b4ff' },
-                { label: 'Gols',     value: playerStats.reduce((s, p) => s + p.goals, 0),   color: '#ccff00' },
-                { label: 'Craques',  value: playerStats.length,                              color: '#a855f7' },
+                { label: 'Partidas', value: matchHistory.length,                            sub: 'finalizadas', color: '#00b4ff' },
+                { label: 'Gols',     value: playerStats.reduce((s, p) => s + p.goals, 0),  sub: 'no total',    color: '#ccff00' },
+                { label: 'Atletas',  value: playerStats.length,                             sub: 'com dados',   color: '#a855f7' },
               ].map(k => (
                 <div key={k.label} style={{
-                  padding: '14px 16px', background: 'rgba(255,255,255,0.02)',
-                  borderLeft: `3px solid ${k.color}`, border: `1px solid ${k.color}15`, borderRadius: 8,
+                  padding: '14px 12px', background: 'rgba(255,255,255,0.02)',
+                  borderLeft: `3px solid ${k.color}`, border: `1px solid ${k.color}18`, borderRadius: 10,
                 }}>
-                  <p style={{ fontSize: 7, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.3)', marginBottom: 4 }}>{k.label}</p>
-                  <p style={{ fontSize: 28, fontWeight: 900, color: k.color, lineHeight: 1 }}>{k.value}</p>
+                  <p style={{ fontSize: 7, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(255,255,255,0.3)', marginBottom: 5 }}>{k.label}</p>
+                  <p style={{ fontSize: 30, fontWeight: 900, color: k.color, lineHeight: 1, marginBottom: 3 }}>{k.value}</p>
+                  <p style={{ fontSize: 7, color: 'rgba(255,255,255,0.2)', fontWeight: 700 }}>{k.sub}</p>
                 </div>
               ))}
             </div>
 
-            {/* Nav */}
-            <div className="flex gap-1 mb-4 bg-white/[0.03] p-1 rounded-xl border border-white/5">
+            {/* Nav — labels sempre visíveis no mobile */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 16 }}>
               {VIEWS.map(v => (
                 <button key={v.id} onClick={() => setView(v.id as any)}
-                  className={`flex items-center justify-center gap-1.5 px-3 py-2 text-[8px] font-black uppercase tracking-wider rounded-lg transition-all flex-1 ${
-                    view === v.id ? 'bg-primary text-black' : 'text-white/30 hover:text-white/60'
-                  }`}>
-                  <FontAwesomeIcon icon={v.icon} />
-                  <span className="hidden sm:inline">{v.label}</span>
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    gap: 5, padding: '12px 6px', borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s',
+                    background: view === v.id ? '#ccff00' : 'rgba(255,255,255,0.03)',
+                    border: view === v.id ? 'none' : '1px solid rgba(255,255,255,0.07)',
+                    color: view === v.id ? '#000' : 'rgba(255,255,255,0.4)',
+                  }}>
+                  <FontAwesomeIcon icon={v.icon} style={{ fontSize: 16 }} />
+                  <span style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', lineHeight: 1 }}>
+                    {v.label}
+                  </span>
                 </button>
               ))}
             </div>
