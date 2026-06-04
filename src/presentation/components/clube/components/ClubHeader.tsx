@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Group } from '@/core/entities/group';
 import { Player } from '@/core/entities/player';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faShieldHalved, faCopy, faCheckCircle, faPlus,
-  faUsers, faWallet, faGear,
+  faUsers, faWallet, faGear, faScroll,
 } from '@fortawesome/free-solid-svg-icons';
 
 interface Props {
@@ -31,6 +31,8 @@ export const ClubHeader: React.FC<Props> = ({
 }) => {
   const activeCount  = players.filter(p => p.status === 'Ativo').length;
   const balanceColor = summary.balance >= 0 ? green : red;
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const hasRules = !!(group.estatuto_regras || group.rules_text);
 
   return (
     <div style={{
@@ -40,19 +42,65 @@ export const ClubHeader: React.FC<Props> = ({
     }}>
       <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
 
-        {/* Logo */}
-        <div style={{
-          width: 80, height: 80, flexShrink: 0, overflow: 'hidden',
-          border: `2px solid ${blue}33`,
-          boxShadow: `0 0 24px ${blue}18`,
-          background: 'rgba(0,20,50,0.8)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          {group.logo_url
-            ? <img src={group.logo_url} alt={group.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <FontAwesomeIcon icon={faShieldHalved} style={{ color: blue, fontSize: 32 }} />
-          }
+        {/* Escudo + Regras (coluna vertical lado a lado) */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <div style={{
+            width: 80, height: 80, flexShrink: 0, overflow: 'hidden',
+            border: `2px solid ${blue}33`,
+            boxShadow: `0 0 24px ${blue}18`,
+            background: 'rgba(0,20,50,0.8)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {group.logo_url
+              ? <img src={group.logo_url} alt={group.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <FontAwesomeIcon icon={faShieldHalved} style={{ color: blue, fontSize: 32 }} />
+            }
+          </div>
+          {hasRules && (
+            <button onClick={() => setRulesOpen(true)}
+              style={{ width: 80, padding: '5px 0', background: `${gold}10`, border: `1px solid ${gold}30`,
+                color: gold, fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              <FontAwesomeIcon icon={faScroll} style={{ fontSize: 8 }} />
+              Regras
+            </button>
+          )}
         </div>
+
+        {/* Modal Regras */}
+        {rulesOpen && (
+          <div onClick={() => setRulesOpen(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <div onClick={e => e.stopPropagation()}
+              style={{ width: '100%', maxWidth: 560, maxHeight: '85dvh', overflowY: 'auto',
+                background: 'linear-gradient(160deg,#060f20,#020810)', border: `1px solid ${gold}30`, borderRadius: 12, padding: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <h2 style={{ fontSize: 14, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#fff' }}>
+                  📜 Estatuto &amp; Regras
+                </h2>
+                <button onClick={() => setRulesOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 18, cursor: 'pointer' }}>✕</button>
+              </div>
+              {group.rules_text && (
+                <div style={{ marginBottom: 16 }}>
+                  <p style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: gold, marginBottom: 6 }}>Regras da Pelada</p>
+                  <div style={{ whiteSpace: 'pre-wrap', fontSize: 12, lineHeight: 1.7, color: 'rgba(255,255,255,0.7)',
+                    background: `${neon}06`, border: `1px solid ${neon}15`, borderRadius: 8, padding: 14 }}>{group.rules_text}</div>
+                </div>
+              )}
+              {group.estatuto_regras && (
+                <div>
+                  <p style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Estatuto do Clube</p>
+                  <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: 11, lineHeight: 1.7, color: 'rgba(255,255,255,0.6)',
+                    background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 8, padding: 14 }}>{group.estatuto_regras}</div>
+                </div>
+              )}
+              <p style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(255,255,255,0.25)', marginTop: 16, textAlign: 'center' }}>
+                Edição em Configurações
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Info */}
         <div style={{ flex: 1, minWidth: 0 }}>

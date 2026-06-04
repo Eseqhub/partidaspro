@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Group } from '@/core/entities/group';
 import { Player } from '@/core/entities/player';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -67,7 +67,6 @@ function FinanceRow({ desc, amount, date, player }: { desc: string; amount: numb
 }
 
 export const OverviewTab: React.FC<Props> = ({ group, players, finances, summary, matches, onCopyLink, onNavigate, onReactivated }) => {
-  const [rulesOpen, setRulesOpen] = useState(false);
   // Sessões recorrentes finalizadas — candidatas para reativação
   const recurringSessions = matches.filter(m =>
     m.recorrencia && m.recorrencia !== 'nao' && m.status === 'Finalizada'
@@ -114,64 +113,6 @@ export const OverviewTab: React.FC<Props> = ({ group, players, finances, summary
         <KpiCard icon={faChartLine}      label="Nível Médio"    value={`${avgSkill}/10`}                             sub="inteligência do sorteio"                              color={gold} accent={gold}  />
         <KpiCard icon={faFutbol}         label="Partidas"       value={String(matches.length)}                        sub={lastMatch ? `última: ${new Date(lastMatch.created_at).toLocaleDateString('pt-BR')}` : 'nenhuma ainda'} color="#fff" accent={neon} />
       </div>
-
-      {/* Regras principais (compacto) + botão para o estatuto completo */}
-      {(group.estatuto_regras || group.rules_text) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px',
-          background: `${gold}06`, border: `1px solid ${gold}20`, borderLeft: `3px solid ${gold}`, borderRadius: 8 }}>
-          <span style={{ fontSize: 18, flexShrink: 0 }}>📜</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: gold, marginBottom: 3 }}>
-              Regras da Pelada
-            </p>
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5,
-              overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-              {group.rules_text || 'Confira o estatuto e o regulamento do clube.'}
-            </p>
-          </div>
-          <button onClick={() => setRulesOpen(true)}
-            style={{ flexShrink: 0, padding: '8px 14px', background: `${gold}15`, border: `1px solid ${gold}40`,
-              color: gold, fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em',
-              cursor: 'pointer', borderRadius: 6, whiteSpace: 'nowrap' }}>
-            Ler tudo
-          </button>
-        </div>
-      )}
-
-      {/* Modal Estatuto & Regras (leitura) */}
-      {rulesOpen && (
-        <div onClick={() => setRulesOpen(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div onClick={e => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: 560, maxHeight: '85dvh', overflowY: 'auto',
-              background: 'linear-gradient(160deg,#060f20,#020810)', border: `1px solid ${gold}30`, borderRadius: 12, padding: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <h2 style={{ fontSize: 14, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#fff' }}>
-                📜 Estatuto &amp; Regras
-              </h2>
-              <button onClick={() => setRulesOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 18, cursor: 'pointer' }}>✕</button>
-            </div>
-            {group.rules_text && (
-              <div style={{ marginBottom: 16 }}>
-                <p style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: gold, marginBottom: 6 }}>Regras da Pelada</p>
-                <div style={{ whiteSpace: 'pre-wrap', fontSize: 12, lineHeight: 1.7, color: 'rgba(255,255,255,0.7)',
-                  background: `${neon}06`, border: `1px solid ${neon}15`, borderRadius: 8, padding: 14 }}>{group.rules_text}</div>
-              </div>
-            )}
-            {group.estatuto_regras && (
-              <div>
-                <p style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Estatuto do Clube</p>
-                <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: 11, lineHeight: 1.7, color: 'rgba(255,255,255,0.6)',
-                  background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 8, padding: 14 }}>{group.estatuto_regras}</div>
-              </div>
-            )}
-            <p style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(255,255,255,0.25)', marginTop: 16, textAlign: 'center' }}>
-              Edição em Configurações
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Grid movimentações + elenco */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 20 }}>
