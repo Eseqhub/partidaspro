@@ -120,37 +120,49 @@ export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
         </div>
       </div>
 
-      {/* Transmissão ao vivo (link público) */}
-      {liveUrl && (
-        <button
-          onClick={() => {
-            const nav = navigator as any;
-            if (nav.share) nav.share({ title: 'Acompanhe ao vivo', url: liveUrl }).catch(() => {});
-            else { navigator.clipboard.writeText(liveUrl); alert('Link da transmissão copiado!'); }
-          }}
-          className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] transition-all"
-          style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444' }}
-        >
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#EF4444', display: 'inline-block' }} />
-          Transmitir ao Vivo (link público)
-        </button>
-      )}
-
-      {/* Modo árbitro (link para registrar lances) */}
-      {arbitroUrl && status !== 'Agendada' && (
-        <button
-          onClick={() => {
-            const nav = navigator as any;
-            if (nav.share) nav.share({ title: 'Modo Árbitro', url: arbitroUrl }).catch(() => {});
-            else { navigator.clipboard.writeText(arbitroUrl); alert('Link do árbitro copiado!'); }
-          }}
-          className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] transition-all"
-          style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)', color: '#A855F7' }}
-        >
-          <FontAwesomeIcon icon={faShuffle} className="rotate-90" />
-          Compartilhar Modo Árbitro
-        </button>
-      )}
+      {/* Links de acompanhamento */}
+      <div style={{ display: 'grid', gridTemplateColumns: liveUrl && arbitroUrl && status !== 'Agendada' ? '1fr 1fr' : '1fr', gap: 8 }}>
+        {liveUrl && (
+          <button
+            onClick={() => {
+              const nav = navigator as any;
+              if (nav.share) nav.share({ title: 'Placar ao vivo', url: liveUrl }).catch(() => {});
+              else { navigator.clipboard.writeText(liveUrl); alert('Link copiado!'); }
+            }}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+              padding: '12px 8px', borderRadius: 10, cursor: 'pointer',
+              background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#EF4444' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#EF4444', display: 'inline-block',
+                boxShadow: '0 0 6px #EF4444', animation: 'pulse 1.5s infinite' }} />
+              <span style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+                Placar ao Vivo
+              </span>
+            </span>
+            <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>
+              Link para torcedores
+            </span>
+          </button>
+        )}
+        {arbitroUrl && status !== 'Agendada' && (
+          <button
+            onClick={() => {
+              const nav = navigator as any;
+              if (nav.share) nav.share({ title: 'Modo Árbitro', url: arbitroUrl }).catch(() => {});
+              else { navigator.clipboard.writeText(arbitroUrl); alert('Link do árbitro copiado!'); }
+            }}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+              padding: '12px 8px', borderRadius: 10, cursor: 'pointer',
+              background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.25)', color: '#A855F7' }}>
+            <span style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+              📋 Mesa / Árbitro
+            </span>
+            <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>
+              Registrar lances
+            </span>
+          </button>
+        )}
+      </div>
 
       {/* Feed de eventos ao vivo */}
       {status !== 'Agendada' && (
