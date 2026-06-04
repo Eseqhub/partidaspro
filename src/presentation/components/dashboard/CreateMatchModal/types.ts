@@ -17,6 +17,7 @@ export interface CreateMatchConfig {
   location: string;
   date: string;
   sessionStartTime: string;
+  sessionEndTime: string;
   rotation_rule: RotationRule;
   rotation_goal_diff: number;
 }
@@ -44,6 +45,7 @@ export const DEFAULT_CFG: CreateMatchConfig = {
   location: '',
   date: new Date().toISOString().slice(0, 10),
   sessionStartTime: '08:00',
+  sessionEndTime: '10:00',
   rotation_rule: 'two_and_out',
   rotation_goal_diff: 2,
 };

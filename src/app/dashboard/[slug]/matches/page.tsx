@@ -294,6 +294,7 @@ export default function MatchPage() {
             location:            cfg.location,
             rotation_rule:       cfg.rotation_rule,
             rotation_goal_diff:  cfg.rotation_goal_diff,
+            sessionEndTime:      cfg.sessionEndTime,
           }));
           // Pré-seleciona o "time de sempre" (atletas ativos do grupo).
           // O organizador só desmarca quem faltou e marca os convidados novos.

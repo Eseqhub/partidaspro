@@ -1,6 +1,6 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFutbol, faShuffle, faUsers, faClock, faMapPin, faArrowsRotate } from '@fortawesome/free-solid-svg-icons';
+import { faFutbol, faShuffle, faUsers, faClock, faMapPin, faArrowsRotate, faCalendarDays } from '@fortawesome/free-solid-svg-icons';
 import { GameMode } from '@/core/entities/match';
 import { CreateMatchConfig, RotationRule } from './types';
 
@@ -73,8 +73,35 @@ export const RachaoForm: React.FC<Props> = ({ cfg, set, onSubmit, mode = 'rachao
             onChange={e => set({ playersPerTeam: +e.target.value })} />
         </div>
 
+        {/* Horário da sessão */}
         <div>
-          <label className={labelCls}><FontAwesomeIcon icon={faClock} className="mr-1" /> Duração (min)</label>
+          <label className={labelCls}><FontAwesomeIcon icon={faCalendarDays} className="mr-1" /> Início da sessão</label>
+          <input type="time" className={inputCls} value={cfg.sessionStartTime}
+            onChange={e => set({ sessionStartTime: e.target.value })}
+            style={{ colorScheme: 'dark' }} />
+        </div>
+
+        <div>
+          <label className={labelCls}><FontAwesomeIcon icon={faCalendarDays} className="mr-1" /> Fim da sessão</label>
+          <input type="time" className={inputCls} value={cfg.sessionEndTime}
+            onChange={e => set({ sessionEndTime: e.target.value })}
+            style={{ colorScheme: 'dark' }} />
+          {cfg.sessionStartTime && cfg.sessionEndTime && (() => {
+            const [sh, sm] = cfg.sessionStartTime.split(':').map(Number);
+            const [eh, em] = cfg.sessionEndTime.split(':').map(Number);
+            const total = (eh * 60 + em) - (sh * 60 + sm);
+            if (total > 0) return (
+              <p style={{ fontSize: 8, color: neon, fontWeight: 900, marginTop: 4 }}>
+                {total} min de sessão total
+              </p>
+            );
+            return null;
+          })()}
+        </div>
+
+        {/* Duração de cada jogo */}
+        <div className="sm:col-span-2">
+          <label className={labelCls}><FontAwesomeIcon icon={faClock} className="mr-1" /> Duração de cada jogo (min)</label>
           <div style={{ display: 'flex', gap: 4, marginBottom: 6, flexWrap: 'wrap' }}>
             {[10, 15, 20, 30, 45].map(t => (
               <button key={t} type="button" onClick={() => set({ duration: t })}

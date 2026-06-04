@@ -271,27 +271,65 @@ export const PixRateioPanel: React.FC<Props> = ({ groupId, groupName, onRefresh 
           </div>
         </div>
 
-        {/* Resultado */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '12px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 8, marginBottom: 14 }}>
-          <span style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.4)' }}>
-            Por jogador
-          </span>
-          <span style={{ fontSize: 24, fontWeight: 900, color: perHead > 0 ? neon : 'rgba(255,255,255,0.2)' }}>
-            R${perHead.toFixed(2)}
-          </span>
-        </div>
+        {/* Resultado + PIX inline */}
+        {(() => {
+          const [copiedRateio, setCopiedRateio] = React.useState(false);
+          const copyRateio = () => {
+            if (!perHeadPixCode) return;
+            navigator.clipboard.writeText(perHeadPixCode);
+            setCopiedRateio(true);
+            setTimeout(() => setCopiedRateio(false), 2500);
+          };
+          return (
+            <div style={{ marginBottom: 14 }}>
+              {/* Valor por jogador */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: perHeadPixCode ? '8px 8px 0 0' : 8,
+                borderBottom: perHeadPixCode ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                <div>
+                  <p style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>
+                    Por jogador
+                  </p>
+                  {perHead > 0 && countNum > 0 && (
+                    <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.2)', fontWeight: 700 }}>
+                      R${totalNum.toFixed(2)} ÷ {countNum} jogadores
+                    </p>
+                  )}
+                </div>
+                <span style={{ fontSize: 28, fontWeight: 900, color: perHead > 0 ? neon : 'rgba(255,255,255,0.2)' }}>
+                  R${perHead.toFixed(2)}
+                </span>
+              </div>
 
-        {/* Usar o valor POR JOGADOR no PIX copia-e-cola */}
-        {perHead > 0 && (
-          <button onClick={() => { setPixAmount(perHead.toFixed(2)); setPixDesc('Rateio da pelada'); }}
-            style={{ width: '100%', padding: '10px 0', marginBottom: 10, fontWeight: 900, fontSize: 9,
-              textTransform: 'uppercase', letterSpacing: '0.15em', borderRadius: 8, cursor: 'pointer',
-              background: `${green}15`, border: `1px solid ${green}40`, color: green }}>
-            <FontAwesomeIcon icon={faQrcode} style={{ marginRight: 6 }} />
-            Gerar PIX de R${perHead.toFixed(2)} por jogador
-          </button>
-        )}
+              {/* PIX por jogador — aparece automaticamente quando calculado */}
+              {perHeadPixCode && (
+                <div style={{ padding: '10px 12px', background: 'rgba(34,197,94,0.06)',
+                  border: `1px solid ${green}30`, borderTop: 'none', borderRadius: '0 0 8px 8px' }}>
+                  <p style={{ fontSize: 7, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em',
+                    color: green, marginBottom: 6 }}>
+                    PIX por jogador (R${perHead.toFixed(2)})
+                  </p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ flex: 1, padding: '8px 10px', background: 'rgba(0,0,0,0.5)',
+                      border: `1px solid ${green}25`, borderRadius: 6, fontSize: 8, fontFamily: 'monospace',
+                      color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {perHeadPixCode}
+                    </div>
+                    <button onClick={copyRateio} style={{
+                      padding: '6px 14px', background: copiedRateio ? green : `${green}18`,
+                      color: copiedRateio ? '#000' : green, border: `1px solid ${green}40`,
+                      fontWeight: 900, fontSize: 8, textTransform: 'uppercase', borderRadius: 6,
+                      cursor: 'pointer', flexShrink: 0, letterSpacing: '0.1em',
+                    }}>
+                      <FontAwesomeIcon icon={copiedRateio ? faCheck : faCopy} style={{ marginRight: 4 }} />
+                      {copiedRateio ? 'Copiado!' : 'Copiar'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Lista de quem vai ratear (toque pra incluir/excluir + WhatsApp) */}
         {participants.length > 0 && (

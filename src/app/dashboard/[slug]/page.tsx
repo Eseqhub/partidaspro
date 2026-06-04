@@ -20,7 +20,7 @@ import { NovaPartidaModal } from '@/presentation/components/clube/components/Nov
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faChartPie, faUsers, faWallet, faCog,
-  faFutbol, faShieldHalved, faCircleQuestion,
+  faShieldHalved, faCircleQuestion,
 } from '@fortawesome/free-solid-svg-icons';
 
 type Tab = 'overview' | 'elenco' | 'financeiro' | 'configuracoes';
@@ -171,20 +171,6 @@ export default function DashboardSlugPage() {
           copied={copied} linkLoading={linkLoading}
           onCopyLink={handleCopyLink} onNavigate={router.push}
         />
-
-        {/* Botão Nova Partida (navegação fica na barra inferior) */}
-        <div style={{ display: 'flex', gap: 10, marginTop: 24, flexWrap: 'wrap', alignItems: 'center' }}>
-          <button
-            onClick={() => setNovaPartidaOpen(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 22px',
-              background: 'linear-gradient(135deg,#ccff00,#aadd00)',
-              color: '#000', fontWeight: 900, fontSize: 12, textTransform: 'uppercase',
-              letterSpacing: '0.2em', border: 'none', cursor: 'pointer', flexShrink: 0,
-              boxShadow: '0 0 20px rgba(204,255,0,0.2)' }}>
-            <FontAwesomeIcon icon={faFutbol} />
-            NOVA PARTIDA
-          </button>
-        </div>
 
         {/* Solicitações de entrada pendentes (dono/editor) */}
         {canManage && pendingRequests.length > 0 && (
