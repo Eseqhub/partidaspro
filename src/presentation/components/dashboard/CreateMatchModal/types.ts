@@ -22,12 +22,13 @@ export interface CreateMatchConfig {
   rotation_goal_diff: number;
 }
 
-export type Step = 'choose' | 'rachao' | 'manual';
+export type Step = 'choose' | 'rachao' | 'manual' | 'desafio';
 
 export const STEP_LABELS: Record<Step, { sub: string; title: string }> = {
-  choose: { sub: 'NOVA SESSÃO',              title: 'Que tipo de jogo?' },
-  rachao: { sub: 'CONFIGURAR RACHÃO',        title: 'Pelada com Sorteio' },
-  manual: { sub: 'CONFIGURAR TIME VS TIME',  title: 'Times Definidos' },
+  choose:  { sub: 'NOVA SESSÃO',              title: 'Que tipo de jogo?' },
+  rachao:  { sub: 'CONFIGURAR RACHÃO',        title: 'Pelada com Sorteio' },
+  manual:  { sub: 'CONFIGURAR TIME VS TIME',  title: 'Times Definidos' },
+  desafio: { sub: 'CONFIGURAR DESAFIO',       title: 'Desafio de Clube' },
 };
 
 export const DEFAULT_CFG: CreateMatchConfig = {

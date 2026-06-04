@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faShuffle, faUsers, faChevronLeft } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faShuffle, faUsers, faChevronLeft, faTrophy } from '@fortawesome/free-solid-svg-icons';
 import { RachaoForm } from './RachaoForm';
 import { CreateMatchConfig, Step, STEP_LABELS, DEFAULT_CFG } from './types';
 
@@ -76,79 +76,88 @@ export function CreateMatchModal({ isOpen, onClose, onCreateMatch }: Props) {
 
         <div style={{ padding: '16px' }}>
 
-          {/* Escolha do modo — centralizado */}
+          {/* Escolha do modo — grid compacto, cabe na tela sem rolar */}
           {step === 'choose' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '8px 0' }}>
+            <div style={{ padding: '4px 0 8px' }}>
               <p style={{ textAlign: 'center', fontSize: 9, fontWeight: 900, textTransform: 'uppercase',
-                letterSpacing: '0.25em', color: 'rgba(255,255,255,0.25)', marginBottom: 4 }}>
+                letterSpacing: '0.25em', color: 'rgba(255,255,255,0.2)', marginBottom: 16 }}>
                 Escolha o formato
               </p>
-              {[
-                {
-                  mode: 'rachao' as const,
-                  icon: faShuffle,
-                  accent: neon,
-                  title: 'Rachão / Pelada',
-                  emoji: '⚡',
-                  desc: 'Sorteio inteligente por habilidade, posição e idade.',
-                  tags: ['Sorteio', 'Chamada', 'Placar'],
-                },
-                {
-                  mode: 'manual' as const,
-                  icon: faUsers,
-                  accent: blue,
-                  title: 'Time Contra Time',
-                  emoji: '🏆',
-                  desc: 'Você escala cada jogador. Sem sorteio automático.',
-                  tags: ['Manual', 'Titulares', 'Reservas'],
-                },
-              ].map(({ mode, icon, accent, title, emoji, desc, tags }) => (
-                <button key={mode}
-                  onClick={() => { set({ match_type: mode }); setStep(mode); }}
-                  style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-                    padding: '24px 20px', textAlign: 'center',
-                    background: `linear-gradient(135deg,${accent}0c,transparent)`,
-                    border: `1px solid ${accent}35`, cursor: 'pointer', transition: 'all .2s', borderRadius: 4,
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = `${accent}80`)}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = `${accent}35`)}
-                >
-                  <div style={{
-                    width: 64, height: 64, background: `${accent}18`,
-                    border: `1px solid ${accent}44`, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontSize: 28, color: accent, borderRadius: 16,
-                  }}>
-                    <FontAwesomeIcon icon={icon} />
+              {/* Rachão — destaque em cima */}
+              <button
+                onClick={() => { set({ match_type: 'rachao' }); setStep('rachao'); }}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16,
+                  padding: '18px 18px', marginBottom: 10, cursor: 'pointer',
+                  background: `linear-gradient(135deg,${neon}0e,transparent)`,
+                  border: `1px solid ${neon}35`, borderRadius: 12, textAlign: 'left',
+                  transition: 'border-color .15s' }}>
+                <div style={{ width: 52, height: 52, flexShrink: 0, borderRadius: 14, background: `${neon}18`,
+                  border: `1px solid ${neon}44`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 24, color: neon }}>
+                  <FontAwesomeIcon icon={faShuffle} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 14, fontWeight: 900, color: '#fff', textTransform: 'uppercase',
+                    letterSpacing: '-0.01em', marginBottom: 3 }}>⚡ Rachão / Pelada</p>
+                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4, marginBottom: 6 }}>
+                    Sorteio inteligente por habilidade, posição e idade.
+                  </p>
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                    {['Sorteio', 'Chamada', 'Placar'].map(t => (
+                      <span key={t} style={{ fontSize: 7, fontWeight: 900, padding: '2px 7px',
+                        background: `${neon}12`, border: `1px solid ${neon}25`, color: neon,
+                        textTransform: 'uppercase', letterSpacing: '0.1em', borderRadius: 4 }}>{t}</span>
+                    ))}
                   </div>
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', textTransform: 'uppercase',
-                      letterSpacing: '-0.01em', marginBottom: 6 }}>
-                      {emoji} {title}
+                </div>
+              </button>
+
+              {/* Grid 2 colunas: Time vs Time + Desafio */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {[
+                  { mode: 'manual' as const, icon: faUsers,   accent: blue,     emoji: '🛡️',
+                    title: 'Time vs Time', desc: 'Escale cada jogador manualmente.',
+                    tags: ['Manual', 'Titulares'] },
+                  { mode: 'desafio' as const, icon: faTrophy, accent: '#d4a017', emoji: '⚔️',
+                    title: 'Desafio',     desc: 'Convide outro clube para jogar.',
+                    tags: ['Link', 'Clube'] },
+                ].map(({ mode, icon, accent, emoji, title, desc, tags }) => (
+                  <button key={mode}
+                    onClick={() => { set({ match_type: mode === 'desafio' ? 'rachao' : mode }); setStep(mode); }}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                      padding: '16px 12px', cursor: 'pointer', textAlign: 'center',
+                      background: `linear-gradient(135deg,${accent}0c,transparent)`,
+                      border: `1px solid ${accent}35`, borderRadius: 12, transition: 'border-color .15s' }}>
+                    <div style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 12, background: `${accent}18`,
+                      border: `1px solid ${accent}44`, display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', fontSize: 20, color: accent }}>
+                      <FontAwesomeIcon icon={icon} />
                     </div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5, marginBottom: 8 }}>{desc}</div>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
-                      {tags.map(tag => (
-                        <span key={tag} style={{
-                          fontSize: 8, fontWeight: 900, padding: '3px 8px',
-                          background: `${accent}12`, border: `1px solid ${accent}25`,
-                          color: accent, textTransform: 'uppercase', letterSpacing: '0.1em', borderRadius: 4,
-                        }}>{tag}</span>
-                      ))}
+                    <div>
+                      <p style={{ fontSize: 12, fontWeight: 900, color: '#fff', textTransform: 'uppercase',
+                        letterSpacing: '-0.01em', marginBottom: 4 }}>{emoji} {title}</p>
+                      <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4, marginBottom: 6 }}>{desc}</p>
+                      <div style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
+                        {tags.map(t => (
+                          <span key={t} style={{ fontSize: 7, fontWeight: 900, padding: '2px 6px',
+                            background: `${accent}12`, border: `1px solid ${accent}25`, color: accent,
+                            textTransform: 'uppercase', letterSpacing: '0.1em', borderRadius: 4 }}>{t}</span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Formulário de configuração (mesmo para rachão e manual) */}
-          {(step === 'rachao' || step === 'manual') && (
+          {/* Formulário de configuração */}
+          {(step === 'rachao' || step === 'manual' || step === 'desafio') && (
             <RachaoForm
               cfg={cfg}
               set={set}
               onSubmit={handleSubmit}
-              mode={step}
+              mode={step === 'manual' ? 'manual' : 'rachao'}
             />
           )}
         </div>
