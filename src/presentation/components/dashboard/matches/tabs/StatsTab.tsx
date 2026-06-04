@@ -96,6 +96,30 @@ export const StatsTab: React.FC<StatsTabProps> = ({
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
+      {/* Legenda dos ícones */}
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 12px',
+        background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10,
+      }}>
+        {([
+          { icon: faFutbol,    color: '#ccff00', label: 'Gol'         },
+          { icon: faHandshake, color: '#00b4ff', label: 'Assistência' },
+          { icon: faSquare,    color: '#EAB308', label: 'Amarelo'     },
+          { icon: faSquare,    color: '#EF4444', label: 'Vermelho'    },
+          { icon: faStar,      color: '#FFD700', label: 'Craque MVP'  },
+        ] as const).map(item => (
+          <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ width: 16, height: 16, borderRadius: 4, background: `${item.color}18`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FontAwesomeIcon icon={item.icon as any} style={{ fontSize: 7, color: item.color }} />
+            </div>
+            <span style={{ fontSize: 7, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.35)' }}>
+              {item.label}
+            </span>
+          </div>
+        ))}
+      </div>
+
       {/* Botões: registrar evento + eleger craque */}
       {userRole !== 'viewer' && (
         <div className="grid grid-cols-2 gap-3">
