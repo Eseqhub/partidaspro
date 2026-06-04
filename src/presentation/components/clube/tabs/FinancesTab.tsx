@@ -54,17 +54,65 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
   const [monthlyFee, setMonthlyFee] = useState<string>('50.00');
   const [generating, setGenerating] = useState(false);
   const [pixCfg, setPixCfg] = useState<{ pixKey: string; pixName: string }>({ pixKey: '', pixName: groupName });
+  const [meta, setMeta] = useState('');
 
-  // Carrega valor mensal salvo + chave PIX (mesma do painel de rateio)
+  // Carrega valor mensal salvo + chave PIX (mesma do painel de rateio) + meta da caixinha
   useEffect(() => {
     try {
       const fee = localStorage.getItem(`monthlyFee:${groupId}`);
       if (fee) setMonthlyFee(fee);
       const pix = localStorage.getItem(`pix:${groupId}`);
       if (pix) { const o = JSON.parse(pix); setPixCfg({ pixKey: o.pixKey || '', pixName: o.pixName || groupName }); }
+      const m = localStorage.getItem(`meta:${groupId}`);
+      if (m) setMeta(m);
     } catch { /* ignore */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId]);
+
+  const updateMeta = (v: string) => {
+    setMeta(v);
+    try { localStorage.setItem(`meta:${groupId}`, v); } catch { /* ignore */ }
+  };
+
+  // Relatório imprimível (salvar como PDF / compartilhar)
+  const gerarRelatorio = () => {
+    const fmt = (n: number) => `R$ ${n.toFixed(2)}`;
+    const rows = finances.slice(0, 200).map((f: any) => `
+      <tr>
+        <td>${(f.description ?? f.category ?? '-')}</td>
+        <td>${f.player?.name ?? ''}</td>
+        <td>${f.date ? new Date(f.date).toLocaleDateString('pt-BR') : ''}</td>
+        <td style="text-transform:uppercase">${f.status ?? ''}</td>
+        <td style="text-align:right;color:${f.type === 'Receita' ? '#138' : '#b00'}">${f.type === 'Receita' ? '+' : '-'}${fmt(Number(f.amount))}</td>
+      </tr>`).join('');
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Relatório ${groupName}</title>
+      <style>
+        body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:24px;max-width:800px;margin:auto}
+        h1{font-size:18px;margin:0 0 4px} .sub{color:#666;font-size:12px;margin-bottom:16px}
+        .cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+        .card{flex:1;min-width:120px;border:1px solid #ddd;border-radius:8px;padding:10px}
+        .card .l{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px}
+        .card .v{font-size:18px;font-weight:bold}
+        table{width:100%;border-collapse:collapse;font-size:12px}
+        th,td{border-bottom:1px solid #eee;padding:6px 8px;text-align:left}
+        th{font-size:10px;text-transform:uppercase;color:#666}
+        @media print{button{display:none}}
+      </style></head><body>
+      <h1>${groupName} — Relatório Financeiro</h1>
+      <div class="sub">Gerado em ${new Date().toLocaleString('pt-BR')}</div>
+      <div class="cards">
+        <div class="card"><div class="l">Saldo</div><div class="v">${fmt(summary.balance)}</div></div>
+        <div class="card"><div class="l">Recebido</div><div class="v">${fmt(summary.received)}</div></div>
+        <div class="card"><div class="l">Pendente</div><div class="v">${fmt(summary.pending)}</div></div>
+        <div class="card"><div class="l">Despesas</div><div class="v">${fmt(summary.expense)}</div></div>
+      </div>
+      <table><thead><tr><th>Descrição</th><th>Atleta</th><th>Data</th><th>Status</th><th style="text-align:right">Valor</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5">Sem movimentações</td></tr>'}</tbody></table>
+      <button onclick="window.print()" style="margin-top:20px;padding:10px 20px;font-weight:bold;cursor:pointer">Salvar como PDF / Imprimir</button>
+      </body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
+  };
 
   const updateMonthlyFee = (v: string) => {
     setMonthlyFee(v);

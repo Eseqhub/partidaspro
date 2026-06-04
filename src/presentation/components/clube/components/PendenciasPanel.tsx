@@ -74,6 +74,14 @@ export const PendenciasPanel: React.FC<Props> = ({ finances, players, groupId, g
     finally { setBusy(null); }
   };
 
+  const quitarTudo = async (pid: string, items: any[]) => {
+    if (!confirm(`Marcar todas as ${items.length} pendências deste jogador como PAGAS?`)) return;
+    setBusy('all-' + pid);
+    try { for (const f of items) await financeRepo.update(f.id, { status: 'Pago' } as any); onRefresh(); }
+    catch (e: any) { alert('Erro: ' + e.message); }
+    finally { setBusy(null); }
+  };
+
   if (ranked.length === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '40px 0' }}>
@@ -136,6 +144,14 @@ export const PendenciasPanel: React.FC<Props> = ({ finances, players, groupId, g
                     </button>
                   </div>
                 ))}
+                {r.items.length > 1 && (
+                  <button onClick={() => quitarTudo(r.pid, r.items)} disabled={busy === 'all-' + r.pid}
+                    style={{ width: '100%', padding: '8px 0', fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em',
+                      background: `${green}18`, border: 'none', borderTop: `1px solid ${green}30`, color: green, cursor: 'pointer' }}>
+                    <FontAwesomeIcon icon={faCircleCheck} style={{ marginRight: 5 }} />
+                    {busy === 'all-' + r.pid ? 'Quitando...' : `Quitar tudo (R$${r.total.toFixed(2)})`}
+                  </button>
+                )}
               </div>
             )}
           </div>

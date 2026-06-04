@@ -1,7 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/infra/supabase/client';
 import { GroupRepository } from '@/infra/repositories/GroupRepository';
@@ -38,6 +38,7 @@ export default function ArbitroPage() {
   const [picked, setPicked]     = useState<{ player: Player; team: 'home' | 'away' } | null>(null);
   const [toast, setToast]       = useState<string | null>(null);
   const [saving, setSaving]     = useState(false);
+  const lastEventRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
     async function load() {
@@ -75,6 +76,14 @@ export default function ArbitroPage() {
 
   const register = async (type: EventType) => {
     if (!picked || saving) return;
+    // Anti-duplicado: mesmo jogador + tipo em até 10s é ignorado
+    const key = `${type}-${picked.player.id}`;
+    const nowMs = Date.now();
+    if (lastEventRef.current[key] && nowMs - lastEventRef.current[key] < 10000) {
+      setToast('Evento duplicado ignorado'); setTimeout(() => setToast(null), 1500);
+      setPicked(null); return;
+    }
+    lastEventRef.current[key] = nowMs;
     setSaving(true);
     try {
       // Tempo exato do evento em segundos (formatado mm:ss na exibição)

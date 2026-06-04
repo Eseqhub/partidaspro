@@ -558,6 +558,12 @@ export function useMatchState(slug: string) {
       alert('Nenhuma partida ativa. Recarregue a página.');
       return;
     }
+    // Anti-duplicado: mesmo jogador + mesmo tipo dentro de 10s é ignorado (toque duplo / 2 dispositivos)
+    const isDup = events.some(e =>
+      e.type === type && e.player_id === playerId && e.team === team &&
+      Math.abs((e.minute ?? 0) - timer) <= 10,
+    );
+    if (isDup) { setIsEventModalOpen(false); return; }
     try {
       // minute guarda o tempo EXATO do evento em segundos (formatado mm:ss na exibição)
       const newEvent = await matchRepo.addEvent({ match_id: matchId, player_id: playerId, type, team, minute: timer });
