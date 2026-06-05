@@ -242,8 +242,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── PLANOS ────────────────────────────────────────────────── */}
-      <section style={{ padding: '80px 24px' }} id="planos">
+      {/* ── PLANOS — temporariamente oculto ─────────────────────── */}
+      {false && <section style={{ padding: '80px 24px' }} id="planos">
         <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
           <p style={{ fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.25em',
             color: 'rgba(255,255,255,0.25)', marginBottom: 12 }}>Sem surpresas</p>
@@ -337,7 +337,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* ── CTA FINAL ─────────────────────────────────────────────── */}
       <section style={{ padding: '80px 24px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
