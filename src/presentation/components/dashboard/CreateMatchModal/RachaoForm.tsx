@@ -18,8 +18,8 @@ const selectCls = `${inputCls} appearance-none cursor-pointer`;
 const neon = '#ccff00';
 const blue = '#00b4ff';
 
-// Colete especial "Uniforme Próprio"
-const PROPRIO_COLOR = '#a855f7'; // roxo para diferenciar
+// Colete especial "Uniforme Próprio" — bronze/cobre
+const PROPRIO_COLOR = '#b45309';
 
 // Paleta de coletes
 const UNIFORMS: { label: string; hex: string }[] = [

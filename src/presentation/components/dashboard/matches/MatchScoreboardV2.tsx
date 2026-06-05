@@ -52,7 +52,7 @@ const VEST_COLORS: { label: string; hex: string }[] = [
 ];
 
 const getVestHex = (colorName: string) =>
-  colorName === 'Uniforme Próprio' ? '#a855f7'
+  colorName === 'Uniforme Próprio' ? '#b45309'
   : VEST_COLORS.find(v => v.label === colorName)?.hex ?? '#fff';
 
 export const ScoreboardV2: React.FC<ScoreboardProps> = ({

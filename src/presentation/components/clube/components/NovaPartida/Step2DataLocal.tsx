@@ -91,7 +91,7 @@ export function Step2DataLocal({ draft, modColor, set }: Props) {
   );
 }
 
-const PROPRIO = '#a855f7';
+const PROPRIO = '#b45309'; // bronze/cobre
 
 function TeamColorPicker({ label, name, color, onNameChange, onColorChange, namePlaceholder }: {
   label: string; name: string; color: string;
