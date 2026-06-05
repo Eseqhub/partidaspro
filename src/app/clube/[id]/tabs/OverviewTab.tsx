@@ -179,7 +179,7 @@ export const OverviewTab: React.FC<Props> = ({
           <p style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: neon, marginBottom: 2 }}>SORTEIO INTELIGENTE PRONTO</p>
           <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
             Você tem <strong style={{ color: '#fff' }}>{activeCount} atletas</strong> cadastrados.
-            O algoritmo usa habilidade (50%), posição (30%) e físico (20%) para equilibrar os times.
+            O algoritmo usa skill, idade e físico dos atletas para equilibrar os times.
           </p>
         </div>
         <button onClick={() => onNavigate(`/dashboard/${group.slug}/matches`)}

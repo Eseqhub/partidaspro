@@ -56,11 +56,11 @@ export class DraftService {
   /**
    * Sorteio Inteligente para Rachão.
    * Snake draft: goleiros separados, linha ordenada por força.
-   * Padrão de distribuição: H A A H H A A H ...
+   * Padrão: A B B A A B B A ... (primeiro pick aleatório para equidade)
    */
   balanceTeams(players: Player[], playersPerTeam = 7): DraftResult {
-    const goalkeepers = players.filter(p => p.positions.includes('G'));
-    const fieldPlayers = players.filter(p => !p.positions.includes('G'));
+    const goalkeepers = players.filter(p => Array.isArray(p.positions) && p.positions.includes('G'));
+    const fieldPlayers = players.filter(p => !Array.isArray(p.positions) || !p.positions.includes('G'));
 
     const sortedField = [...fieldPlayers].sort(
       (a, b) => this.calculatePowerLevel(b) - this.calculatePowerLevel(a)
@@ -70,19 +70,22 @@ export class DraftService {
     const awayTeam: Player[] = [];
     const waitingList: Player[] = [];
 
-    // 1. Distribui goleiros alternadamente
-    goalkeepers.forEach((gk, idx) => {
+    // 1. Distribui goleiros alternadamente (aleatoriza quem começa)
+    const gkShuffled = [...goalkeepers].sort(() => Math.random() - 0.5);
+    gkShuffled.forEach((gk, idx) => {
       const target = idx % 2 === 0 ? homeTeam : awayTeam;
       if (target.length < playersPerTeam) target.push(gk);
       else waitingList.push(gk);
     });
 
-    // 2. Snake draft para jogadores de linha
-    // Padrão: H A A H H A A H (índice 0→H, 1→A, 2→A, 3→H, 4→H, 5→A...)
+    // 2. Snake draft com primeiro pick aleatório
+    // Garante equidade: nem sempre o mesmo time pega o melhor jogador
+    const homeFirst = Math.random() < 0.5;
     sortedField.forEach((player, index) => {
       const round = Math.floor(index / 2);
       const posInRound = index % 2;
-      const goToHome = round % 2 === 0 ? posInRound === 0 : posInRound === 1;
+      let goToHome = round % 2 === 0 ? posInRound === 0 : posInRound === 1;
+      if (!homeFirst) goToHome = !goToHome;
 
       if (goToHome) {
         if (homeTeam.length < playersPerTeam) homeTeam.push(player);
