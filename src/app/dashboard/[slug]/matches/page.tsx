@@ -277,6 +277,7 @@ export default function MatchPage() {
       <CreateMatchModal
         isOpen={m.isCreateMatchModalOpen}
         onClose={() => m.setIsCreateMatchModalOpen(false)}
+        groupId={m.groupId || undefined}
         onCreateMatch={(cfg: CreateMatchConfig) => {
           m.setMatchType((cfg.match_type || 'rachao') as MatchType);
           m.setConfig((prev: any) => ({

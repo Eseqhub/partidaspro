@@ -12,6 +12,7 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onCreateMatch: (cfg: CreateMatchConfig) => void;
+  groupId?: string;
   // kept for backwards compat – not used in current UI
   onCreateDesafio?: (cfg: CreateMatchConfig) => Promise<string>;
 }
@@ -19,7 +20,7 @@ interface Props {
 const neon = '#ccff00';
 const blue = '#00b4ff';
 
-export function CreateMatchModal({ isOpen, onClose, onCreateMatch }: Props) {
+export function CreateMatchModal({ isOpen, onClose, onCreateMatch, groupId }: Props) {
   const [step, setStep] = useState<Step>('choose');
   const [cfg, setCfg] = useState<CreateMatchConfig>(DEFAULT_CFG);
 
@@ -144,6 +145,7 @@ export function CreateMatchModal({ isOpen, onClose, onCreateMatch }: Props) {
               set={set}
               onSubmit={handleSubmit}
               mode={step === 'manual' ? 'manual' : 'rachao'}
+              groupId={groupId}
             />
           )}
         </div>

@@ -10,6 +10,7 @@ interface Props {
   set: (patch: Partial<CreateMatchConfig>) => void;
   onSubmit: () => void;
   mode?: 'rachao' | 'manual';
+  groupId?: string;
 }
 
 const inputCls = `w-full bg-black/40 border border-white/10 p-3 text-white text-xs font-bold uppercase tracking-wider outline-none transition-colors placeholder:text-white/20`;
@@ -135,7 +136,7 @@ function currentFieldType(cfg: CreateMatchConfig): string {
   return cfg.playersPerTeam <= 6 ? 'Society 6x6' : 'Society 7x7';
 }
 
-export const RachaoForm: React.FC<Props> = ({ cfg, set, onSubmit, mode = 'rachao' }) => {
+export const RachaoForm: React.FC<Props> = ({ cfg, set, onSubmit, mode = 'rachao', groupId }) => {
   const accent = mode === 'rachao' ? neon : blue;
 
   const handleFieldChange = (fieldType: string) => {
@@ -209,6 +210,7 @@ export const RachaoForm: React.FC<Props> = ({ cfg, set, onSubmit, mode = 'rachao
           <LocationInput
             value={cfg.location}
             onChange={v => set({ location: v })}
+            groupId={groupId}
             placeholder="Buscar arena, clube, quadra..."
           />
         </div>
