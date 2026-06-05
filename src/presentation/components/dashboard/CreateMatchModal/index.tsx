@@ -39,7 +39,8 @@ export function CreateMatchModal({ isOpen, onClose, onCreateMatch }: Props) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex',
       alignItems: 'center', justifyContent: 'center',
-      padding: '16px', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
+      /* paddingBottom: 76px = 64px nav + 12px margem — garante que o modal não vai atrás do nav */
+      padding: '16px 16px 76px 16px', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
       <div style={{
         background: 'linear-gradient(160deg,#050e1f 0%,#020810 100%)',
         border: `1px solid ${blue}22`,
