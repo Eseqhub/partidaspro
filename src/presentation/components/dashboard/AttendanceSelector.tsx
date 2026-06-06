@@ -98,15 +98,45 @@ export const AttendanceSelector: React.FC<AttendanceSelectorProps> = ({
           )}
         </div>
         
-        <div className="flex-1">
-          <p className={`text-[10px] font-black uppercase tracking-widest truncate max-w-[120px] transition-colors ${isSelected ? 'text-primary' : 'text-white/60 group-hover:text-white'}`}>
+        <div className="flex-1 min-w-0">
+          <p className={`text-[10px] font-black uppercase tracking-widest truncate transition-colors ${isSelected ? 'text-primary' : 'text-white/60 group-hover:text-white'}`}>
             {index !== undefined && <span className="text-white/30 mr-2">#{index + 1}</span>}
             {player.name}
           </p>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-[7px] font-bold text-white/20 uppercase tracking-widest">
-                {player.is_mensalista ? 'MENSALISTA' : 'AVULSO'}
-            </span>
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            {/* Até 3 posições como badges coloridos */}
+            {(() => {
+              const POS_COLORS: Record<string, string> = {
+                G: '#EAB308', LD: '#22C55E', LE: '#22C55E', ZAG: '#16A34A',
+                ZGD: '#16A34A', ZGE: '#16A34A', VOL: '#2563EB', MC: '#3B82F6',
+                MD: '#3B82F6', ME: '#3B82F6', MO: '#8B5CF6', PD: '#F97316',
+                PE: '#F97316', SA: '#ccff00', CA: '#EF4444',
+              };
+              const positions = [
+                ...(player.posicao_principal ? [player.posicao_principal] : []),
+                ...(player.positions || []).filter(p => p !== player.posicao_principal),
+              ].slice(0, 3);
+              return positions.length > 0 ? positions.map(pos => (
+                <span key={pos} style={{
+                  fontSize: 7, fontWeight: 900, padding: '1px 5px', borderRadius: 3,
+                  background: `${POS_COLORS[pos] ?? '#6B7280'}20`,
+                  border: `1px solid ${POS_COLORS[pos] ?? '#6B7280'}40`,
+                  color: POS_COLORS[pos] ?? '#6B7280',
+                }}>
+                  {pos}
+                </span>
+              )) : (
+                <span className="text-[7px] font-bold text-white/20 uppercase tracking-widest">
+                  {player.is_mensalista ? 'MENSALISTA' : 'AVULSO'}
+                </span>
+              );
+            })()}
+            {/* skill */}
+            {(player.skill_level ?? 0) > 0 && (
+              <span style={{ fontSize: 7, fontWeight: 900, color: 'rgba(255,255,255,0.25)', marginLeft: 2 }}>
+                Nv {player.skill_level}
+              </span>
+            )}
           </div>
         </div>
 
