@@ -53,40 +53,14 @@ export class DraftService {
     return age;
   }
 
-  /**
-   * Sorteio Inteligente para Rachão.
-   * Snake draft: goleiros separados, linha ordenada por força.
-   * Padrão: A B B A A B B A ... (primeiro pick aleatório para equidade)
-   */
-  balanceTeams(players: Player[], playersPerTeam = 7): DraftResult {
-    const goalkeepers = players.filter(p => Array.isArray(p.positions) && p.positions.includes('G'));
-    const fieldPlayers = players.filter(p => !Array.isArray(p.positions) || !p.positions.includes('G'));
-
-    const sortedField = [...fieldPlayers].sort(
-      (a, b) => this.calculatePowerLevel(b) - this.calculatePowerLevel(a)
-    );
-
-    const homeTeam: Player[] = [];
-    const awayTeam: Player[] = [];
-    const waitingList: Player[] = [];
-
-    // 1. Distribui goleiros alternadamente (aleatoriza quem começa)
-    const gkShuffled = [...goalkeepers].sort(() => Math.random() - 0.5);
-    gkShuffled.forEach((gk, idx) => {
-      const target = idx % 2 === 0 ? homeTeam : awayTeam;
-      if (target.length < playersPerTeam) target.push(gk);
-      else waitingList.push(gk);
-    });
-
-    // 2. Snake draft com primeiro pick aleatório
-    // Garante equidade: nem sempre o mesmo time pega o melhor jogador
-    const homeFirst = Math.random() < 0.5;
-    sortedField.forEach((player, index) => {
+  // Distribui um grupo de jogadores entre dois times via snake draft
+  private snakeDraft(players: Player[], homeTeam: Player[], awayTeam: Player[],
+    waitingList: Player[], playersPerTeam: number, homeFirst: boolean) {
+    players.forEach((player, index) => {
       const round = Math.floor(index / 2);
       const posInRound = index % 2;
       let goToHome = round % 2 === 0 ? posInRound === 0 : posInRound === 1;
       if (!homeFirst) goToHome = !goToHome;
-
       if (goToHome) {
         if (homeTeam.length < playersPerTeam) homeTeam.push(player);
         else if (awayTeam.length < playersPerTeam) awayTeam.push(player);
@@ -96,6 +70,53 @@ export class DraftService {
         else if (homeTeam.length < playersPerTeam) homeTeam.push(player);
         else waitingList.push(player);
       }
+    });
+  }
+
+  /**
+   * Sorteio Inteligente para Rachão.
+   * 1. Goleiros distribuídos alternadamente
+   * 2. Demais jogadores separados por grupo de posição (DEF / MID / FWD)
+   *    e snake draft dentro de cada grupo — garante equilíbrio de posições
+   *    além do equilíbrio de força total.
+   * Primeiro pick aleatório para não favorecer sempre o mesmo time.
+   */
+  balanceTeams(players: Player[], playersPerTeam = 7): DraftResult {
+    const isGK  = (p: Player) => Array.isArray(p.positions) && p.positions.includes('G');
+    const posGroup = (p: Player): 'DEF'|'MID'|'FWD' => {
+      const pos = p.posicao_principal ?? p.positions?.[0] ?? '';
+      if (['ZAG','ZGD','ZGE','LD','LE'].includes(pos)) return 'DEF';
+      if (['VOL','MC','MD','ME','MO'].includes(pos)) return 'MID';
+      return 'FWD'; // SA, CA, PD, PE, ou sem posição
+    };
+
+    const goalkeepers = players.filter(isGK);
+    const field       = players.filter(p => !isGK(p));
+
+    // Agrupa por posição e ordena cada grupo por força (maior → menor)
+    const byGroup: Record<'DEF'|'MID'|'FWD', Player[]> = { DEF: [], MID: [], FWD: [] };
+    field.forEach(p => byGroup[posGroup(p)].push(p));
+    (['DEF','MID','FWD'] as const).forEach(g =>
+      byGroup[g].sort((a, b) => this.calculatePowerLevel(b) - this.calculatePowerLevel(a))
+    );
+
+    const homeTeam: Player[]   = [];
+    const awayTeam: Player[]   = [];
+    const waitingList: Player[] = [];
+
+    // 1. Goleiros (aleatoriza quem começa)
+    const gkShuffled = [...goalkeepers].sort(() => Math.random() - 0.5);
+    gkShuffled.forEach((gk, idx) => {
+      const target = idx % 2 === 0 ? homeTeam : awayTeam;
+      if (target.length < playersPerTeam) target.push(gk);
+      else waitingList.push(gk);
+    });
+
+    // 2. Snake draft por grupo — cada grupo com primeiro pick aleatório independente
+    (['DEF','MID','FWD'] as const).forEach(g => {
+      if (byGroup[g].length === 0) return;
+      const homeFirst = Math.random() < 0.5;
+      this.snakeDraft(byGroup[g], homeTeam, awayTeam, waitingList, playersPerTeam, homeFirst);
     });
 
     const calcRating = (team: Player[]) =>
