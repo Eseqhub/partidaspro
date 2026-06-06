@@ -70,7 +70,7 @@ function Step1({ data, onChange }: { data: any; onChange: (d: any) => void }) {
           Data da Partida
         </label>
         <input
-          type="date"
+          type="date" style={{ colorScheme: "dark" }}
           required
           value={data.date}
           onChange={e => onChange({ ...data, date: e.target.value })}

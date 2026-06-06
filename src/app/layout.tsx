@@ -38,6 +38,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: "#050e1f",
+  viewportFit: "cover", // iOS: conteúdo alcança as bordas (notch + home bar)
 };
 
 export default function RootLayout({

@@ -217,7 +217,7 @@ export default function PlayerRegistrationPage() {
                         <FontAwesomeIcon icon={faCakeCandles} /> Data de Nascimento
                     </label>
                     <input 
-                        type="date" 
+                        type="date" style={{ colorScheme: "dark" }}
                         required
                         value={form.birth_date}
                         onChange={(e) => setForm({...form, birth_date: e.target.value})}

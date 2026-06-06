@@ -177,17 +177,52 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    id: 'aovivo', title: 'Transmissão ao vivo e árbitro', icon: faMobileScreen, color: '#ef4444',
+    id: 'ios', title: 'iPhone e iOS', icon: faMobileScreen, color: '#00b4ff',
     items: [
       {
-        q: 'Como as pessoas acompanham ao vivo?',
-        a: <>Cada partida tem um link de transmissão (ao vivo) com placar, cronômetro e o feed de
-          lances em tempo real — ideal para quem não está jogando acompanhar pelo celular.</>,
+        q: 'Como instalo o app no iPhone?',
+        a: <ol className="list-decimal pl-4 space-y-1">
+          <li>Abra o site no <b>Safari</b> (obrigatório — Chrome/Firefox no iOS não permitem instalação)</li>
+          <li>Toque no ícone de compartilhar <b>⬆️</b> na barra inferior do Safari</li>
+          <li>Role a lista e toque em <b>"Adicionar à Tela de Início"</b></li>
+          <li>Confirme o nome e toque em <b>Adicionar</b></li>
+          <li>O ícone aparece na tela inicial — abra por ele para ter tela cheia e notificações</li>
+        </ol>,
       },
       {
-        q: 'O que é o modo árbitro?',
-        a: <>É uma tela enxuta para quem está apitando registrar os lances rapidamente (gol, cartão,
-          craque) sem precisar do painel completo. Só organizador e editores têm acesso.</>,
+        q: 'Notificações não chegam no iPhone. O que fazer?',
+        a: <ol className="list-decimal pl-4 space-y-1">
+          <li>O app <b>precisa estar instalado</b> na tela inicial (passo acima) — sem isso, push não funciona no iOS</li>
+          <li>Abra pelo ícone da tela inicial (não pelo Safari diretamente)</li>
+          <li>Vá em Partidas → toque <b>"Ativar avisos"</b> e aceite a permissão</li>
+          <li>Se o iOS perguntar sobre notificações, toque <b>"Permitir"</b></li>
+          <li>Use o botão <b>"Testar"</b> para confirmar que está funcionando</li>
+        </ol>,
+      },
+      {
+        q: 'O app funciona no Chrome/Firefox do iPhone?',
+        a: <>Funciona para usar normalmente, mas <b>notificações push e instalação na tela inicial</b> só funcionam pelo Safari no iOS. Para a melhor experiência no iPhone, use sempre o Safari.</>,
+      },
+      {
+        q: 'A tela fica cortada ou sobreposta no iPhone X/11/12/13/14/15',
+        a: <>O app usa <b>área segura automática</b> (safe area) para respeitar a home bar e o notch. Se algo estiver cortado, atualize a página com força: segure o botão de recarregar no Safari e toque em "Recarregar sem cache".</>,
+      },
+    ],
+  },
+  {
+    id: 'aovivo', title: 'Placar ao vivo e árbitro', icon: faMobileScreen, color: '#ef4444',
+    items: [
+      {
+        q: 'Como os torcedores acompanham ao vivo?',
+        a: <>Na aba Partida, toque em <b>"Placar ao Vivo"</b> e compartilhe o link. Quem recebe abre
+          direto no celular e vê placar, cronômetro e feed de lances em tempo real — sem precisar
+          criar conta.</>,
+      },
+      {
+        q: 'O que é o link Mesa / Árbitro?',
+        a: <>É uma tela simplificada para quem está na mesa registrar os lances (gol, cartão, craque)
+          com apenas 2 toques. Compartilhe com o árbitro ou outro editor. Só organizador e editores
+          têm acesso.</>,
       },
     ],
   },

@@ -74,7 +74,7 @@ export default function Home() {
     <div style={{ background: dark, color: '#fff', fontFamily: 'Inter, system-ui, sans-serif', minHeight: '100dvh', overflowX: 'hidden' }}>
 
       {/* ── NAV ───────────────────────────────────────────────────── */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: `${dark}ee`, backdropFilter: 'blur(12px)',
+      <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: `${dark}ee`, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
         borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '12px 24px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

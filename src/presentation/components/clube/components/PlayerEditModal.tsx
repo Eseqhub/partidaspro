@@ -177,7 +177,7 @@ export const PlayerEditModal: React.FC<Props> = ({ player, isOwnerOrEditor, onCl
   // ── Render ─────────────────────────────────────────────────────────────────
   const overlay: React.CSSProperties = {
     position: 'fixed', inset: 0, zIndex: 200,
-    background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(10px)',
+    background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
     display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
   };
   const modal: React.CSSProperties = {

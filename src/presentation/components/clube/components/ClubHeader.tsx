@@ -167,7 +167,7 @@ export const ClubHeader: React.FC<Props> = ({
         {/* ── Modal Regras/Estatuto ───────────────────────────────────── */}
         {rulesOpen && (
           <div onClick={() => setRulesOpen(false)}
-            style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+            style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
             <div onClick={e => e.stopPropagation()}
               style={{ width: '100%', maxWidth: 560, maxHeight: '85dvh', overflowY: 'auto',

@@ -63,7 +63,7 @@ export const TieBreakModal: React.FC<Props> = ({ homeTeamName, awayTeamName, onR
   );
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 220, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(10px)',
+    <div style={{ position: 'fixed', inset: 0, zIndex: 220, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div style={{ width: '100%', maxWidth: 440, background: 'linear-gradient(160deg,#0a1428,#020810)',
         border: `1px solid ${NEON}20`, borderRadius: 14, overflow: 'hidden' }}>

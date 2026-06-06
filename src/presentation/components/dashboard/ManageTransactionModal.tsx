@@ -146,7 +146,7 @@ export function ManageTransactionModal({ isOpen, onClose, onSave, groupId, initi
               <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">Data</label>
               <input
                 required
-                type="date"
+                type="date" style={{ colorScheme: "dark" }}
                 className="w-full bg-black/40 border border-white/10 px-4 py-3 text-sm font-bold text-white focus:border-primary transition-all outline-none"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}

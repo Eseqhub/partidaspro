@@ -60,7 +60,7 @@ export const AdminEditModal: React.FC<Props> = ({ title, subtitle, accent = '#cc
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '90dvh', overflowY: 'auto',
         background: 'linear-gradient(160deg,#0a1428,#020810)', border: `1px solid ${accent}25`, borderRadius: 12 }}>

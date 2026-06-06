@@ -113,6 +113,16 @@ body::after {
   box-shadow: 0 0 15px rgba(204, 255, 0, 0.3);
 }
 
+/* ── iOS Safe Area ────────────────────────────────────────────── */
+/* pb-safe: padding extra para iPhone com home bar */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+/* -webkit-backdrop-filter para Safari/iOS */
+[style*="backdropFilter"] {
+  -webkit-backdrop-filter: inherit;
+}
+
 /* Custom Scrollbar for HUD */
 ::-webkit-scrollbar {
   width: 4px;

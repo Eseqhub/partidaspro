@@ -144,7 +144,7 @@ export function NovaPartidaModal({ isOpen, groupId, groupSlug, onClose, onSucces
 
   return (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={e => e.target === e.currentTarget && handleClose()}
     >
       <div style={{ width: '100%', maxWidth: 560, maxHeight: '90dvh', background: 'linear-gradient(160deg,#050e1f,#020810)', border: '1px solid rgba(0,180,255,0.13)', boxShadow: '0 0 80px rgba(0,180,255,0.07)', overflowY: 'auto', position: 'relative' }}>

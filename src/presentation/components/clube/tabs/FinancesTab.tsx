@@ -420,7 +420,7 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
 
       {/* Modal de Pagamento Rápido */}
       {paymentModalOpen && selectedPlayer && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ width: '100%', maxWidth: 400, background: '#020810', border: `1px solid ${gold}30`, padding: 30, boxShadow: '0 0 50px rgba(0,0,0,0.8)' }}>
             <h3 style={{ fontSize: 14, fontWeight: 900, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20, textAlign: 'center' }}>
               Confirmar Recebimento
