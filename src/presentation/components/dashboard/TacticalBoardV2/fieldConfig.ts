@@ -157,8 +157,12 @@ export const computeCoords = (
     rows = FORMATIONS[key] ?? buildGenericFormation(players.length, sport);
   }
 
-  // Separa GK dos demais
-  const gkIdx = players.findIndex(p => p.positions?.includes('G'));
+  // Detecção de goleiro: posicao_principal OU positions[]
+  const isGK = (p: Player) =>
+    p.posicao_principal === 'G' ||
+    (Array.isArray(p.positions) && p.positions.includes('G'));
+
+  const gkIdx = players.findIndex(isGK);
   const ordered: Player[] = [];
 
   if (gkIdx >= 0) {
@@ -168,10 +172,10 @@ export const computeCoords = (
     ordered.push(...players);
   }
 
-  // Classifica jogadores por tipo de posição
+  // Classifica jogadores por tipo de posição (usa posicao_principal prioritariamente)
   const byType: Record<PosType, Player[]> = { GK: [], DEF: [], MID: [], FWD: [] };
   ordered.forEach(p => {
-    const pos = p.positions?.[0] ?? '';
+    const pos = p.posicao_principal ?? p.positions?.[0] ?? '';
     const type = POS_TYPE[pos] ?? 'MID';
     byType[type].push(p);
   });

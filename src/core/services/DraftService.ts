@@ -82,7 +82,10 @@ export class DraftService {
    * Primeiro pick aleatório para não favorecer sempre o mesmo time.
    */
   balanceTeams(players: Player[], playersPerTeam = 7): DraftResult {
-    const isGK  = (p: Player) => Array.isArray(p.positions) && p.positions.includes('G');
+    // GK detectado por posicao_principal OU positions[] — ambos precisam ser checados
+    const isGK  = (p: Player) =>
+      p.posicao_principal === 'G' ||
+      (Array.isArray(p.positions) && p.positions.includes('G'));
     const posGroup = (p: Player): 'DEF'|'MID'|'FWD' => {
       const pos = p.posicao_principal ?? p.positions?.[0] ?? '';
       if (['ZAG','ZGD','ZGE','LD','LE'].includes(pos)) return 'DEF';
@@ -104,12 +107,15 @@ export class DraftService {
     const awayTeam: Player[]   = [];
     const waitingList: Player[] = [];
 
-    // 1. Goleiros (aleatoriza quem começa)
+    // 1. Goleiros: máximo 1 por time — extras vão direto para lista de espera
+    //    (goleiro só joga no gol, não entra como linha)
     const gkShuffled = [...goalkeepers].sort(() => Math.random() - 0.5);
-    gkShuffled.forEach((gk, idx) => {
-      const target = idx % 2 === 0 ? homeTeam : awayTeam;
-      if (target.length < playersPerTeam) target.push(gk);
-      else waitingList.push(gk);
+    let homeHasGK = false;
+    let awayHasGK = false;
+    gkShuffled.forEach(gk => {
+      if (!homeHasGK) { homeTeam.push(gk); homeHasGK = true; }
+      else if (!awayHasGK) { awayTeam.push(gk); awayHasGK = true; }
+      else waitingList.push(gk); // 3º+ goleiro espera próxima partida
     });
 
     // 2. Snake draft por grupo — cada grupo com primeiro pick aleatório independente
@@ -137,8 +143,11 @@ export class DraftService {
    */
   generateBolao(players: Player[], targetPlayersPerTeam = 7): DraftResult {
     const numberOfTeams = Math.max(2, Math.floor(players.length / targetPlayersPerTeam));
-    const goalkeepers = players.filter(p => p.positions.includes('G'));
-    const fieldPlayers = players.filter(p => !p.positions.includes('G'));
+    const isGKBolao = (p: Player) =>
+      p.posicao_principal === 'G' ||
+      (Array.isArray(p.positions) && p.positions.includes('G'));
+    const goalkeepers  = players.filter(isGKBolao);
+    const fieldPlayers = players.filter(p => !isGKBolao(p));
 
     const sortedField = [...fieldPlayers].sort(
       (a, b) => this.calculatePowerLevel(b) - this.calculatePowerLevel(a)
