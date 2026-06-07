@@ -39,9 +39,13 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
       const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: { shouldCreateUser: false },
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: `${origin}/auth/callback`,
+        },
       });
       if (error) throw error;
       setMagicSent(true);
