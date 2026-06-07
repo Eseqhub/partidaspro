@@ -135,14 +135,17 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
     const phone = sanitizePhone(p.phone);
     const mesRef = currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
     let msg = `Olá ${p.name}! A sua cobrança referente ao ${mesRef} do grupo *${groupName}* é *R$${(fee || 0).toFixed(2)}*.`;
-    if (pixCfg.pixKey && fee > 0) {
-      const code = generatePixCode({
-        pixKey: pixCfg.pixKey.trim(),
-        merchantName: pixCfg.pixName || groupName,
-        amount: Number(fee.toFixed(2)),
-        description: `Mensalidade ${mesRef}`,
-      });
-      msg += `\n\nPara pagar, use o PIX copia e cola:\n\n${code}\n`;
+    if (pixCfg.pixKey) {
+      msg += `\n\n💳 *Chave PIX:* ${pixCfg.pixKey.trim()}`;
+      if (fee > 0) {
+        const code = generatePixCode({
+          pixKey: pixCfg.pixKey.trim(),
+          merchantName: pixCfg.pixName || groupName,
+          amount: Number(fee.toFixed(2)),
+          description: `Mensalidade ${mesRef}`,
+        });
+        msg += `\n\n*PIX copia e cola (R$${(fee).toFixed(2)} já preenchido):*\n\n${code}\n`;
+      }
     }
     msg += `\nSe já fez o pagamento, desconsidere.`;
     const text = encodeURIComponent(msg);
