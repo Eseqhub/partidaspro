@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faShieldHalved, faFileLines, faCalendarDays, faUsers,
   faCamera, faTimes, faFloppyDisk, faCheckCircle, faSpinner,
-  faUserPlus, faMoneyBillWave,
+  faUserPlus, faMoneyBillWave, faKey,
 } from '@fortawesome/free-solid-svg-icons';
 import { supabase as sb } from '@/infra/supabase/client';
 
@@ -75,6 +75,7 @@ export const ClubSettingsTab: React.FC<Props> = ({
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [resetSent, setResetSent] = useState<string | null>(null);
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -148,6 +149,16 @@ export const ClubSettingsTab: React.FC<Props> = ({
   const handleRemoveEditor = async (id: string) => {
     await supabase.from('group_roles').delete().eq('id', id);
     setLocalEditors(prev => prev.filter(e => e.id !== id));
+  };
+
+  const handleResetAccess = async (email: string) => {
+    try {
+      await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined,
+      });
+      setResetSent(email);
+      setTimeout(() => setResetSent(null), 3000);
+    } catch { /* silencioso */ }
   };
 
   if (!allowed) return (
@@ -376,6 +387,16 @@ export const ClubSettingsTab: React.FC<Props> = ({
                         color: roleColor, textTransform: 'uppercase' }}>
                         {isAdminRole ? 'ADMIN' : 'EDITOR'}
                       </span>
+                      <button
+                        onClick={() => handleResetAccess(ed.user_email)}
+                        title="Enviar e-mail de redefinição de acesso"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer',
+                          color: resetSent === ed.user_email ? '#22c55e' : 'rgba(0,180,255,0.4)',
+                          fontSize: 13, padding: 6, transition: 'color .2s' }}
+                        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = resetSent === ed.user_email ? '#22c55e' : '#00b4ff')}
+                        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = resetSent === ed.user_email ? '#22c55e' : 'rgba(0,180,255,0.4)')}>
+                        <FontAwesomeIcon icon={resetSent === ed.user_email ? faCheckCircle : faKey} />
+                      </button>
                       <button
                         onClick={() => handleRemoveEditor(ed.id)}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(239,68,68,0.4)', fontSize: 14, padding: 6, transition: 'color .2s' }}
