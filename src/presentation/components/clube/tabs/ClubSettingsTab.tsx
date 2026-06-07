@@ -107,9 +107,15 @@ export const ClubSettingsTab: React.FC<Props> = ({
     } finally { setSaving(false); }
   };
 
+  const [addRole, setAddRole] = useState<'editor' | 'admin'>('editor');
+
   const handleAddEditor = async () => {
     if (!editorInput || !groupId) return;
-    await groupRepo.addEditor(groupId, editorInput.toLowerCase());
+    if (addRole === 'admin') {
+      await groupRepo.addAdmin(groupId, editorInput.toLowerCase());
+    } else {
+      await groupRepo.addEditor(groupId, editorInput.toLowerCase());
+    }
     setEditorInput('');
     const { data } = await supabase.from('group_roles').select('*').eq('group_id', groupId);
     setLocalEditors(data ?? []);
@@ -216,22 +222,38 @@ export const ClubSettingsTab: React.FC<Props> = ({
           Editores podem criar partidas, fazer chamada e gerenciar atletas. O dono retém controle total das configurações.
         </p>
 
-        {/* Adicionar editor */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <input
-            type="email" value={editorInput} onChange={e => setEditorInput(e.target.value)}
-            placeholder="E-mail do colaborador..."
-            style={{ ...inputStyle, flex: 1 }}
-            onKeyDown={e => e.key === 'Enter' && handleAddEditor()}
-          />
-          <button
-            onClick={handleAddEditor}
-            disabled={!editorInput}
-            style={{ padding: '12px 20px', background: !editorInput ? 'rgba(0,180,255,0.1)' : `${blue}22`,
-              border: `1px solid ${blue}33`, color: blue, fontWeight: 900, fontSize: 10,
-              textTransform: 'uppercase', letterSpacing: '0.15em', cursor: 'pointer', flexShrink: 0 }}>
-            + ADD
-          </button>
+        {/* Adicionar colaborador */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              type="email" value={editorInput} onChange={e => setEditorInput(e.target.value)}
+              placeholder="E-mail do colaborador..."
+              style={{ ...inputStyle, flex: 1 }}
+              onKeyDown={e => e.key === 'Enter' && handleAddEditor()}
+            />
+            <select
+              value={addRole}
+              onChange={e => setAddRole(e.target.value as 'editor' | 'admin')}
+              style={{ padding: '12px 10px', background: 'rgba(0,0,0,0.5)',
+                border: `1px solid rgba(255,255,255,0.1)`, color: addRole === 'admin' ? gold : blue,
+                fontWeight: 900, fontSize: 10, textTransform: 'uppercase', cursor: 'pointer', flexShrink: 0 }}>
+              <option value="editor">Editor</option>
+              <option value="admin">Admin</option>
+            </select>
+            <button
+              onClick={handleAddEditor}
+              disabled={!editorInput}
+              style={{ padding: '12px 20px', background: !editorInput ? 'rgba(0,180,255,0.1)' : `${blue}22`,
+                border: `1px solid ${blue}33`, color: blue, fontWeight: 900, fontSize: 10,
+                textTransform: 'uppercase', letterSpacing: '0.15em', cursor: 'pointer', flexShrink: 0 }}>
+              + ADD
+            </button>
+          </div>
+          <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            {addRole === 'admin'
+              ? '⚡ Admin: acesso total igual ao dono (configs, atletas, finanças)'
+              : '🔧 Editor: cria partidas, faz chamada e gerencia atletas'}
+          </p>
         </div>
 
         {/* Lista de gestores */}
@@ -256,27 +278,42 @@ export const ClubSettingsTab: React.FC<Props> = ({
             ? <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '16px 0', fontWeight: 700, textTransform: 'uppercase' }}>
                 Nenhum editor adicionado
               </p>
-            : localEditors.map((ed: any) => (
-                <div key={ed.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '10px 14px', background: `${blue}06`, border: `1px solid rgba(255,255,255,0.05)` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 32, height: 32, background: `${blue}12`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <FontAwesomeIcon icon={faUsers} style={{ color: blue, fontSize: 11 }} />
+            : localEditors.map((ed: any) => {
+                const isAdminRole = ed.role === 'admin';
+                const roleColor = isAdminRole ? gold : blue;
+                return (
+                  <div key={ed.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px 14px',
+                    background: isAdminRole ? `${gold}06` : `${blue}06`,
+                    border: `1px solid ${isAdminRole ? `${gold}20` : 'rgba(255,255,255,0.05)'}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 32, height: 32, background: `${roleColor}12`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <FontAwesomeIcon icon={isAdminRole ? faShieldHalved : faUsers} style={{ color: roleColor, fontSize: 11 }} />
+                      </div>
+                      <div>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{ed.user_email}</p>
+                        <p style={{ fontSize: 8, color: `${roleColor}99`, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                          {isAdminRole ? 'Admin — Acesso total' : 'Editor — Partidas & Elenco'}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{ed.user_email}</p>
-                      <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Editor</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 7, fontWeight: 900, padding: '3px 8px',
+                        background: `${roleColor}18`, border: `1px solid ${roleColor}33`,
+                        color: roleColor, textTransform: 'uppercase' }}>
+                        {isAdminRole ? 'ADMIN' : 'EDITOR'}
+                      </span>
+                      <button
+                        onClick={() => handleRemoveEditor(ed.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(239,68,68,0.4)', fontSize: 14, padding: 6, transition: 'color .2s' }}
+                        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#ef4444')}
+                        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'rgba(239,68,68,0.4)')}>
+                        <FontAwesomeIcon icon={faTimes} />
+                      </button>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleRemoveEditor(ed.id)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(239,68,68,0.4)', fontSize: 14, padding: 6, transition: 'color .2s' }}
-                    onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#ef4444')}
-                    onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'rgba(239,68,68,0.4)')}>
-                    <FontAwesomeIcon icon={faTimes} />
-                  </button>
-                </div>
-              ))
+                );
+              })
           }
         </div>
       </Section>

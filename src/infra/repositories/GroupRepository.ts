@@ -81,16 +81,36 @@ export class GroupRepository {
       .eq('group_id', groupId)
       .eq('user_email', userEmail)
       .maybeSingle();
-    
+
     if (error || !data) return false;
     return true;
+  }
+
+  async isAdmin(groupId: string, userEmail: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('group_roles')
+      .select('role')
+      .eq('group_id', groupId)
+      .eq('user_email', userEmail)
+      .maybeSingle();
+
+    if (error || !data) return false;
+    return data.role === 'admin';
   }
 
   async addEditor(groupId: string, userEmail: string): Promise<void> {
     const { error } = await supabase
       .from('group_roles')
       .upsert({ group_id: groupId, user_email: userEmail, role: 'editor' });
-    
+
+    if (error) throw error;
+  }
+
+  async addAdmin(groupId: string, userEmail: string): Promise<void> {
+    const { error } = await supabase
+      .from('group_roles')
+      .upsert({ group_id: groupId, user_email: userEmail, role: 'admin' });
+
     if (error) throw error;
   }
 }

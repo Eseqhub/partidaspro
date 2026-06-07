@@ -85,7 +85,6 @@ export default function DashboardSlugPage() {
       setMatches(m.data ?? []);
       setEditors(roles.data ?? []);
       const owner = user?.id === g.owner_id;
-      setIsOwner(owner);
       // Tenta casar pelo email para pegar o apelido (player.name = nome de guerra)
       const matchedPlayer = user?.email
         ? (p ?? []).find((pl: any) => pl.email?.toLowerCase() === user.email!.toLowerCase())
@@ -97,9 +96,16 @@ export default function DashboardSlugPage() {
         || '';
       setCurrentUserName(displayName);
 
-      // Quem pode gerenciar solicitações: dono OU editor delegado
-      const editor = owner ? true : !!(user?.email && await groupRepo.isEditor(g.id, user.email).catch(() => false));
-      setCanManage(owner || editor);
+      // Admin delegado tem acesso total igual ao dono
+      const adminRole = !owner && user?.email
+        ? await groupRepo.isAdmin(g.id, user.email).catch(() => false)
+        : false;
+      const effectiveOwner = owner || adminRole;
+      setIsOwner(effectiveOwner);
+
+      // Editor delegado pode gerenciar partidas e solicitações
+      const editor = effectiveOwner ? true : !!(user?.email && await groupRepo.isEditor(g.id, user.email).catch(() => false));
+      setCanManage(effectiveOwner || editor);
       if (owner || editor) {
         const reqs = await joinRepo.findPendingByGroup(g.id).catch(() => []);
         setPendingRequests(reqs);
