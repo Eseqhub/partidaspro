@@ -6,7 +6,7 @@ import {
   faArrowTrendUp, faArrowTrendDown, faWallet,
   faCircleCheck, faHourglassHalf, faUsers,
   faCalendarAlt, faChevronLeft, faChevronRight,
-  faSpinner, faQrcode, faCommentDots,
+  faSpinner, faQrcode, faCommentDots, faCopy, faCheck,
 } from '@fortawesome/free-solid-svg-icons';
 import { generatePixCode } from '@/core/services/PixService';
 import { FinanceRepository } from '@/infra/repositories/FinanceRepository';
@@ -55,6 +55,7 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [monthlyFee, setMonthlyFee] = useState<string>(monthlyFeeDefault != null ? String(monthlyFeeDefault) : '50.00');
   const [generating, setGenerating] = useState(false);
+  const [copiedId,   setCopiedId]   = useState<string | null>(null);
   const [pixCfg, setPixCfg] = useState<{ pixKey: string; pixName: string }>({ pixKey: pixKeyDefault ?? '', pixName: groupName });
   const [meta, setMeta] = useState('');
 
@@ -135,21 +136,37 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
     const phone = sanitizePhone(p.phone);
     const mesRef = currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
     let msg = `Olá ${p.name}! A sua cobrança referente ao ${mesRef} do grupo *${groupName}* é *R$${(fee || 0).toFixed(2)}*.`;
-    if (pixCfg.pixKey) {
-      msg += `\n\n💳 *Chave PIX:* ${pixCfg.pixKey.trim()}`;
-      if (fee > 0) {
-        const code = generatePixCode({
-          pixKey: pixCfg.pixKey.trim(),
-          merchantName: pixCfg.pixName || groupName,
-          amount: Number(fee.toFixed(2)),
-          description: `Mensalidade ${mesRef}`,
-        });
-        msg += `\n\n*PIX copia e cola (R$${(fee).toFixed(2)} já preenchido):*\n\n${code}\n`;
-      }
-    }
-    msg += `\nSe já fez o pagamento, desconsidere.`;
+    if (pixCfg.pixKey) msg += `\n\n💳 *Chave PIX:* ${pixCfg.pixKey.trim()}`;
+    msg += `\n\nSe já fez o pagamento, desconsidere.`;
     const text = encodeURIComponent(msg);
     window.open(phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`, '_blank');
+  };
+
+  const copyPixCode = async (p: Player) => {
+    const fee = parseFloat(monthlyFee.replace(',', '.'));
+    if (!pixCfg.pixKey || !(fee > 0)) return;
+    const mesRef = currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    const code = generatePixCode({
+      pixKey: pixCfg.pixKey.trim(),
+      merchantName: pixCfg.pixName || groupName,
+      amount: Number(fee.toFixed(2)),
+      description: `Mensalidade ${mesRef}`,
+    });
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedId(p.id);
+      setTimeout(() => setCopiedId(null), 2500);
+    } catch {
+      // fallback para dispositivos sem clipboard API
+      const el = document.createElement('textarea');
+      el.value = code;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setCopiedId(p.id);
+      setTimeout(() => setCopiedId(null), 2500);
+    }
   };
 
   const transactions = finances.slice(0, 50);
@@ -404,6 +421,21 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
                         style={{ padding: '8px 10px', background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.35)', color: '#25D366', fontSize: 11, cursor: 'pointer', borderRadius: 4 }}>
                         <FontAwesomeIcon icon={faCommentDots} />
                       </button>
+                      {pixCfg.pixKey && (
+                        <button
+                          onClick={() => copyPixCode(p)}
+                          title="Copiar código PIX copia e cola"
+                          style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 10px',
+                            background: copiedId === p.id ? 'rgba(34,197,94,0.15)' : 'rgba(0,180,255,0.08)',
+                            border: `1px solid ${copiedId === p.id ? 'rgba(34,197,94,0.4)' : 'rgba(0,180,255,0.3)'}`,
+                            color: copiedId === p.id ? '#22c55e' : '#00b4ff',
+                            fontSize: 11, cursor: 'pointer', borderRadius: 4, transition: 'all .2s', whiteSpace: 'nowrap' }}>
+                          <FontAwesomeIcon icon={copiedId === p.id ? faCheck : faCopy} />
+                          <span style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                            {copiedId === p.id ? 'Copiado!' : 'Cód. PIX'}
+                          </span>
+                        </button>
+                      )}
                       <button
                         onClick={() => openPaymentModal(p)}
                         style={{ padding: '8px 12px', background: `${gold}15`, border: `1px solid ${gold}30`, color: gold, fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer', transition: 'all .2s' }}
