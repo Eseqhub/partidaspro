@@ -13,6 +13,7 @@ export interface Group {
   recurrence_day?: string;
   sport_type_default?: 'Futsal' | 'Society' | 'Campo';
   recruitment_link_hash?: string;
+  auto_approve_members?: boolean;
   created_at: string;
 }
 

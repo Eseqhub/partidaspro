@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faShieldHalved, faFileLines, faCalendarDays, faUsers,
   faCamera, faTimes, faFloppyDisk, faCheckCircle, faSpinner,
+  faUserPlus,
 } from '@fortawesome/free-solid-svg-icons';
 import { supabase as sb } from '@/infra/supabase/client';
 
@@ -58,6 +59,7 @@ export const ClubSettingsTab: React.FC<Props> = ({
   const [foundedYear, setFounded]     = useState(String(group.founded_year ?? new Date().getFullYear()));
   const [logoPreview, setLogoPreview] = useState<string | null>(group.logo_url ?? null);
   const [logoFile,    setLogoFile]    = useState<File | null>(null);
+  const [autoApprove, setAutoApprove] = useState(group.auto_approve_members ?? false);
 
   // Editor management
   const [editorInput, setEditorInput] = useState('');
@@ -94,6 +96,7 @@ export const ClubSettingsTab: React.FC<Props> = ({
       await onSave({
         name, description, estatuto_regras: estatuto,
         rules_text: rules, founded_year: parseInt(foundedYear) || undefined, logo_url,
+        auto_approve_members: autoApprove,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -273,6 +276,47 @@ export const ClubSettingsTab: React.FC<Props> = ({
               ))
           }
         </div>
+      </Section>
+
+      {/* ── ENTRADAS NO GRUPO ── */}
+      <Section title="Entradas no Grupo" icon={faUserPlus}>
+        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 20, lineHeight: 1.6 }}>
+          Controla o que acontece quando um atleta se cadastra via link de convite.
+        </p>
+
+        {/* Toggle auto-aprovação */}
+        <div
+          onClick={() => setAutoApprove(v => !v)}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '16px 18px', cursor: 'pointer', userSelect: 'none',
+            background: autoApprove ? 'rgba(34,197,94,0.07)' : 'rgba(255,255,255,0.03)',
+            border: `1px solid ${autoApprove ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.07)'}`,
+            transition: 'all .25s' }}>
+          <div>
+            <p style={{ fontSize: 12, fontWeight: 800, color: autoApprove ? green : 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
+              {autoApprove ? 'Entrada automática' : 'Requer aprovação do organizador'}
+            </p>
+            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, lineHeight: 1.5 }}>
+              {autoApprove
+                ? 'Novos membros entram direto no elenco após o cadastro.'
+                : 'Novos membros ficam pendentes até você aprovar manualmente.'}
+            </p>
+          </div>
+          {/* Toggle visual */}
+          <div style={{ position: 'relative', width: 44, height: 24, borderRadius: 12, flexShrink: 0, marginLeft: 16,
+            background: autoApprove ? green : 'rgba(255,255,255,0.12)', transition: 'background .25s' }}>
+            <div style={{ position: 'absolute', top: 3, left: autoApprove ? 23 : 3, width: 18, height: 18,
+              borderRadius: '50%', background: '#fff', transition: 'left .25s',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.4)' }} />
+          </div>
+        </div>
+
+        {autoApprove && (
+          <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 10, fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            ⚠️ Cuidado: qualquer pessoa com o link entrará sem revisão.
+          </p>
+        )}
       </Section>
 
       {/* ── BOTÃO SALVAR ── */}

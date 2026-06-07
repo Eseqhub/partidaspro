@@ -5,6 +5,7 @@ import { GlassCard } from '@/presentation/components/ui/GlassCard';
 import { Button } from '@/presentation/components/ui/Button';
 import { GroupRepository } from '@/infra/repositories/GroupRepository';
 import { JoinRequestRepository } from '@/infra/repositories/JoinRequestRepository';
+import { PlayerRepository } from '@/infra/repositories/PlayerRepository';
 import { sendPush } from '@/infra/services/pushClient';
 import { supabase } from '@/infra/supabase/client';
 import { useRouter, useParams } from 'next/navigation';
@@ -31,6 +32,7 @@ export default function PlayerRegistrationPage() {
   const slug = params.slug as string;
   const groupRepo = new GroupRepository();
   const joinRequestRepo = new JoinRequestRepository();
+  const playerRepo = new PlayerRepository();
 
   const [group, setGroup] = useState<Group | null>(null);
   const [form, setForm] = useState({
@@ -56,6 +58,7 @@ export default function PlayerRegistrationPage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [autoApproved, setAutoApproved] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
@@ -126,10 +129,9 @@ export default function PlayerRegistrationPage() {
         ? `${birthYear}-${birthMonth}-${birthDay}`
         : undefined;
 
-      // Cria uma SOLICITAÇÃO de entrada (aguarda aprovação do organizador)
-      await joinRequestRepo.create({
+      const playerPayload = {
         group_id: group.id,
-        name: form.name.substring(0, 15), // Limite para card
+        name: form.name.substring(0, 15),
         full_name: form.full_name,
         nationality: form.nationality,
         phone: form.phone || undefined,
@@ -141,15 +143,35 @@ export default function PlayerRegistrationPage() {
         height: form.height ? parseFloat(form.height) : undefined,
         weight: form.weight ? parseFloat(form.weight) : undefined,
         photo_url: photoUrl,
-      });
+      };
 
-      // Notifica os admins do grupo (push com app fechado)
-      sendPush({
-        groupId: group.id,
-        title: '🙋 Nova solicitação de entrada',
-        body: `${form.name} quer entrar no ${group.name}`,
-        url: `/dashboard/${slug}`,
-      });
+      if (group.auto_approve_members) {
+        // Entrada automática: cria o jogador diretamente no elenco
+        await playerRepo.create({
+          ...playerPayload,
+          rating: 3,
+          skill_level: 5,
+          status: 'Ativo',
+          is_mensalista: false,
+          positions: form.positions,
+        });
+        sendPush({
+          groupId: group.id,
+          title: '✅ Novo atleta no elenco',
+          body: `${form.name} entrou automaticamente em ${group.name}`,
+          url: `/dashboard/${slug}`,
+        });
+        setAutoApproved(true);
+      } else {
+        // Fluxo normal: cria solicitação pendente de aprovação
+        await joinRequestRepo.create(playerPayload);
+        sendPush({
+          groupId: group.id,
+          title: '🙋 Nova solicitação de entrada',
+          body: `${form.name} quer entrar no ${group.name}`,
+          url: `/dashboard/${slug}`,
+        });
+      }
 
       setSuccess(true);
     } catch (err) {
@@ -178,9 +200,14 @@ export default function PlayerRegistrationPage() {
             <div className="w-24 h-24 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center mx-auto mb-8 scale-110 shadow-[0_0_50px_rgba(204,255,0,0.2)]">
                 <FontAwesomeIcon icon={faCheckCircle} className="text-primary text-4xl" />
             </div>
-            <h1 className="text-4xl font-black text-white uppercase tracking-tighter mb-4">SOLICITAÇÃO ENVIADA!</h1>
+            <h1 className="text-4xl font-black text-white uppercase tracking-tighter mb-4">
+              {autoApproved ? 'BEM-VINDO AO ELENCO!' : 'SOLICITAÇÃO ENVIADA!'}
+            </h1>
             <p className="text-white/60 mb-10 px-4 leading-relaxed font-medium">
-                Sua ficha foi enviada para o <span className="text-primary font-bold">{group.name}</span>. Aguarde o organizador <span className="text-primary font-bold">aprovar sua entrada</span> — você será adicionado ao elenco assim que confirmarem.
+              {autoApproved
+                ? <>Você já está no elenco do <span className="text-primary font-bold">{group.name}</span>! Seu card foi criado e você pode participar do próximo jogo.</>
+                : <>Sua ficha foi enviada para o <span className="text-primary font-bold">{group.name}</span>. Aguarde o organizador <span className="text-primary font-bold">aprovar sua entrada</span> — você será adicionado ao elenco assim que confirmarem.</>
+              }
             </p>
             
             <Button 
