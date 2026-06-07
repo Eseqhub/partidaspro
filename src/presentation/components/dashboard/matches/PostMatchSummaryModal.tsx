@@ -32,28 +32,31 @@ const POS_COLOR: Record<string, string> = {
   PD: '#F97316', PE: '#F97316', SA: neon, CA: red,
 };
 
-function StatCounter({ icon, color, value, onChange }: {
-  icon: any; color: string; value: number; onChange: (v: number) => void;
+function StatCounter({ icon, color, label, value, onChange }: {
+  icon: any; color: string; label: string; value: number; onChange: (v: number) => void;
 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-      <FontAwesomeIcon icon={icon} style={{ fontSize: 10, color }} />
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, minWidth: 44 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <FontAwesomeIcon icon={icon} style={{ fontSize: 9, color }} />
+        <span style={{ fontSize: 7, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: `${color}bb` }}>{label}</span>
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <button
           type="button"
           onClick={() => onChange(Math.max(0, value - 1))}
-          style={{ width: 20, height: 20, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-            color: 'rgba(255,255,255,0.5)', fontSize: 14, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          style={{ width: 22, height: 22, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+            color: 'rgba(255,255,255,0.5)', fontSize: 15, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           −
         </button>
-        <span style={{ width: 22, textAlign: 'center', fontSize: 13, fontWeight: 900, color: value > 0 ? color : 'rgba(255,255,255,0.25)' }}>
+        <span style={{ width: 22, textAlign: 'center', fontSize: 14, fontWeight: 900, color: value > 0 ? color : 'rgba(255,255,255,0.2)' }}>
           {value}
         </span>
         <button
           type="button"
           onClick={() => onChange(value + 1)}
-          style={{ width: 20, height: 20, background: `${color}18`, border: `1px solid ${color}40`,
-            color, fontSize: 14, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          style={{ width: 22, height: 22, background: `${color}18`, border: `1px solid ${color}40`,
+            color, fontSize: 15, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           +
         </button>
       </div>
@@ -152,23 +155,6 @@ export function PostMatchSummaryModal({ matchId, groupId, players, events, teamO
         </div>
       </div>
 
-      {/* Legenda das colunas */}
-      <div style={{
-        padding: '8px 20px',
-        background: 'rgba(0,0,0,0.4)',
-        borderBottom: '1px solid rgba(255,255,255,0.04)',
-        display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0,
-      }}>
-        <span style={{ flex: 1, fontSize: 8, fontWeight: 900, textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)' }}>Jogador</span>
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          <span style={{ width: 54, textAlign: 'center', fontSize: 7, fontWeight: 900, textTransform: 'uppercase', color: neon }}>⚽ Gols</span>
-          <span style={{ width: 54, textAlign: 'center', fontSize: 7, fontWeight: 900, textTransform: 'uppercase', color: blue }}>🎯 Assist.</span>
-          <span style={{ width: 54, textAlign: 'center', fontSize: 7, fontWeight: 900, textTransform: 'uppercase', color: green }}>🛡️ Desarm.</span>
-          <span style={{ width: 54, textAlign: 'center', fontSize: 7, fontWeight: 900, textTransform: 'uppercase', color: purple }}>🧤 Defesas</span>
-          <span style={{ fontSize: 7, fontWeight: 900, textTransform: 'uppercase', color: gold }}>⭐ Nota</span>
-        </div>
-      </div>
-
       {/* Lista de jogadores — scrollável */}
       <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' as any }}>
         {players.map(p => {
@@ -179,42 +165,35 @@ export function PostMatchSummaryModal({ matchId, groupId, players, events, teamO
 
           return (
             <div key={p.id} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '12px 20px',
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 16px',
               borderBottom: '1px solid rgba(255,255,255,0.03)',
-              background: team === 'home' ? 'rgba(0,180,255,0.03)' : team === 'away' ? 'rgba(204,255,0,0.03)' : 'transparent',
+              background: team === 'home' ? 'rgba(0,180,255,0.04)' : team === 'away' ? 'rgba(204,255,0,0.04)' : 'transparent',
             }}>
               {/* Avatar + nome */}
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                <div style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-                  border: `2px solid ${posColor}55`, background: '#0a1628', overflow: 'hidden', position: 'relative' }}>
-                  {p.photo_url
-                    ? <img src={p.photo_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 13, fontWeight: 900, color: posColor }}>{p.name[0]}</div>}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <p style={{ fontSize: 11, fontWeight: 900, color: '#fff', textTransform: 'uppercase',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
-                  <p style={{ fontSize: 8, fontWeight: 700, color: posColor }}>{pos}</p>
-                </div>
+              <div style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+                border: `2px solid ${posColor}55`, background: '#0a1628', overflow: 'hidden' }}>
+                {p.photo_url
+                  ? <img src={p.photo_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 10, fontWeight: 900, color: posColor }}>{p.name[0]}</div>}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 11, fontWeight: 900, color: '#fff', textTransform: 'uppercase',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>{p.name}</p>
+                <p style={{ fontSize: 8, fontWeight: 700, color: posColor, margin: 0 }}>{pos}</p>
               </div>
 
               {/* Stats */}
-              <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexShrink: 0 }}>
-                <div style={{ width: 54, display: 'flex', justifyContent: 'center' }}>
-                  <StatCounter icon={faFutbol} color={neon} value={s.goals} onChange={v => update(p.id, 'goals', v)} />
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
+                <StatCounter icon={faFutbol}           color={neon}   label="Gol"   value={s.goals}   onChange={v => update(p.id, 'goals',   v)} />
+                <StatCounter icon={faMagicWandSparkles} color={blue}  label="Ass."  value={s.assists}  onChange={v => update(p.id, 'assists',  v)} />
+                <StatCounter icon={faHandFist}          color={green}  label="Des."  value={s.tackles}  onChange={v => update(p.id, 'tackles',  v)} />
+                <StatCounter icon={faShield}            color={purple} label="Def."  value={s.saves}    onChange={v => update(p.id, 'saves',    v)} />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                  <span style={{ fontSize: 7, fontWeight: 900, textTransform: 'uppercase', color: `${gold}bb` }}>Nota</span>
+                  <RatingPicker value={s.rating ?? 0} onChange={v => update(p.id, 'rating', v)} />
                 </div>
-                <div style={{ width: 54, display: 'flex', justifyContent: 'center' }}>
-                  <StatCounter icon={faMagicWandSparkles} color={blue} value={s.assists} onChange={v => update(p.id, 'assists', v)} />
-                </div>
-                <div style={{ width: 54, display: 'flex', justifyContent: 'center' }}>
-                  <StatCounter icon={faHandFist} color={green} value={s.tackles} onChange={v => update(p.id, 'tackles', v)} />
-                </div>
-                <div style={{ width: 54, display: 'flex', justifyContent: 'center' }}>
-                  <StatCounter icon={faShield} color={purple} value={s.saves} onChange={v => update(p.id, 'saves', v)} />
-                </div>
-                <RatingPicker value={s.rating ?? 0} onChange={v => update(p.id, 'rating', v)} />
               </div>
             </div>
           );

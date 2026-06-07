@@ -211,9 +211,9 @@ export function useMatchState(slug: string) {
     async function init() {
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user ?? null;
+      const userMeta = user ? (user.user_metadata ?? {}) as any : {};
       if (user) {
-        const meta = (user.user_metadata ?? {}) as any;
-        setCurrentUserName(meta.name || meta.full_name || user.email?.split('@')[0] || 'Torcedor');
+        setCurrentUserName(userMeta.name || userMeta.full_name || user.email?.split('@')[0] || 'Torcedor');
       }
       const group = await groupRepo.findBySlug(slug);
 
@@ -221,6 +221,10 @@ export function useMatchState(slug: string) {
         setGroupId(group.id);
         const playersLocal = await playerRepo.findAllByGroupId(group.id).catch(() => [] as Player[]);
         setAllPlayers(playersLocal);
+        if (user.email) {
+          const matched = playersLocal.find(p => p.email?.toLowerCase() === user.email!.toLowerCase());
+          if (matched?.name) setCurrentUserName(matched.name);
+        }
 
         if (group.owner_id === user.id) {
           setUserRole('owner');

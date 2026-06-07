@@ -14,11 +14,23 @@ export function GlobalHeader() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  const [playerName, setPlayerName] = useState<string | null>(null);
+
   useEffect(() => {
     // 1. Check current session
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u?.email) {
+        const { data } = await supabase
+          .from('players')
+          .select('name')
+          .ilike('email', u.email)
+          .limit(1)
+          .maybeSingle();
+        if (data?.name) setPlayerName(data.name);
+      }
       setLoading(false);
     };
 
@@ -67,7 +79,7 @@ export function GlobalHeader() {
               <div className="flex items-center gap-4">
                 <div className="hidden sm:flex flex-col items-end">
                     <span className="text-[8px] font-black text-primary uppercase tracking-widest">Acesso Ativo</span>
-                    <span className="text-[10px] font-bold text-white/60 lowercase">{user.email}</span>
+                    <span className="text-[10px] font-bold text-white/60 lowercase">{playerName || user.email}</span>
                 </div>
                 <div className="w-px h-6 bg-white/10 mx-2 hidden sm:block" />
                 <button 

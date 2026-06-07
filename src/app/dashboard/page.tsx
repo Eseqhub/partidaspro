@@ -32,7 +32,13 @@ export default function DashboardLobby() {
     }
 
     setOwnerId(user.id);
-    setUserName(user.email?.split('@')[0] || 'Organizador');
+    const { data: playerData } = await supabase
+      .from('players')
+      .select('name')
+      .ilike('email', user.email ?? '')
+      .limit(1)
+      .maybeSingle();
+    setUserName(playerData?.name || user.email?.split('@')[0] || 'Organizador');
 
     const userGroups = await groupRepo.findAllByOwner(user.id);
     setGroups(userGroups);

@@ -66,6 +66,8 @@ export const ClubSettingsTab: React.FC<Props> = ({
   // Editor management
   const [editorInput, setEditorInput] = useState('');
   const [localEditors, setLocalEditors] = useState<any[]>(editors);
+  const [groupPlayers, setGroupPlayers] = useState<{ id: string; name: string; email: string }[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState<string>('__manual__');
 
   // UI state
   const [saving,    setSaving]    = useState(false);
@@ -75,6 +77,19 @@ export const ClubSettingsTab: React.FC<Props> = ({
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { setLocalEditors(editors); }, [editors]);
+
+  useEffect(() => {
+    if (!groupId) return;
+    supabase
+      .from('players')
+      .select('id, name, email')
+      .eq('group_id', groupId)
+      .not('email', 'is', null)
+      .neq('email', '')
+      .then(({ data }: { data: any }) => {
+        if (data) setGroupPlayers(data.filter((p: any) => p.email?.includes('@')));
+      });
+  }, [groupId]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -110,13 +125,17 @@ export const ClubSettingsTab: React.FC<Props> = ({
   const [addRole, setAddRole] = useState<'editor' | 'admin'>('editor');
 
   const handleAddEditor = async () => {
-    if (!editorInput || !groupId) return;
+    const email = selectedMemberId === '__manual__'
+      ? editorInput.trim().toLowerCase()
+      : groupPlayers.find(p => p.id === selectedMemberId)?.email?.toLowerCase() ?? '';
+    if (!email || !groupId) return;
     if (addRole === 'admin') {
-      await groupRepo.addAdmin(groupId, editorInput.toLowerCase());
+      await groupRepo.addAdmin(groupId, email);
     } else {
-      await groupRepo.addEditor(groupId, editorInput.toLowerCase());
+      await groupRepo.addEditor(groupId, email);
     }
     setEditorInput('');
+    setSelectedMemberId('__manual__');
     const { data } = await supabase.from('group_roles').select('*').eq('group_id', groupId);
     setLocalEditors(data ?? []);
   };
@@ -224,31 +243,80 @@ export const ClubSettingsTab: React.FC<Props> = ({
 
         {/* Adicionar colaborador */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+          {/* Seletor de membro do elenco */}
+          {groupPlayers.length > 0 && (
+            <div>
+              <label style={labelStyle}>Selecionar do elenco</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 180, overflowY: 'auto' }}>
+                {groupPlayers
+                  .filter(p => !localEditors.some(e => e.user_email?.toLowerCase() === p.email?.toLowerCase()))
+                  .map(p => {
+                    const selected = selectedMemberId === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setSelectedMemberId(selected ? '__manual__' : p.id)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
+                          background: selected ? `${blue}22` : 'rgba(255,255,255,0.04)',
+                          border: `1px solid ${selected ? blue : 'rgba(255,255,255,0.08)'}`,
+                          color: selected ? blue : 'rgba(255,255,255,0.6)',
+                          fontWeight: 700, fontSize: 11, cursor: 'pointer', textAlign: 'left',
+                          transition: 'all .15s',
+                        }}>
+                        <div style={{ width: 26, height: 26, background: selected ? `${blue}22` : 'rgba(255,255,255,0.06)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 11, fontWeight: 900, color: selected ? blue : 'rgba(255,255,255,0.4)', flexShrink: 0 }}>
+                          {p.name[0].toUpperCase()}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', margin: 0 }}>{p.name}</p>
+                          <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', margin: 0, fontWeight: 600 }}>{p.email}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+
+          {/* Fallback: e-mail manual */}
+          {selectedMemberId === '__manual__' && (
+            <div>
+              <label style={labelStyle}>{groupPlayers.length > 0 ? 'Ou adicionar por e-mail' : 'E-mail do colaborador'}</label>
+              <input
+                type="email" value={editorInput} onChange={e => setEditorInput(e.target.value)}
+                placeholder="email@exemplo.com"
+                style={inputStyle}
+                onKeyDown={e => e.key === 'Enter' && handleAddEditor()}
+              />
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 8 }}>
-            <input
-              type="email" value={editorInput} onChange={e => setEditorInput(e.target.value)}
-              placeholder="E-mail do colaborador..."
-              style={{ ...inputStyle, flex: 1 }}
-              onKeyDown={e => e.key === 'Enter' && handleAddEditor()}
-            />
             <select
               value={addRole}
               onChange={e => setAddRole(e.target.value as 'editor' | 'admin')}
               style={{ padding: '12px 10px', background: 'rgba(0,0,0,0.5)',
                 border: `1px solid rgba(255,255,255,0.1)`, color: addRole === 'admin' ? gold : blue,
-                fontWeight: 900, fontSize: 10, textTransform: 'uppercase', cursor: 'pointer', flexShrink: 0 }}>
+                fontWeight: 900, fontSize: 10, textTransform: 'uppercase', cursor: 'pointer', flex: 1 }}>
               <option value="editor">Editor</option>
               <option value="admin">Admin</option>
             </select>
             <button
               onClick={handleAddEditor}
-              disabled={!editorInput}
-              style={{ padding: '12px 20px', background: !editorInput ? 'rgba(0,180,255,0.1)' : `${blue}22`,
+              disabled={selectedMemberId === '__manual__' ? !editorInput : false}
+              style={{
+                flex: 1, padding: '12px 20px',
+                background: (selectedMemberId !== '__manual__' || editorInput) ? `${blue}22` : 'rgba(0,180,255,0.05)',
                 border: `1px solid ${blue}33`, color: blue, fontWeight: 900, fontSize: 10,
-                textTransform: 'uppercase', letterSpacing: '0.15em', cursor: 'pointer', flexShrink: 0 }}>
-              + ADD
+                textTransform: 'uppercase', letterSpacing: '0.15em', cursor: 'pointer',
+              }}>
+              + ADICIONAR
             </button>
           </div>
+
           <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
             {addRole === 'admin'
               ? '⚡ Admin: acesso total igual ao dono (configs, atletas, finanças)'
