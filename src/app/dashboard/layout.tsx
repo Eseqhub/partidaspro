@@ -21,7 +21,7 @@ export default function DashboardLayout({
             <div className="absolute inset-0 bg-[linear-gradient(rgba(204,255,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(204,255,0,0.05)_1px,transparent_1px)] bg-[size:30px_30px]" />
         </div>
 
-        <div className="relative z-10 flex-1 min-w-0 overflow-x-hidden overflow-y-auto">
+        <div className="relative z-10 flex-1 min-w-0 min-h-0 overflow-x-hidden overflow-y-auto">
             {children}
         </div>
 

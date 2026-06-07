@@ -41,6 +41,12 @@ export class DraftService {
       else                               score -= 5;
     }
 
+    // Fator Altura
+    if (player.height) {
+      if (player.height > 1.83)        score += 5;
+      else if (player.height >= 1.75)  score += 2;
+    }
+
     return Math.max(0, score);
   }
 
@@ -51,6 +57,43 @@ export class DraftService {
     const m = today.getMonth() - birth.getMonth();
     if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
     return age;
+  }
+
+  // Equaliza força total dos times trocando pares de mesmo posGroup
+  private equalizeTeams(
+    home: Player[],
+    away: Player[],
+    posGroup: (p: Player) => 'DEF' | 'MID' | 'FWD',
+    calcPower: (p: Player) => number,
+    maxIterations = 3,
+  ): void {
+    const isGK = (p: Player) =>
+      p.posicao_principal === 'G' ||
+      (Array.isArray(p.positions) && p.positions.includes('G'));
+
+    for (let iter = 0; iter < maxIterations; iter++) {
+      const hPow = home.reduce((s, p) => s + calcPower(p), 0);
+      const aPow = away.reduce((s, p) => s + calcPower(p), 0);
+      const diff = hPow - aPow;
+      if (Math.abs(diff) < 5) break;
+
+      const [stronger, weaker] = diff > 0 ? [home, away] : [away, home];
+      let bestGain = 0, bestSi = -1, bestWi = -1;
+
+      for (let si = 0; si < stronger.length; si++) {
+        const sp = stronger[si];
+        if (isGK(sp)) continue;
+        for (let wi = 0; wi < weaker.length; wi++) {
+          const wp = weaker[wi];
+          if (isGK(wp) || posGroup(wp) !== posGroup(sp)) continue;
+          const gain = Math.abs(diff) -
+            Math.abs(diff - 2 * (calcPower(sp) - calcPower(wp)));
+          if (gain > bestGain) { bestGain = gain; bestSi = si; bestWi = wi; }
+        }
+      }
+      if (bestSi === -1) break;
+      [stronger[bestSi], weaker[bestWi]] = [weaker[bestWi], stronger[bestSi]];
+    }
   }
 
   // Distribui um grupo de jogadores entre dois times via snake draft
@@ -124,6 +167,9 @@ export class DraftService {
       const homeFirst = Math.random() < 0.5;
       this.snakeDraft(byGroup[g], homeTeam, awayTeam, waitingList, playersPerTeam, homeFirst);
     });
+
+    // 3. Passo de equalização: até 3 swaps por posGroup para minimizar |homePower - awayPower|
+    this.equalizeTeams(homeTeam, awayTeam, posGroup, this.calculatePowerLevel.bind(this));
 
     const calcRating = (team: Player[]) =>
       team.length ? team.reduce((acc, p) => acc + this.calculatePowerLevel(p), 0) / team.length : 0;

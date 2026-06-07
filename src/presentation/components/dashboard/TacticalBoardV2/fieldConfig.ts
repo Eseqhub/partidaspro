@@ -67,14 +67,28 @@ export const getFieldCfg = (sport: SportKey, ppt: number): FieldCfg => {
 };
 
 // ── Classificação de posição ─────────────────────────────────────────────
-type PosType = 'GK' | 'DEF' | 'MID' | 'FWD';
+// DMF = volante/meia defensivo (mais recuado no meio)
+// AMF = meia ofensivo (mais adiantado no meio)
+type PosType = 'GK' | 'DEF' | 'DMF' | 'AMF' | 'FWD';
 
 const POS_TYPE: Record<string, PosType> = {
   G:   'GK',
   ZAG: 'DEF', ZGD: 'DEF', ZGE: 'DEF', LD: 'DEF', LE: 'DEF',
-  VOL: 'MID', MC: 'MID', MD: 'MID', ME: 'MID',
-  MO: 'MID',
+  VOL: 'DMF', MC: 'DMF', MD: 'DMF', ME: 'DMF',
+  MO:  'AMF',
   PD:  'FWD', PE: 'FWD', SA: 'FWD', CA: 'FWD',
+};
+
+// Ordem lateral dentro de cada linha: 0=esquerda, 50=centro, 100=direita
+const LATERAL_ORDER: Record<string, number> = {
+  // Defesa
+  LE: 0, ZGE: 20, ZAG: 50, ZGD: 80, LD: 100,
+  // Meio (volantes no centro, meias nas alas)
+  ME: 10, VOL: 45, MC: 50, MO: 55, MD: 90,
+  // Ataque
+  PE: 0, SA: 35, CA: 50, PD: 100,
+  // Goleiro
+  G: 50,
 };
 
 // ── Formações por modalidade/número de jogadores ─────────────────────────
@@ -173,34 +187,78 @@ export const computeCoords = (
   }
 
   // Classifica jogadores por tipo de posição (usa posicao_principal prioritariamente)
-  const byType: Record<PosType, Player[]> = { GK: [], DEF: [], MID: [], FWD: [] };
+  const byType: Record<PosType, Player[]> = { GK: [], DEF: [], DMF: [], AMF: [], FWD: [] };
   ordered.forEach(p => {
     const pos = p.posicao_principal ?? p.positions?.[0] ?? '';
-    const type = POS_TYPE[pos] ?? 'MID';
+    const type = POS_TYPE[pos] ?? 'DMF';
     byType[type].push(p);
   });
 
-  // Pool ordenado: GK → DEF → MID → FWD
-  const pool = [...byType.GK, ...byType.DEF, ...byType.MID, ...byType.FWD];
+  // GK row = row com maior y
+  const gkRow = rows.reduce((max, r) => r.y > max.y ? r : max, rows[0]);
+  // Outfield rows ordenados por y DESC: recuados (DEF) → meio (DMF/AMF) → avançados (FWD)
+  const outfieldRows = rows.filter(r => r !== gkRow).sort((a, b) => b.y - a.y);
+
+  const rowTypeOf = (i: number, total: number): PosType => {
+    if (total <= 1) return 'DMF';
+    if (total === 2) return i === 0 ? 'DEF' : 'FWD';
+    if (i === 0) return 'DEF';
+    if (i === total - 1) return 'FWD';
+    // Linhas intermediárias: primeira metade = DMF (volante), segunda = AMF (meia ofensivo)
+    const midIdx  = i - 1;
+    const midTotal = total - 2;
+    return midIdx < Math.ceil(midTotal / 2) ? 'DMF' : 'AMF';
+  };
+
+  const rowTypeMap = new Map<FormRow, PosType>();
+  rowTypeMap.set(gkRow, 'GK');
+  outfieldRows.forEach((r, i) => rowTypeMap.set(r, rowTypeOf(i, outfieldRows.length)));
+
+  // Cursores independentes por tipo
+  const cursors: Record<PosType, number> = { GK: 0, DEF: 0, DMF: 0, AMF: 0, FWD: 0 };
+  // Fallback: VOL/MC (DMF) preenche defesa vazia; MO (AMF) preenche ataque vazio
+  const FALLBACK: Record<PosType, PosType[]> = {
+    GK:  ['GK',  'DEF', 'DMF', 'AMF', 'FWD'],
+    DEF: ['DEF', 'DMF', 'AMF', 'FWD', 'GK'],
+    DMF: ['DMF', 'DEF', 'AMF', 'FWD', 'GK'],
+    AMF: ['AMF', 'DMF', 'FWD', 'DEF', 'GK'],
+    FWD: ['FWD', 'AMF', 'DMF', 'DEF', 'GK'],
+  };
+  const nextPlayer = (primary: PosType): Player | null => {
+    for (const t of FALLBACK[primary]) {
+      if (cursors[t] < byType[t].length) return byType[t][cursors[t]++];
+    }
+    return null;
+  };
+
+  const lateralScore = (p: Player): number => {
+    const pos = p.posicao_principal ?? p.positions?.[0] ?? '';
+    return LATERAL_ORDER[pos] ?? 50;
+  };
 
   const result: { player: Player; x: number; y: number }[] = [];
-  let idx = 0;
 
   for (const row of rows) {
-    const slots = xSlots(row.count);
+    const type = rowTypeMap.get(row)!;
+    // Coleta jogadores para esta linha
+    const rowPlayers: Player[] = [];
     for (let s = 0; s < row.count; s++) {
-      if (idx >= pool.length) break;
-      result.push({ player: pool[idx], x: slots[s], y: row.y });
-      idx++;
+      const p = nextPlayer(type);
+      if (p) rowPlayers.push(p);
     }
+    // Ordena lateralmente: esquerda → centro → direita
+    rowPlayers.sort((a, b) => lateralScore(a) - lateralScore(b));
+    // Distribui nos slots (centralizado ao número real de jogadores)
+    const slots = xSlots(rowPlayers.length);
+    rowPlayers.forEach((p, i) => result.push({ player: p, x: slots[i], y: row.y }));
   }
 
-  // Sobras (formation não cobriu todos)
-  while (idx < pool.length) {
-    const lastRow = rows[rows.length - 1];
-    result.push({ player: pool[idx], x: 50, y: Math.max(14, lastRow.y - 15) });
-    idx++;
-  }
+  // Sobras não alocadas
+  const placed = new Set(result.map(r => r.player.id));
+  const leftover = [...byType.GK, ...byType.DEF, ...byType.DMF, ...byType.AMF, ...byType.FWD]
+    .filter(p => !placed.has(p.id));
+  const lastRow = rows[rows.length - 1];
+  leftover.forEach(p => result.push({ player: p, x: 50, y: Math.max(14, lastRow.y - 15) }));
 
   return result;
 };

@@ -38,11 +38,20 @@ export function GlobalHeader() {
   };
 
   return (
-    <header className="fixed top-0 w-full z-50 glass border-b border-white/5 bg-slate-950/80 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+    <header className="fixed top-0 w-full z-50 glass border-b border-white/5 bg-slate-950/80 backdrop-blur-md"
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+      <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center group">
+        <Link href="/" className="flex items-center gap-2 group">
           <Logo size={34} />
+          <span style={{
+            fontSize: 8, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase',
+            padding: '2px 5px', borderRadius: 4,
+            background: 'rgba(251,146,60,0.15)', border: '1px solid rgba(251,146,60,0.4)',
+            color: '#fb923c', lineHeight: 1,
+          }}>
+            Beta
+          </span>
         </Link>
 
         {/* Navigation */}

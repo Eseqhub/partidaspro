@@ -75,23 +75,23 @@ export default function MatchPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-12 pb-[200px] md:pb-12 relative font-inter">
+    <div className="max-w-4xl mx-auto px-3 md:px-6 pt-3 md:pt-12 pb-[200px] md:pb-12 relative font-inter">
 
       {/* Popup in-app de eventos/comentários ao vivo */}
       <MatchToast notification={m.notification} onDismiss={m.dismissNotification} />
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        {/* Ativar notificações (push com app fechado) */}
+      {/* Header — responsivo para qualquer tamanho de tela */}
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4 md:mb-8">
+        {/* Notificações push */}
         {m.pushStatus !== 'unsupported' ? (
           m.pushStatus === 'granted' ? (
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-primary/70">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="flex items-center gap-1.5 px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-primary/70 whitespace-nowrap">
                 <FontAwesomeIcon icon={faBell} /> Avisos ativos
               </span>
               <button
                 onClick={m.handleTestPush}
-                className="px-3 py-2 text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-primary border border-white/10 hover:border-primary/30 rounded-full transition-all"
+                className="px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:text-primary border border-white/10 hover:border-primary/30 rounded-full transition-all whitespace-nowrap"
               >
                 Testar
               </button>
@@ -99,28 +99,28 @@ export default function MatchPage() {
           ) : (
             <button
               onClick={m.handleEnablePush}
-              className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-white/60 hover:text-primary hover:border-primary/30 font-black uppercase text-[9px] tracking-widest rounded-full transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 text-white/60 hover:text-primary hover:border-primary/30 font-black uppercase text-[8px] tracking-widest rounded-full transition-all whitespace-nowrap min-w-0"
             >
               <FontAwesomeIcon icon={m.pushStatus === 'denied' ? faBellSlash : faBell} />
-              {m.pushStatus === 'denied' ? 'Avisos bloqueados' : 'Ativar avisos'}
+              {m.pushStatus === 'denied' ? 'Bloqueados' : 'Ativar avisos'}
             </button>
           )
-        ) : <div />}
+        ) : <div className="min-w-0" />}
 
         {m.sessionPhase === 'idle' && m.userRole !== 'viewer' && (
           <button
             onClick={() => m.setIsCreateMatchModalOpen(true)}
-            className="px-6 py-2.5 bg-primary text-black font-black uppercase text-[10px] tracking-widest rounded-full shadow-lg shadow-primary/20 hover:scale-105 transition-all"
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary text-black font-black uppercase text-[9px] tracking-widest rounded-full shadow-lg shadow-primary/20 active:scale-95 transition-all whitespace-nowrap ml-auto"
           >
-            <FontAwesomeIcon icon={faPlus} className="mr-2" /> CRIAR PARTIDA
+            <FontAwesomeIcon icon={faPlus} /> CRIAR PARTIDA
           </button>
         )}
         {m.sessionPhase !== 'idle' && m.userRole !== 'viewer' && (
           <button
             onClick={() => { if (confirm('Encerrar a partida atual? Ela vai para o histórico e você poderá criar uma nova.')) m.handleNewMatch(); }}
-            className="px-5 py-2.5 bg-white/5 border border-red-500/30 text-red-400 font-black uppercase text-[10px] tracking-widest rounded-full hover:bg-red-500/15 transition-all"
+            className="flex items-center gap-1.5 px-4 py-2 bg-white/5 border border-red-500/30 text-red-400 font-black uppercase text-[9px] tracking-widest rounded-full hover:bg-red-500/15 transition-all whitespace-nowrap ml-auto"
           >
-            <FontAwesomeIcon icon={faFlagCheckered} className="mr-2" /> ENCERRAR PARTIDA
+            <FontAwesomeIcon icon={faFlagCheckered} /> ENCERRAR
           </button>
         )}
       </div>
@@ -297,10 +297,8 @@ export default function MatchPage() {
             rotation_goal_diff:  cfg.rotation_goal_diff,
             sessionEndTime:      cfg.sessionEndTime,
           }));
-          // Pré-seleciona o "time de sempre" (atletas ativos do grupo).
-          // O organizador só desmarca quem faltou e marca os convidados novos.
-          const regulars = m.allPlayers.filter(p => p.status === 'Ativo').map(p => p.id);
-          m.setSelectedPlayerIds(regulars);
+          // Nenhum jogador pré-selecionado: organizador marca manualmente quem está presente.
+          m.setSelectedPlayerIds([]);
           m.setSessionPhase('setup');
           m.setActiveTab('attendance');
           m.setIsCreateMatchModalOpen(false);

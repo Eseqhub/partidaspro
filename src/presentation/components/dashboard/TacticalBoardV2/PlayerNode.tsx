@@ -59,27 +59,17 @@ export const PlayerNode: React.FC<PlayerNodeProps> = ({ player, x, y, num, scale
         </div>
       </div>
 
-      {/* Nome + posição + skill — tudo abaixo da foto */}
-      <div style={{ marginTop: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        {/* Nome */}
-        <div style={{ padding: '0 4px', background: 'rgba(0,0,0,0.9)',
-          border: `1px solid ${posColor}33`, borderRadius: 2 }}>
-          <span style={{ fontSize: 6, fontWeight: 900, textTransform: 'uppercase',
-            letterSpacing: '0.05em', color: '#fff' }}>
-            {name}
-          </span>
-        </div>
-        {/* Posição · Skill */}
-        <div style={{ marginTop: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <span style={{ fontSize: 6, fontWeight: 900, padding: '0 3px',
-            background: `${posColor}22`, border: `1px solid ${posColor}44`,
-            color: posColor, borderRadius: 2 }}>
-            {pos}
-          </span>
-          <span style={{ fontSize: 6, fontWeight: 900, color: 'rgba(255,255,255,0.4)' }}>
-            {skill}
-          </span>
-        </div>
+      {/* Badge único: nome + pos·skill abaixo */}
+      <div style={{ marginTop: 1, padding: '1px 3px', background: 'rgba(0,0,0,0.90)',
+        border: `1px solid ${posColor}33`, borderRadius: 2,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+        <span style={{ fontSize: 5, fontWeight: 900, textTransform: 'uppercase',
+          letterSpacing: '0.04em', color: '#fff', lineHeight: 1.3 }}>
+          {name}
+        </span>
+        <span style={{ fontSize: 4.5, fontWeight: 900, color: posColor, lineHeight: 1.2 }}>
+          {pos}·{skill}
+        </span>
       </div>
     </div>
   );

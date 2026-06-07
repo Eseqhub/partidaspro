@@ -33,8 +33,16 @@ export function Sidebar() {
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-[#0A0A0A] border-r border-[#222222] min-h-screen sticky top-0">
-      <div className="p-6 border-b border-[#222222]">
+      <div className="p-6 border-b border-[#222222] flex items-center gap-2">
         <Logo size={28} />
+        <span style={{
+          fontSize: 8, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase',
+          padding: '2px 5px', borderRadius: 4,
+          background: 'rgba(251,146,60,0.15)', border: '1px solid rgba(251,146,60,0.4)',
+          color: '#fb923c', lineHeight: 1,
+        }}>
+          Beta
+        </span>
       </div>
 
       <nav className="flex-1 py-10 px-4 space-y-2">

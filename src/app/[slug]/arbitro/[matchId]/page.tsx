@@ -175,7 +175,7 @@ export default function ArbitroPage() {
   const awayColor = match.away_color || 'Preto';
 
   return (
-    <div style={{ minHeight: '100dvh', background: '#020810', color: '#fff', paddingBottom: 160 }}>
+    <div style={{ minHeight: '100dvh', background: '#020810', color: '#fff', paddingBottom: picked ? 'calc(200px + env(safe-area-inset-bottom, 0px))' : 'calc(120px + env(safe-area-inset-bottom, 0px))' }}>
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '16px 14px 0' }}>
 
         {/* ── Header ─────────────────────────────────────────────────── */}
@@ -235,7 +235,7 @@ export default function ArbitroPage() {
               <p style={{ padding: '16px', textAlign: 'center', fontSize: 10, color: 'rgba(255,255,255,0.2)',
                 fontWeight: 700, textTransform: 'uppercase' }}>Nenhum evento ainda</p>
             ) : (
-              <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+              <div style={{ maxHeight: 'min(180px, 28vh)', overflowY: 'scroll', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
                 {events.map((ev: any) => {
                   const meta = EVENTS.find(e => e.type === ev.type);
                   return (
@@ -339,7 +339,8 @@ export default function ArbitroPage() {
       {/* ── Barra de ação fixa ─────────────────────────────────────── */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
         background: 'linear-gradient(to top, #050e1f 85%, transparent)',
-        padding: '8px 14px 16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+        paddingTop: 8, paddingLeft: 14, paddingRight: 14,
+        paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
         <div style={{ maxWidth: 480, margin: '0 auto' }}>
           {picked ? (
             <>

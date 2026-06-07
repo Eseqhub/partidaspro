@@ -54,7 +54,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col selection:bg-primary/30 selection:text-white">
         <PWARegister />
         <GlobalHeader />
-        <main className="flex-1 pt-16">
+        <main className="flex-1" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
           {children}
         </main>
         <footer className="py-12 border-t border-white/5 bg-slate-950/50">
