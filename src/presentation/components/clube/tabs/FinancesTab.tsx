@@ -65,9 +65,22 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
       const fee = localStorage.getItem(`monthlyFee:${groupId}`);
       if (fee) setMonthlyFee(fee);
       else if (monthlyFeeDefault != null) setMonthlyFee(String(monthlyFeeDefault));
-      const pix = localStorage.getItem(`pix:${groupId}`);
-      if (pix) { const o = JSON.parse(pix); setPixCfg({ pixKey: o.pixKey || pixKeyDefault || '', pixName: o.pixName || groupName }); }
-      else if (pixKeyDefault) setPixCfg({ pixKey: pixKeyDefault, pixName: groupName });
+      // DB é fonte de verdade para a chave PIX; localStorage guarda só o pixName do rateio
+      if (pixKeyDefault !== undefined) {
+        // Grupo carregado com valor explícito do DB (pode ser null = apagado)
+        const pix = localStorage.getItem(`pix:${groupId}`);
+        const pixName = pix ? (JSON.parse(pix).pixName || groupName) : groupName;
+        setPixCfg({ pixKey: pixKeyDefault ?? '', pixName });
+        // Sincroniza localStorage com o valor do DB
+        if (pixKeyDefault) {
+          localStorage.setItem(`pix:${groupId}`, JSON.stringify({ pixKey: pixKeyDefault, pixName }));
+        } else {
+          localStorage.removeItem(`pix:${groupId}`);
+        }
+      } else {
+        const pix = localStorage.getItem(`pix:${groupId}`);
+        if (pix) { const o = JSON.parse(pix); setPixCfg({ pixKey: o.pixKey || '', pixName: o.pixName || groupName }); }
+      }
       const m = localStorage.getItem(`meta:${groupId}`);
       if (m) setMeta(m);
     } catch { /* ignore */ }

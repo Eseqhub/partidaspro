@@ -4,34 +4,30 @@ import React, { useState } from 'react';
 import { GlassCard } from '@/presentation/components/ui/GlassCard';
 import { Button } from '@/presentation/components/ui/Button';
 import { supabase } from '@/infra/supabase/client';
+import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEnvelope, faMagicWandSparkles, faCheckCircle, faCircleQuestion } from '@fortawesome/free-solid-svg-icons';
+import { faEnvelope, faLock, faArrowRight, faCircleQuestion } from '@fortawesome/free-solid-svg-icons';
 import { LogoMark } from '@/presentation/components/ui/Logo';
 import Link from 'next/link';
 
 export default function SignupPage() {
-  const [email, setEmail]   = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError]   = useState('');
-  const [sent, setSent]     = useState(false);
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
+  const router = useRouter();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password.length < 6) { setError('A senha deve ter pelo menos 6 caracteres.'); return; }
     setLoading(true);
     setError('');
     try {
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: true,
-          emailRedirectTo: `${origin}/auth/callback`,
-        },
-      });
+      const { error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
-      setSent(true);
+      router.push('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Erro ao enviar link. Tente novamente.');
+      setError(err.message || 'Erro ao criar conta. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -51,68 +47,56 @@ export default function SignupPage() {
           <h1 className="text-3xl font-black text-white uppercase tracking-tighter">
             Crie seu <span className="text-primary">Clube</span>
           </h1>
-          <p className="text-white/40 text-sm mt-2 font-bold uppercase tracking-widest">Partidas Pro — sem senha, sem complicação</p>
+          <p className="text-white/40 text-sm mt-2 font-bold uppercase tracking-widest">Partidas Pro</p>
         </div>
 
         <GlassCard className="p-8">
-          {sent ? (
-            <div className="text-center py-6 space-y-4">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full border border-primary/30 bg-primary/10 mb-2">
-                <FontAwesomeIcon icon={faCheckCircle} className="text-primary text-3xl" />
+          <form onSubmit={handleSignup} className="space-y-6">
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-primary mb-2">
+                E-mail
+              </label>
+              <div className="relative">
+                <FontAwesomeIcon icon={faEnvelope} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  className="w-full bg-black/40 border border-white/10 p-4 pl-12 text-white placeholder:text-white/10 focus:border-primary/50 transition-colors outline-none font-bold"
+                  required
+                />
               </div>
-              <p className="text-white font-black uppercase tracking-wider text-sm">Link enviado!</p>
-              <p className="text-white/50 text-xs font-bold uppercase tracking-widest leading-relaxed">
-                Verifique o e-mail <span className="text-white/80">{email}</span> e clique no link para acessar o app.
-              </p>
-              <p className="text-white/25 text-[10px] font-bold uppercase tracking-widest">
-                Você já estará logado ao clicar — sem precisar de senha.
-              </p>
-              <button
-                type="button"
-                onClick={() => { setSent(false); setEmail(''); }}
-                className="text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-primary transition-colors mt-2"
-              >
-                Usar outro e-mail
-              </button>
             </div>
-          ) : (
-            <form onSubmit={handleSignup} className="space-y-6">
-              <div className="p-4 border border-primary/20 bg-primary/5 text-center space-y-1">
-                <p className="text-[10px] font-black uppercase tracking-widest text-primary">Acesso por link mágico</p>
-                <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest leading-relaxed">
-                  Sem senha. Você recebe um link no e-mail e já entra direto.
-                </p>
-              </div>
 
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-primary mb-2">
-                  Seu e-mail
-                </label>
-                <div className="relative">
-                  <FontAwesomeIcon icon={faEnvelope} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="seu@email.com"
-                    className="w-full bg-black/40 border border-white/10 p-4 pl-12 text-white placeholder:text-white/10 focus:border-primary/50 transition-colors outline-none font-bold"
-                    required
-                  />
-                </div>
-                {error && <p className="text-red-400 text-[10px] mt-3 font-bold uppercase">{error}</p>}
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-primary mb-2">
+                Senha <span className="text-white/20 font-bold normal-case tracking-normal">(mínimo 6 caracteres)</span>
+              </label>
+              <div className="relative">
+                <FontAwesomeIcon icon={faLock} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-black/40 border border-white/10 p-4 pl-12 text-white placeholder:text-white/10 focus:border-primary/50 transition-colors outline-none"
+                  required
+                />
               </div>
+              {error && <p className="text-red-400 text-[10px] mt-3 font-bold uppercase">{error}</p>}
+            </div>
 
-              <Button
-                type="submit"
-                variant="primary"
-                className="w-full py-5 text-slate-950 font-black uppercase tracking-widest text-sm"
-                disabled={loading}
-              >
-                {loading ? 'Enviando link...' : 'Criar conta e receber link'}
-                {!loading && <FontAwesomeIcon icon={faMagicWandSparkles} className="ml-3" />}
-              </Button>
-            </form>
-          )}
+            <Button
+              type="submit"
+              variant="primary"
+              className="w-full py-5 text-slate-950 font-black uppercase tracking-widest text-sm"
+              disabled={loading}
+            >
+              {loading ? 'Criando conta...' : 'Criar conta'}
+              {!loading && <FontAwesomeIcon icon={faArrowRight} className="ml-3" />}
+            </Button>
+          </form>
 
           <div className="mt-8 pt-8 border-t border-white/5 text-center">
             <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest">
@@ -126,7 +110,7 @@ export default function SignupPage() {
 
         <div className="text-center mt-8 space-y-3">
           <Link href="/faq" className="inline-block text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-primary transition-colors">
-            <FontAwesomeIcon icon={faCircleQuestion} className="mr-2" /> Como funciona? Central de Ajuda
+            <FontAwesomeIcon icon={faCircleQuestion} className="mr-2" /> Como funciona?
           </Link>
           <p className="text-[10px] text-white/20 font-bold uppercase tracking-[0.2em]">
             Partidas Pro &copy; 2026

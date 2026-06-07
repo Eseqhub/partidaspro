@@ -119,7 +119,7 @@ export const ClubSettingsTab: React.FC<Props> = ({
         rules_text: rules, founded_year: parseInt(foundedYear) || undefined, logo_url,
         auto_approve_members: autoApprove,
         monthly_fee: isNaN(feeNum) ? undefined : feeNum,
-        pix_key: pixKey.trim() || undefined,
+        pix_key: pixKey.trim() || null,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
