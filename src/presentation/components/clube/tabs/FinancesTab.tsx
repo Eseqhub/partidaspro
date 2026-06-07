@@ -27,7 +27,7 @@ interface Props {
   groupName?: string;
   players?: Player[];
   monthlyFeeDefault?: number;
-  pixKeyDefault?: string;
+  pixKeyDefault?: string | null;
   onRefresh: () => void;
 }
 
