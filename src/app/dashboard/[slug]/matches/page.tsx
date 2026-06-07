@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import { supabase } from '@/infra/supabase/client';
-import React from 'react';
+import React, { useState } from 'react';
 import { MatchType } from '@/core/entities/match';
 import { faTableList } from '@fortawesome/free-solid-svg-icons';
 import { faPlus, faListCheck, faStopwatch, faFutbol, faGear, faBell, faBellSlash, faFlagCheckered } from '@fortawesome/free-solid-svg-icons';
@@ -12,6 +12,7 @@ import { AddPlayerModal } from '@/presentation/components/dashboard/AddPlayerMod
 import { CreateMatchModal, CreateMatchConfig } from '@/presentation/components/dashboard/CreateMatchModal';
 import { NextTeamModal } from '@/presentation/components/dashboard/matches/NextTeamModal';
 import { TieBreakModal } from '@/presentation/components/dashboard/matches/TieBreakModal';
+import { PostMatchSummaryModal } from '@/presentation/components/dashboard/matches/PostMatchSummaryModal';
 import { useParams } from 'next/navigation';
 
 import { useMatchState } from './_components/useMatchState';
@@ -27,6 +28,7 @@ export default function MatchPage() {
   const slug = params.slug as string;
 
   const m = useMatchState(slug);
+  const [showSummary, setShowSummary] = useState(false);
 
   const isBolao = m.config.game_mode === 'Bolão' && !!m.bolaoState;
 
@@ -117,7 +119,7 @@ export default function MatchPage() {
         )}
         {m.sessionPhase !== 'idle' && m.userRole !== 'viewer' && (
           <button
-            onClick={() => { if (confirm('Encerrar a partida atual? Ela vai para o histórico e você poderá criar uma nova.')) m.handleNewMatch(); }}
+            onClick={() => { if (confirm('Encerrar a sessão? Você poderá registrar as estatísticas dos jogadores antes de fechar.')) setShowSummary(true); }}
             className="flex items-center gap-1.5 px-4 py-2 bg-white/5 border border-red-500/30 text-red-400 font-black uppercase text-[9px] tracking-widest rounded-full hover:bg-red-500/15 transition-all whitespace-nowrap ml-auto"
           >
             <FontAwesomeIcon icon={faFlagCheckered} /> ENCERRAR
@@ -272,6 +274,23 @@ export default function MatchPage() {
         }}
         groupId={m.groupId || ''}
       />
+
+      {/* Resumo pós-sessão */}
+      {showSummary && m.matchId && m.groupId && (
+        <PostMatchSummaryModal
+          matchId={m.matchId}
+          groupId={m.groupId}
+          players={m.allPlayers.filter(p => m.selectedPlayerIds.includes(p.id))}
+          events={m.events}
+          teamOf={(pid) => {
+            if (m.draftResult?.homeTeam.some(p => p.id === pid)) return 'home';
+            if (m.draftResult?.awayTeam.some(p => p.id === pid)) return 'away';
+            return 'waiting';
+          }}
+          onSave={() => { setShowSummary(false); m.handleNewMatch(); }}
+          onSkip={() => { setShowSummary(false); m.handleNewMatch(); }}
+        />
+      )}
 
       {/* Modal de criação de partida */}
       <CreateMatchModal
