@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faShieldHalved, faFileLines, faCalendarDays, faUsers,
   faCamera, faTimes, faFloppyDisk, faCheckCircle, faSpinner,
-  faUserPlus,
+  faUserPlus, faMoneyBillWave,
 } from '@fortawesome/free-solid-svg-icons';
 import { supabase as sb } from '@/infra/supabase/client';
 
@@ -61,7 +61,9 @@ export const ClubSettingsTab: React.FC<Props> = ({
   const [foundedYear, setFounded]     = useState(String(group.founded_year ?? new Date().getFullYear()));
   const [logoPreview, setLogoPreview] = useState<string | null>(group.logo_url ?? null);
   const [logoFile,    setLogoFile]    = useState<File | null>(null);
-  const [autoApprove, setAutoApprove] = useState(group.auto_approve_members ?? false);
+  const [autoApprove,  setAutoApprove]  = useState(group.auto_approve_members ?? false);
+  const [monthlyFee,   setMonthlyFee]   = useState(group.monthly_fee != null ? String(group.monthly_fee) : '');
+  const [pixKey,       setPixKey]       = useState(group.pix_key ?? '');
 
   // Editor management
   const [editorInput, setEditorInput] = useState('');
@@ -110,10 +112,13 @@ export const ClubSettingsTab: React.FC<Props> = ({
       let logo_url = group.logo_url ?? '';
       if (logoFile) logo_url = await uploadLogo(logoFile);
 
+      const feeNum = parseFloat(monthlyFee.replace(',', '.'));
       await onSave({
         name, description, estatuto_regras: estatuto,
         rules_text: rules, founded_year: parseInt(foundedYear) || undefined, logo_url,
         auto_approve_members: autoApprove,
+        monthly_fee: isNaN(feeNum) ? undefined : feeNum,
+        pix_key: pixKey.trim() || undefined,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -383,6 +388,51 @@ export const ClubSettingsTab: React.FC<Props> = ({
                 );
               })
           }
+        </div>
+      </Section>
+      )}
+
+      {/* ── FINANCEIRO ── */}
+      {isOwner && (
+      <Section title="Financeiro" icon={faMoneyBillWave}>
+        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 20, lineHeight: 1.6 }}>
+          Configurações usadas nas cobranças de mensalidade e rateios do grupo.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Valor da mensalidade */}
+          <div>
+            <label style={labelStyle}>Valor da Mensalidade</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 900, color: gold }}>R$</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                value={monthlyFee}
+                onChange={e => setMonthlyFee(e.target.value)}
+                placeholder="50,00"
+                style={{ ...inputStyle, width: 120 }}
+              />
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                por mês / mensalista
+              </span>
+            </div>
+          </div>
+          {/* Chave PIX */}
+          <div>
+            <label style={labelStyle}>Chave PIX para Cobrança</label>
+            <input
+              type="text"
+              value={pixKey}
+              onChange={e => setPixKey(e.target.value)}
+              placeholder="CPF, e-mail, telefone ou chave aleatória..."
+              style={inputStyle}
+            />
+            <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', marginTop: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              Enviada automaticamente nas cobranças via WhatsApp
+            </p>
+          </div>
         </div>
       </Section>
       )}

@@ -14,6 +14,8 @@ export interface Group {
   sport_type_default?: 'Futsal' | 'Society' | 'Campo';
   recruitment_link_hash?: string;
   auto_approve_members?: boolean;
+  monthly_fee?: number;
+  pix_key?: string;
   created_at: string;
 }
 

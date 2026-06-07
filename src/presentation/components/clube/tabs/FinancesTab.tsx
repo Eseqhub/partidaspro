@@ -26,6 +26,8 @@ interface Props {
   groupId: string;
   groupName?: string;
   players?: Player[];
+  monthlyFeeDefault?: number;
+  pixKeyDefault?: string;
   onRefresh: () => void;
 }
 
@@ -42,7 +44,7 @@ function FinanceCard({ label, value, sub, color, icon }: { label: string; value:
   );
 }
 
-export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, groupName = 'Pelada', players = [], onRefresh }) => {
+export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, groupName = 'Pelada', players = [], monthlyFeeDefault, pixKeyDefault, onRefresh }) => {
   const [subTab, setSubTab] = useState<'geral' | 'mensalistas' | 'cobrancas' | 'pendencias'>('geral');
   const [currentDate, setCurrentDate] = useState(new Date());
   
@@ -51,9 +53,9 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<string>('50.00');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [monthlyFee, setMonthlyFee] = useState<string>('50.00');
+  const [monthlyFee, setMonthlyFee] = useState<string>(monthlyFeeDefault != null ? String(monthlyFeeDefault) : '50.00');
   const [generating, setGenerating] = useState(false);
-  const [pixCfg, setPixCfg] = useState<{ pixKey: string; pixName: string }>({ pixKey: '', pixName: groupName });
+  const [pixCfg, setPixCfg] = useState<{ pixKey: string; pixName: string }>({ pixKey: pixKeyDefault ?? '', pixName: groupName });
   const [meta, setMeta] = useState('');
 
   // Carrega valor mensal salvo + chave PIX (mesma do painel de rateio) + meta da caixinha
@@ -61,8 +63,10 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
     try {
       const fee = localStorage.getItem(`monthlyFee:${groupId}`);
       if (fee) setMonthlyFee(fee);
+      else if (monthlyFeeDefault != null) setMonthlyFee(String(monthlyFeeDefault));
       const pix = localStorage.getItem(`pix:${groupId}`);
-      if (pix) { const o = JSON.parse(pix); setPixCfg({ pixKey: o.pixKey || '', pixName: o.pixName || groupName }); }
+      if (pix) { const o = JSON.parse(pix); setPixCfg({ pixKey: o.pixKey || pixKeyDefault || '', pixName: o.pixName || groupName }); }
+      else if (pixKeyDefault) setPixCfg({ pixKey: pixKeyDefault, pixName: groupName });
       const m = localStorage.getItem(`meta:${groupId}`);
       if (m) setMeta(m);
     } catch { /* ignore */ }
