@@ -121,6 +121,9 @@ export function CreateGroupModal({ isOpen, onClose, onSuccess, ownerId }: Create
       const birth_date = (birthDay && birthMonth && birthYear)
         ? `${birthYear}-${birthMonth}-${birthDay}` : undefined;
 
+      const rawH = height ? parseFloat(height) : undefined;
+      const safeH = rawH !== undefined ? (rawH > 9 ? parseFloat((rawH / 100).toFixed(2)) : rawH) : undefined;
+
       await playerRepo.create({
         group_id: createdGroupId,
         name: playerName.substring(0, 15),
@@ -129,7 +132,7 @@ export function CreateGroupModal({ isOpen, onClose, onSuccess, ownerId }: Create
         role, birth_date,
         preferred_foot: preferredFoot,
         positions: [position] as any,
-        height: height ? parseFloat(height) : undefined,
+        height: safeH,
         weight: weight ? parseFloat(weight) : undefined,
         photo_url: photoUrl,
         rating: 3,

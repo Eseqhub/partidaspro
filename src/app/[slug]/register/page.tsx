@@ -129,6 +129,12 @@ export default function PlayerRegistrationPage() {
         ? `${birthYear}-${birthMonth}-${birthDay}`
         : undefined;
 
+      // NUMERIC(3,2): aceita até 9.99 — converte cm para metros se necessário
+      const rawHeight = form.height ? parseFloat(form.height) : undefined;
+      const safeHeight = rawHeight !== undefined
+        ? (rawHeight > 9 ? parseFloat((rawHeight / 100).toFixed(2)) : rawHeight)
+        : undefined;
+
       const playerPayload = {
         group_id: group.id,
         name: form.name.substring(0, 15),
@@ -140,7 +146,7 @@ export default function PlayerRegistrationPage() {
         birth_date,
         preferred_foot: form.preferred_foot,
         positions: form.positions,
-        height: form.height ? parseFloat(form.height) : undefined,
+        height: safeHeight,
         weight: form.weight ? parseFloat(form.weight) : undefined,
         photo_url: photoUrl,
       };

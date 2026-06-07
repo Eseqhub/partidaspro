@@ -25,6 +25,20 @@ export const JoinRequestsPanel: React.FC<Props> = ({ requests, onChanged }) => {
   const approve = async (req: JoinRequest) => {
     setBusy(req.id);
     try {
+      // Sanitiza altura: NUMERIC(3,2) só aceita até 9.99
+      // Se veio em cm (ex: 175), converte para metros (1.75)
+      let height = req.height;
+      if (height !== undefined && height !== null) {
+        if (height > 9) height = parseFloat((height / 100).toFixed(2));
+        if (height > 9.99) height = undefined as any;
+      }
+
+      // Sanitiza peso: NUMERIC(5,2) aceita até 999.99
+      let weight = req.weight;
+      if (weight !== undefined && weight !== null && weight > 999.99) {
+        weight = undefined as any;
+      }
+
       await playerRepo.create({
         group_id: req.group_id,
         name: req.name,
@@ -36,10 +50,11 @@ export const JoinRequestsPanel: React.FC<Props> = ({ requests, onChanged }) => {
         birth_date: req.birth_date,
         preferred_foot: (req.preferred_foot as any) ?? 'R',
         positions: (req.positions && req.positions.length ? req.positions : ['MO']) as any,
-        height: req.height,
-        weight: req.weight,
+        height,
+        weight,
         photo_url: req.photo_url,
         rating: 3.0,
+        skill_level: 5,
         status: 'Ativo',
         is_mensalista: false,
       } as any);
