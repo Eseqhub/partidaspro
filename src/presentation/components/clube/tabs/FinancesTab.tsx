@@ -131,7 +131,15 @@ export const FinancesTab: React.FC<Props> = ({ finances, summary, groupId, group
     const phone = sanitizePhone(p.phone);
     const mesRef = currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
     let msg = `Olá ${p.name}! A sua cobrança referente ao ${mesRef} do grupo *${groupName}* é *R$${(fee || 0).toFixed(2)}*.`;
-    if (pixCfg.pixKey) msg += `\nPara pagar: ${pixCfg.pixKey.trim()}`;
+    if (pixCfg.pixKey && fee > 0) {
+      const code = generatePixCode({
+        pixKey: pixCfg.pixKey.trim(),
+        merchantName: pixCfg.pixName || groupName,
+        amount: Number(fee.toFixed(2)),
+        description: `Mensalidade ${mesRef}`,
+      });
+      msg += `\n\nPara pagar, use o PIX copia e cola:\n\n${code}\n`;
+    }
     msg += `\nSe já fez o pagamento, desconsidere.`;
     const text = encodeURIComponent(msg);
     window.open(phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`, '_blank');
