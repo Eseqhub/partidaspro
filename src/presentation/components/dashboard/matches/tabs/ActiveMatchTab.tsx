@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createScorerToken } from '@/infra/actions/scorerActions';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShuffle, faPlay, faUsers, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
 import { GlassCard } from '@/presentation/components/ui/GlassCard';
@@ -31,6 +32,7 @@ interface ActiveMatchTabProps {
   timer: number;
   status: string;
   setActiveTab: (tab: any) => void;
+  matchId: string;
   matchType?: 'rachao' | 'desafio';
   onStartMatch?: () => void;
   homeFormation?: Formation;
@@ -42,7 +44,7 @@ interface ActiveMatchTabProps {
 
 export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
   draftResult, config, setConfig, score, timer, status,
-  setActiveTab, matchType = 'rachao', onStartMatch,
+  setActiveTab, matchId, matchType = 'rachao', onStartMatch,
   homeFormation, awayFormation, events = [], liveUrl, arbitroUrl,
 }) => {
   const campoCfg = CAMPO_MAP[config.tipo_campo ?? config.sport_type ?? 'Society 7x7']
@@ -74,6 +76,22 @@ export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
   const [homeOpen,    setHomeOpen]    = useState(true);
   const [awayOpen,    setAwayOpen]    = useState(true);
   const [waitingOpen, setWaitingOpen] = useState(false);
+  const [scorerUrl, setScorerUrl] = useState<string | null>(null);
+  const [scorerLoading, setScorerLoading] = useState(false);
+
+  const handleScorer = async () => {
+    if (!matchId || scorerLoading) return;
+    setScorerLoading(true);
+    try {
+      const result = await createScorerToken(matchId);
+      const url = `${window.location.origin}/${window.location.pathname.split('/dashboard/')[1]?.split('/matches')[0]}/apontador/${result.token}`;
+      setScorerUrl(url);
+      if (navigator.share) navigator.share({ title: 'Apontador · Partidas Pro', url }).catch(() => {});
+      else await navigator.clipboard.writeText(url);
+    } catch (e: any) {
+      alert(e?.message ?? 'Não foi possível criar o apontador.');
+    } finally { setScorerLoading(false); }
+  };
 
   return (
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ paddingBottom: 16 }}>
@@ -129,7 +147,7 @@ export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
       </div>
 
       {/* Links de acompanhamento */}
-      <div style={{ display: 'grid', gridTemplateColumns: liveUrl && arbitroUrl && status !== 'Agendada' ? '1fr 1fr' : '1fr', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: status !== 'Agendada' ? 'repeat(2, minmax(0, 1fr))' : '1fr', gap: 8 }}>
         {liveUrl && (
           <button
             onClick={() => {
@@ -152,25 +170,28 @@ export const ActiveMatchTab: React.FC<ActiveMatchTabProps> = ({
             </span>
           </button>
         )}
-        {arbitroUrl && status !== 'Agendada' && (
+        {status !== 'Agendada' && (
           <button
-            onClick={() => {
-              const nav = navigator as any;
-              if (nav.share) nav.share({ title: 'Modo Árbitro', url: arbitroUrl }).catch(() => {});
-              else { navigator.clipboard.writeText(arbitroUrl); alert('Link do árbitro copiado!'); }
-            }}
+            onClick={handleScorer}
             style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
               padding: '12px 8px', borderRadius: 10, cursor: 'pointer',
               background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.25)', color: '#A855F7' }}>
             <span style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em' }}>
-              📋 Mesa / Árbitro
+              📋 Apontador
             </span>
             <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>
-              Registrar lances
+              {scorerLoading ? 'Gerando link...' : 'Gerar link / compartilhar pelo celular'}
             </span>
           </button>
         )}
       </div>
+
+      {scorerUrl && (
+        <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.2)' }}>
+          <p style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#A855F7', marginBottom: 4 }}>Link do apontador</p>
+          <button onClick={() => navigator.clipboard.writeText(scorerUrl)} style={{ width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: 'transparent', border: 0, color: 'rgba(255,255,255,.45)', fontSize: 9, textAlign: 'left', cursor: 'pointer' }}>{scorerUrl}</button>
+        </div>
+      )}
 
       {/* Feed de eventos ao vivo */}
       {status !== 'Agendada' && (

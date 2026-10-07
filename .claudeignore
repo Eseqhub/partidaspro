@@ -1,8 +1,20 @@
-node_modules/
+# Cache de Desenvolvimento e Compilação
 .next/
-out/
-build/
-dist/
-.git/
-.vscode/
-.vercel/
+.next/dev/
+.next/dev/cache/
+.next/dev/cache/turbopack/
+
+# Módulos e dependências externas
+node_modules/
+
+# Logs, mapas de código e relatórios locais
+*.log
+*.pdf
+*.json.map
+*.js.map
+
+# Documentação pesada de frameworks
+docs/
+01-app/
+03-api-reference/
+05-config/

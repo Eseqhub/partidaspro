@@ -69,7 +69,7 @@ export function GlobalHeader() {
         {/* Navigation */}
         <nav className="hidden md:flex items-center gap-8">
           <Link href="/dashboard" className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-primary transition-colors">Clubes</Link>
-          <Link href="/#faq" className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-primary transition-colors">Suporte</Link>
+          <Link href="/faq" className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-primary transition-colors">Suporte</Link>
         </nav>
 
         {/* Auth Actions */}

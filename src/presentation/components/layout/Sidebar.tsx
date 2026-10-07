@@ -10,6 +10,7 @@ import {
   faUsers,
   faWallet,
   faChartSimple,
+  faBoxes,
   faGear
 } from '@fortawesome/free-solid-svg-icons';
 import { Logo } from '../ui/Logo';
@@ -18,7 +19,7 @@ export function Sidebar() {
   const pathname = usePathname();
   // Extrair o slug da URL: /dashboard/[slug]/...
   const pathParts = pathname.split('/');
-  const isInsideGroup = pathParts[1] === 'dashboard' && pathParts[2] && pathParts[2] !== 'finances' && pathParts[2] !== 'matches' && pathParts[2] !== 'players' && pathParts[2] !== 'stats';
+  const isInsideGroup = pathParts[1] === 'dashboard' && Boolean(pathParts[2]);
   const slug = isInsideGroup ? pathParts[2] : '';
 
   const navItems = isInsideGroup ? [
@@ -26,6 +27,7 @@ export function Sidebar() {
     { label: 'Partidas', icon: faFutbol, href: `/dashboard/${slug}/matches` },
     { label: 'Jogadores', icon: faUsers, href: `/dashboard/${slug}/players` },
     { label: 'Finanças', icon: faWallet, href: `/dashboard/${slug}/finances` },
+    { label: 'Estoque', icon: faBoxes, href: `/dashboard/${slug}/estoque` },
     { label: 'Estatísticas', icon: faChartSimple, href: `/dashboard/${slug}/stats` },
   ] : [
     { label: 'Meus Clubes', icon: faGaugeHigh, href: '/dashboard' },

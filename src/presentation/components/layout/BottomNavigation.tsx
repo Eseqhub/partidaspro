@@ -8,8 +8,9 @@ import {
   faGaugeHigh, 
   faFutbol, 
   faUsers, 
-  faWallet, 
-  faChartSimple 
+  faWallet,
+  faChartSimple,
+  faBoxes
 } from '@fortawesome/free-solid-svg-icons';
 
 export function BottomNavigation() {
@@ -26,6 +27,7 @@ export function BottomNavigation() {
     { label: 'Jogos', icon: faFutbol, href: `/dashboard/${slug}/matches` },
     { label: 'Atletas', icon: faUsers, href: `/dashboard/${slug}/players` },
     { label: 'Finanças', icon: faWallet, href: `/dashboard/${slug}/finances` },
+    { label: 'Estoque', icon: faBoxes, href: `/dashboard/${slug}/estoque` },
     { label: 'Stats', icon: faChartSimple, href: `/dashboard/${slug}/stats` },
   ] : [
     { label: 'Clubes', icon: faGaugeHigh, href: '/dashboard' },

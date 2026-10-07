@@ -3,97 +3,70 @@
 import { supabase } from '@/infra/supabase/client';
 import { randomBytes } from 'crypto';
 
-/**
- * Gera um token de convite único e persiste no match_presence.
- * Retorna a URL pública para compartilhar no WhatsApp.
- */
-export async function generatePresenceLink(
-  matchId: string,
-  baseUrl: string
-): Promise<string> {
-  const token = randomBytes(16).toString('hex');
+export async function generatePresenceLink(matchId: string, baseUrl: string): Promise<string> {
+  const { data: match, error: matchError } = await supabase
+    .from('matches')
+    .select('id, invite_token')
+    .eq('id', matchId)
+    .single();
 
-  const { error } = await supabase
-    .from('match_presence')
-    .upsert(
-      { match_id: matchId, invite_token: token },
-      { onConflict: 'match_id' }
-    );
+  if (matchError || !match) throw new Error('Partida não encontrada.');
 
-  if (error) throw new Error(`Falha ao gerar link: ${error.message}`);
+  const token = match.invite_token || randomBytes(16).toString('hex');
+
+  if (!match.invite_token) {
+    const { error } = await supabase
+      .from('matches')
+      .update({ invite_token: token })
+      .eq('id', matchId);
+    if (error) throw new Error(`Falha ao gerar link: ${error.message}`);
+  }
 
   return `${baseUrl}/partida/${matchId}/confirmar?token=${token}`;
 }
 
-/**
- * Valida o token de convite para a rota de confirmação.
- * Retorna os dados da partida se válido, null caso contrário.
- */
 export async function validatePresenceToken(
   matchId: string,
   token: string
 ): Promise<{ matchId: string; groupId: string } | null> {
   const { data, error } = await supabase
-    .from('match_presence')
-    .select('match_id, match:matches(group_id)')
-    .eq('match_id', matchId)
+    .from('matches')
+    .select('id, group_id, invite_token')
+    .eq('id', matchId)
     .eq('invite_token', token)
     .maybeSingle();
 
   if (error || !data) return null;
-
-  return {
-    matchId: data.match_id,
-    groupId: (data.match as any)?.group_id,
-  };
+  return { matchId: data.id, groupId: data.group_id };
 }
 
-/**
- * Confirma presença de um usuário já autenticado.
- */
-export async function confirmPresenceLoggedIn(
-  matchId: string,
-  playerId: string
-): Promise<void> {
+export async function confirmPresenceLoggedIn(matchId: string, playerId: string): Promise<void> {
   const { error } = await supabase
     .from('match_presence')
     .upsert(
-      {
-        match_id: matchId,
-        player_id: playerId,
-        confirmed_at: new Date().toISOString(),
-      },
+      { match_id: matchId, player_id: playerId, status: 'Confirmado', confirmed_at: new Date().toISOString() },
       { onConflict: 'match_id,player_id' }
     );
 
   if (error) throw new Error(`Falha ao confirmar presença: ${error.message}`);
 }
 
-/**
- * Onboarding rápido: cria perfil do jogador e confirma presença.
- * Usado quando o usuário NÃO está logado ao acessar o link de convite.
- */
 export async function onboardAndConfirm(
   matchId: string,
   groupId: string,
-  payload: {
-    name: string;
-    posicao_principal: string;
-    skill_level: number;
-    email?: string;
-  }
+  payload: { name: string; posicao_principal: string; skill_level: number; email?: string }
 ): Promise<{ success: boolean; playerId?: string; error?: string }> {
   try {
-    // 1. Cria o perfil do jogador no grupo
     const { data: player, error: playerError } = await supabase
       .from('players')
       .insert({
-        name: payload.name,
+        name: payload.name.trim(),
         group_id: groupId,
         posicao_principal: payload.posicao_principal,
         positions: [payload.posicao_principal],
-        skill_level: payload.skill_level,
+        skill_level: Math.max(1, Math.min(10, payload.skill_level)),
         rating: Math.max(1, Math.min(5, Math.round(payload.skill_level / 2))),
+        email: payload.email?.trim() || null,
         status: 'Ativo',
         is_mensalista: false,
       })
@@ -101,12 +74,9 @@ export async function onboardAndConfirm(
       .single();
 
     if (playerError) throw playerError;
-
-    // 2. Confirma presença na partida
     await confirmPresenceLoggedIn(matchId, player.id);
-
     return { success: true, playerId: player.id };
   } catch (err: any) {
-    return { success: false, error: err.message ?? 'Erro desconhecido' };
+    return { success: false, error: err?.message ?? 'Erro desconhecido.' };
   }
 }

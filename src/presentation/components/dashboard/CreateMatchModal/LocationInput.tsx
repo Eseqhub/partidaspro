@@ -85,7 +85,7 @@ export function LocationInput({ value, onChange, groupId, placeholder = 'Buscar 
       try {
         const res = await fetch(
           `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&addressdetails=0`,
-          { headers: { 'Accept-Language': 'pt-BR', 'User-Agent': 'PeladeirosProApp/1.0' } }
+          { headers: { 'Accept-Language': 'pt-BR', 'User-Agent': 'PartidasProApp/1.0' } }
         );
         setSuggestions(await res.json());
       } catch { setSuggestions([]); }
@@ -125,7 +125,7 @@ export function LocationInput({ value, onChange, groupId, placeholder = 'Buscar 
         try {
           const res = await fetch(
             `https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json`,
-            { headers: { 'Accept-Language': 'pt-BR', 'User-Agent': 'PeladeirosProApp/1.0' } }
+            { headers: { 'Accept-Language': 'pt-BR', 'User-Agent': 'PartidasProApp/1.0' } }
           );
           const data = await res.json();
           const addr = data.address;

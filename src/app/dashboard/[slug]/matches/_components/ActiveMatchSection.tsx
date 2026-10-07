@@ -179,6 +179,7 @@ export function ActiveMatchSection({
         {activeTab === 'match' && (
           <ActiveMatchTab
             draftResult={draftResult}
+            matchId={matchId}
             config={config}
             setConfig={setConfig}
             score={score}
