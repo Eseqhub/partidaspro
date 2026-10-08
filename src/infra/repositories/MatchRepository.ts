@@ -14,12 +14,22 @@ export class MatchRepository {
     return data as Match[];
   }
 
+  /**
+   * Retorna somente uma partida realmente em andamento.
+   *
+   * "Agendada" NÃO entra aqui: uma partida agendada/configurada não deve
+   * assumir a tela de jogo ao entrar em "Partidas". O organizador precisa
+   * escolher modalidade, configurar a partida e confirmar os jogadores antes
+   * de ela virar uma sessão ativa.
+   *
+   * "Pausada" continua sendo retomável porque a partida já foi iniciada.
+   */
   async findLiveMatch(groupId: string): Promise<Match | null> {
     const { data, error } = await supabase
       .from(this.table)
       .select('*')
       .eq('group_id', groupId)
-      .in('status', ['Em curso', 'Pausada', 'Agendada'])
+      .in('status', ['Em curso', 'Pausada'])
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
