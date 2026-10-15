@@ -244,7 +244,14 @@ export function useMatchState(slug: string) {
           founded_year: group.founded_year || new Date().getFullYear(),
         }));
 
-        const liveMatch = await matchRepo.findLiveMatch(group.id);
+        // A entrada em "Partidas" deve sempre abrir em estado neutro.
+        // Não restaurar partidas antigas automaticamente: o organizador deve
+        // iniciar uma nova configuração conscientemente. A retomada de sessões
+        // anteriores deverá ser oferecida por uma ação explícita na interface.
+        const shouldRestorePreviousSession = false;
+        const liveMatch = shouldRestorePreviousSession
+          ? await matchRepo.findLiveMatch(group.id)
+          : null;
         if (liveMatch) {
           setMatchId(liveMatch.id);
           setScore({ home: liveMatch.home_score, away: liveMatch.away_score });
