@@ -406,72 +406,11 @@ export function useMatchState(slug: string) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchId]);
 
-  // Realtime: nova partida criada no grupo (outros dispositivos recebem a partida)
-  useEffect(() => {
-    if (!groupId) return;
-    const sub = matchRepo.subscribeToGroupMatches(groupId, async (m: any) => {
-      if (!m?.id) return;
-      // Ignora se já temos essa partida ou se está finalizada
-      if (matchIdRef.current === m.id) return;
-      if (m.status === 'Finalizada') return;
+  // Não assumir partidas criadas em outro dispositivo automaticamente.
+  // A tela só muda de idle para setup quando o próprio organizador escolhe
+  // "Criar partida" e conclui a configuração. Isso evita que eventos realtime
+  // de partidas antigas/teste abram e finalizem uma partida sem consentimento.
 
-      setMatchId(m.id);
-      setScore({ home: m.home_score ?? 0, away: m.away_score ?? 0 });
-      setStatus(m.status as MatchStatus);
-      setAccumulatedTime(m.timer_seconds ?? 0);
-      setTimer(m.timer_seconds ?? 0);
-      setStartTime(null);
-      setSessionPhase('active');
-
-      const resolvedType: MatchType =
-        m.match_type === 'manual'  ? 'manual'
-        : m.match_type === 'desafio' ? 'desafio'
-        : m.modality === 'Bolão' ? 'rachao'
-        : 'rachao';
-      setMatchType(resolvedType);
-
-      setConfig((prev: any) => ({
-        ...prev,
-        homeTeamName:   m.home_team_name   ?? prev.homeTeamName,
-        awayTeamName:   m.away_team_name   ?? prev.awayTeamName,
-        homeColor:      m.home_color       ?? prev.homeColor,
-        awayColor:      m.away_color       ?? prev.awayColor,
-        duration:       m.duration_minutes ?? prev.duration,
-        stoppage:       m.stoppage_minutes ?? prev.stoppage,
-        goalLimit:      m.goal_limit       ?? prev.goalLimit,
-        sport_type:    (m.sport_type as SportType) ?? prev.sport_type,
-        game_mode:     (m.modality  as GameMode)   ?? prev.game_mode,
-        playersPerTeam: m.field_type ? (FIELD_TYPE_PPT[m.field_type] ?? prev.playersPerTeam) : prev.playersPerTeam,
-        tipo_campo:     m.field_type ?? prev.tipo_campo,
-      }));
-
-      const ev = await matchRepo.getEvents(m.id);
-      setEvents(ev);
-
-      // Aguarda os inserts de presença (batch) terminarem e tenta reconstruir times
-      setTimeout(async () => {
-        const presence = await matchRepo.getPresence(m.id);
-        if (!presence.length) return;
-        const homePlayers    = presence.filter((p: any) => p.team === 'home'    && p.player).map((p: any) => p.player);
-        const awayPlayers    = presence.filter((p: any) => p.team === 'away'    && p.player).map((p: any) => p.player);
-        const waitingPlayers = presence.filter((p: any) => (!p.team || p.team === 'waiting') && p.player).map((p: any) => p.player);
-        if (homePlayers.length > 0 || awayPlayers.length > 0) {
-          const calcRating = (team: Player[]) =>
-            team.length ? team.reduce((acc, p) => acc + draftService.calculatePowerLevel(p), 0) / team.length : 0;
-          setDraftResult({
-            homeTeam: homePlayers,
-            awayTeam: awayPlayers,
-            waitingList: waitingPlayers,
-            homeRating: calcRating(homePlayers),
-            awayRating: calcRating(awayPlayers),
-          });
-          setActiveTab('match');
-        }
-      }, 1500);
-    });
-    return () => { supabase.removeChannel(sub); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupId]);
 
   // Realtime: presença alterada (garante que outros dispositivos vejam os times mesmo em rede lenta)
   useEffect(() => {
@@ -518,13 +457,22 @@ export function useMatchState(slug: string) {
         const now = serverNow();
         const elapsed = Math.floor((now - startTime) / 1000);
         const currentTotal = accumulatedTime + elapsed;
-        const limitSeconds = (config.duration + config.stoppage) * 60;
+        const limitSeconds = (Number(config.duration || 0) + Number(config.stoppage || 0)) * 60;
         setTimer(currentTotal);
-        if (currentTotal >= limitSeconds) {
+        // Sem duração válida, nunca encerrar automaticamente.
+        // A partida só pode acabar pelo relógio depois de iniciada pelo usuário.
+        if (limitSeconds > 0 && currentTotal >= limitSeconds) {
           audioService.playEndAlarm();
           setStatus('Finalizada');
           setAccumulatedTime(limitSeconds);
           setStartTime(null);
+          if (matchId) {
+            matchRepo.update(matchId, {
+              status: 'Finalizada',
+              timer_seconds: limitSeconds,
+              timer_started_at: null,
+            }).catch(console.error);
+          }
         }
       }, 500);
     }
